@@ -1,6 +1,7 @@
 # research
 研究開発用レポジトリ（2017/10~）
   - データセットなどのまとめサイト（https://github.com/arXivTimes/arXivTimes ）
+
 研究テーマ（2018/10-）
   - graph neural networksやgraph convolutional neural networksなどのグラフ構造分野
     - graph convolution の実装法(https://omedstu.jimdo.com/2018/05/13/keras%E3%81%AB%E3%82%88%E3%82%8Bgraph-convolutional-networks/ )
