@@ -12,3 +12,4 @@
     - ラプラシアン=微分演算子
     
     - graph convolutionのgithubコード（https://github.com/tkipf/gcn）
+
