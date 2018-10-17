@@ -11,3 +11,4 @@
     - graph neural networkの元論文（http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.1015.7227&rep=rep1&type=pdf ）
     - ラプラシアン=微分演算子
     
+    - graph convolutionのgithubコード（https://github.com/tkipf/gcn）
