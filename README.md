@@ -14,6 +14,6 @@
     - graph convolutionのgithubコード（https://github.com/tkipf/gcn）
 
 勉強したこと
-    - ホップフィールドネットワーク
-    - ボルツマンマシン
+  - ホップフィールドネットワーク
+  - ボルツマンマシン
    
