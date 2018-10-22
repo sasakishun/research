@@ -13,6 +13,7 @@
     
     - graph convolutionのgithubコード（https://github.com/tkipf/gcn ）
     - Graph Convolutional Networks for Classification with a Structured LebalSpace (https://www.slideshare.net/KazusaTaketoshi/graph-convolutional-networks-for-classification-with-a-structured-lebalspace )
+    - Graph フーリエ変換(The Emerging Field of Signal Processing on Graphs: Extending High-Dimensional Data Analysis to Networks and Other Irregular Domains )（https://arxiv.org/pdf/1211.0053.pdf）
 勉強したこと
   - ホップフィールドネットワーク
   - ボルツマンマシン
