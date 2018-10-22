@@ -12,7 +12,7 @@
     - ラプラシアン=微分演算子
     
     - graph convolutionのgithubコード（https://github.com/tkipf/gcn ）
-
+    - Graph Convolutional Networks for Classification with a Structured LebalSpace (https://www.slideshare.net/KazusaTaketoshi/graph-convolutional-networks-for-classification-with-a-structured-lebalspace )
 勉強したこと
   - ホップフィールドネットワーク
   - ボルツマンマシン
