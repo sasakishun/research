@@ -20,5 +20,10 @@
   - ボルツマンマシン
   - Graph Convolution(Graphフーリエ変換使用、The Emerging Field of Signal Processing on Graphs)  
   - Graph Convolution(直観的分類、“Modeling Relational Data with Graph Convolutional Networks”)
-  
+
+勉強すること
+  - seq2seq
+  - Attention
+  - q-learning
+  - コントラスティブダイバージェンス
   
