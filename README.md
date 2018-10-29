@@ -26,4 +26,5 @@
   - Attention
   - q-learning
   - コントラスティブダイバージェンス
-  
+  - Generative Adversarial Networks
+  - Variational Auto Encoder
