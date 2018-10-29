@@ -16,15 +16,15 @@
     - Graph フーリエ変換(The Emerging Field of Signal Processing on Graphs: Extending High-Dimensional Data Analysis to Networks and Other Irregular Domains )（https://arxiv.org/pdf/1211.0053.pdf）
     
 勉強したこと
-  - ホップフィールドネットワーク
-  - ボルツマンマシン
-  - Graph Convolution(Graphフーリエ変換使用、The Emerging Field of Signal Processing on Graphs)  
-  - Graph Convolution(直観的分類、“Modeling Relational Data with Graph Convolutional Networks”)
+  - ホップフィールドネットワーク(10/21)
+  - ボルツマンマシン(10/21)
+  - Graph Convolution(Graphフーリエ変換使用、"The Emerging Field of Signal Processing on Graphs") (10/23) 
+  - Graph Convolution(直観的分類、“Modeling Relational Data with Graph Convolutional Networks”)(10/23)
+  - Generative Adversarial Networks（10/29）
 
 勉強すること
   - seq2seq
   - Attention
   - q-learning
   - コントラスティブダイバージェンス
-  - Generative Adversarial Networks
   - Variational Auto Encoder
