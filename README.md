@@ -36,7 +36,7 @@
     - graph spectral domainsについての議論、グラフから高次元データを抽出する方法の議論とサーベイ
   - Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering(https://arxiv.org/pdf/1606.09375.pdf )
     - 画像や動画などの低次元グリッドなどから、ソーシャルネットや単語埋め込みベクトルなどの高次元ネットワークを抽出する手法
-  - Semi-Supervised Classification with Graph Convolutional Networks(https://arxiv.org/abs/1609.02907 )
+  - Semi-Supervised Classification with Graph Convolutional Networks(https://arxiv.org/pdf/1609.02907.pdf )
     - グラフ畳み込みをスケーラブルにした半教師ありクラス分類
   - Modeling Relational Data with Graph Convolutional Networks(https://arxiv.org/pdf/1703.06103.pdf )
     - 
