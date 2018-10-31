@@ -45,7 +45,11 @@
   - Structured Sequence Modeling with Graph Convolutional Recurrent Networks(https://arxiv.org/pdf/1612.07659.pdf )
     - GraphCNNとRNNの組み合わせ手法。GraphCNNでデータ構造を抽出し、RNNでその動的なパターン変化を学習
   - Dynamic Graph Convolutional Networks(https://arxiv.org/pdf/1704.06199.pdf )
-    - 
+    - 1つのモデルで異なるクラス分類タスクに対応するには、
+    グラフなどで表現される構造情報を取り扱う必要がある。
+    しかし既存のNNでは動的に変化するグラフ構造を取り扱うことが出来ない。これに対しLSTMとGraphCNNを組み合わせることで、グラフが更新されても対応可能な手法を提案する。
   - Encoding Sentences with Graph Convolutional Networks for Semantic Role Labeling(https://arxiv.org/pdf/1703.04826.pdf )
-    - 
+    - Semantic role labeling(SRL)は主語述語関係を識別するタスクでNLPでは重要視される。
+    著者は意味だけでなく構文情報も重要になると考え、意味を抽出するLSTMに構文情報を処理できるGraphCNNを組み合わせる。
+    （構文情報とは何の事なのか？）
     
