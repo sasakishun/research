@@ -29,7 +29,7 @@
   - コントラスティブダイバージェンス
   - Variational Auto Encoder
 
-読むリスト
+# 読むリスト
   - Neural Message Passing for Quantum Chemistry(https://arxiv.org/pdf/1704.01212.pdf )
     - message passing algorithmとは何かわかれば、Graph Networksについてより理解できそう
   - The Emerging Field of Signal Processing on Graphs: Extending High-Dimensional Data Analysis to Networks and Other Irregular Domains(https://arxiv.org/pdf/1211.0053.pdf)
