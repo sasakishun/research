@@ -41,7 +41,7 @@
   - Modeling Relational Data with Graph Convolutional Networks(https://arxiv.org/pdf/1703.06103.pdf )
     - 
   - Structured Sequence Modeling with Graph Convolutional Recurrent Networks(https://arxiv.org/pdf/1612.07659.pdf )
-    - 
+    - GraphCNNとRNNの組み合わせ手法。GraphCNNでデータ構造を抽出し、RNNでその動的なパターン変化を学習
   - Dynamic Graph Convolutional Networks(https://arxiv.org/pdf/1704.06199.pdf )
     - 
   - Encoding Sentences with Graph Convolutional Networks for Semantic Role Labeling(https://arxiv.org/pdf/1703.04826.pdf )
