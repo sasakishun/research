@@ -39,7 +39,9 @@
   - Semi-Supervised Classification with Graph Convolutional Networks(https://arxiv.org/pdf/1609.02907.pdf )
     - グラフ畳み込みをスケーラブルにした半教師ありクラス分類
   - Modeling Relational Data with Graph Convolutional Networks(https://arxiv.org/pdf/1703.06103.pdf )
-    - 
+    - R-GCNsを用いて不完全な知識グラフ（Wikipedia）を補完する。ここではエンティティのクラス分類とエンティティ間の関係推論を行う。
+    この手法では関係ごとに異なる重みで周辺ノードを畳み込み、各ノードごとに特徴を出力する。その特徴を次の層のノード値とする。
+    このように畳み込みの結果、隣接ノード値を考慮したノード値が次の層へ出力される。畳み込みをしても層の前後でグラフの形は変化しない。あくまで隣接ノードを考慮した値にノードが更新されていくだけである。そして畳み込みをするたびに隣接ノードが考慮されていくが、その隣接ノードは別の隣接ノードを考慮しているので、間接的に隣の隣のノードも考慮できる。このように畳み込みをするごとに（畳み込み回数）近傍ノードを考慮したノード値が出力される。
   - Structured Sequence Modeling with Graph Convolutional Recurrent Networks(https://arxiv.org/pdf/1612.07659.pdf )
     - GraphCNNとRNNの組み合わせ手法。GraphCNNでデータ構造を抽出し、RNNでその動的なパターン変化を学習
   - Dynamic Graph Convolutional Networks(https://arxiv.org/pdf/1704.06199.pdf )
