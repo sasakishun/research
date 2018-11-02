@@ -31,7 +31,7 @@
 
 # 読むリスト
   - Neural Message Passing for Quantum Chemistry(https://arxiv.org/pdf/1704.01212.pdf )
-    - message passing algorithmとは何かわかれば、Graph Networksについてより理解できそう
+    - message passing algorithmというものを用いる。入力は隣接行列とノードの持つ信号。
   - The Emerging Field of Signal Processing on Graphs: Extending High-Dimensional Data Analysis to Networks and Other Irregular Domains(https://arxiv.org/pdf/1211.0053.pdf)
     - graph spectral domainsについての議論、グラフから高次元データを抽出する方法の議論とサーベイ
   - Convolutional Neural Networks on Graphs with Fast Localized Spectral Filtering(https://arxiv.org/pdf/1606.09375.pdf )
