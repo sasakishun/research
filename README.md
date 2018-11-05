@@ -52,5 +52,5 @@
   - Encoding Sentences with Graph Convolutional Networks for Semantic Role Labeling(https://arxiv.org/pdf/1703.04826.pdf )
     - Semantic role labeling(SRL)は主語述語関係を識別するタスクでNLPでは重要視される。
     著者は意味だけでなく構文情報も重要になると考え、意味を抽出するLSTMに構文情報を処理できるGraphCNNを組み合わせる。
-    （構文情報とは何の事なのか？）
+    （構文情報とは何の事なのか？）→主語述語関係などのルールベースのような対応関係
     
