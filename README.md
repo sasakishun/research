@@ -28,6 +28,7 @@
   - q-learning
   - コントラスティブダイバージェンス
   - Variational Auto Encoder
+  - GANの応用
 
 # 読むリスト
   - Neural Message Passing for Quantum Chemistry(https://arxiv.org/pdf/1704.01212.pdf )
