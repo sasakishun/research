@@ -1,3 +1,6 @@
+import sys
+sys.path.append('..')
+
 from gcn.layers import *
 from gcn.metrics import *
 
