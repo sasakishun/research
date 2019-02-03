@@ -29,7 +29,8 @@
   - コントラスティブダイバージェンス
   - Variational Auto Encoder
   - GANの応用
-
+  - FaceNetsの実装
+  
 # 読むリスト
   - Neural Message Passing for Quantum Chemistry(https://arxiv.org/pdf/1704.01212.pdf )
     - message passing algorithmというものを用いる。入力は隣接行列とノードの持つ信号。
