@@ -9,8 +9,9 @@ from model import *
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('batch_size', 512, 'Batch size.')
-flags.DEFINE_integer('train_iter', 2000, 'Total training iter')
+# flags.DEFINE_integer('batch_size', 512, 'Batch size.')
+flags.DEFINE_integer('batch_size', 32, 'Batch size.')
+flags.DEFINE_integer('train_iter', 10000, 'Total training iter')
 flags.DEFINE_integer('step', 50, 'Save after ... iteration')
 flags.DEFINE_string('model', 'mnist', 'model to run')
 
@@ -37,7 +38,8 @@ if __name__ == "__main__":
     left_output = model(left, reuse=False)
     right_output = model(right, reuse=True)
     loss = contrastive_loss(left_output, right_output, label_float, margin)
-
+    # loss = (1 - label_float) * tf.reduce_sum(tf.abs(left_output - right_output)) - \
+           # label_float * tf.reduce_sum(tf.abs(left_output - right_output))
     # Setup Optimizer
     global_step = tf.Variable(0, trainable=False)
 
@@ -47,6 +49,7 @@ if __name__ == "__main__":
     # train_step = tf.train.RMSPropOptimizer(learning_rate).minimize(loss, global_step=global_step)
 
     train_step = tf.train.MomentumOptimizer(0.01, 0.99, use_nesterov=True).minimize(loss, global_step=global_step)
+    # train_step = tf.train.AdamOptimizer(1e-4).minimize(loss, global_step=global_step)
 
     # Start Training
     saver = tf.train.Saver()
@@ -74,9 +77,9 @@ if __name__ == "__main__":
             if (i + 1) % FLAGS.step == 0:
                 # generate test
                 # TODO: create a test file and run per batch
-                feat = sess.run(left_output, feed_dict={left: dataset.images_test})
+                feat = sess.run(left_output, feed_dict={left: dataset.images_test[:1000]})
 
-                labels = dataset.labels_test
+                labels = dataset.labels_test[:1000]
                 # plot result
                 f = plt.figure(figsize=(16, 9))
                 f.set_tight_layout(True)
@@ -85,5 +88,4 @@ if __name__ == "__main__":
                              alpha=0.8)
                 plt.legend(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
                 plt.savefig('img/%d.jpg' % (i + 1))
-
         saver.save(sess, "model/model.ckpt")

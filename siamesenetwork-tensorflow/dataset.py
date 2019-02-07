@@ -2,7 +2,11 @@ from __future__ import generators, division, absolute_import, with_statement, pr
 
 import numpy as np
 import matplotlib.pyplot as plt
-from tensorflow.keras.datasets import mnist
+import os
+from PIL import Image
+
+# from tensorflow.keras.datasets import mnist
+from keras.datasets import mnist
 
 
 class Dataset(object):
@@ -32,8 +36,11 @@ class Dataset(object):
 
     def get_siamese_batch(self, n):
         idxs_left, idxs_right, labels = [], [], []
-        for _ in range(n):
-            l, r, x = self._get_siamese_pair()
+        for i in range(n):
+            if i % 2 == 0:
+                l, r, x = self._get_siamese_similar_pair()
+            else:
+                l, r, x = self._get_siamese_dissimilar_pair()
             idxs_left.append(l)
             idxs_right.append(r)
             labels.append(x)
@@ -44,6 +51,37 @@ class MNISTDataset(Dataset):
     def __init__(self):
         print("===Loading MNIST Dataset===")
         (self.images_train, self.labels_train), (self.images_test, self.labels_test) = mnist.load_data()
+        """
+        (self.images_train, self.labels_train), (self.images_test, self.labels_test) = ([], []), ([], [])
+        imageSize = 28
+        for i in range(10):
+            try:
+                target_dir = "/data/dataset_sasaki/v3.2/training/minutiae/FingerId/" + str(i) + "/0/"
+                imageNum = 10
+                for filename in os.listdir(target_dir):
+                    if imageNum > 0:
+                        imageNum -= 1
+                        img = Image.open(target_dir + filename)
+                        img = img.resize((imageSize, imageSize))
+                        img = img.convert('L')
+                        img = np.asanyarray(img)
+                        # img = np.asarray(img)
+                        # normalization
+                        img = img.reshape(imageSize ** 2) / 255
+                        img = img.reshape(imageSize, imageSize)
+                        self.images_train.append(img)
+                        self.labels_train.append(i)
+                        self.images_test.append(img)
+                        self.labels_test.append(i)
+                    else:
+                        break
+            except FileNotFoundError:
+                continue
+        self.images_train = np.asarray(self.images_train)
+        self.labels_train = np.asarray(self.labels_train)
+        self.images_test = np.asarray(self.images_test)
+        self.labels_test = np.asarray(self.labels_test)
+        """
         self.images_train = np.expand_dims(self.images_train, axis=3) / 255.0
         self.images_test = np.expand_dims(self.images_test, axis=3) / 255.0
         self.labels_train = np.expand_dims(self.labels_train, axis=1)
@@ -56,7 +94,7 @@ class MNISTDataset(Dataset):
         print("Labels test  :", self.labels_test.shape)
         print("Unique label :", self.unique_train_label)
 
-    # print("Map label indices:", self.map_train_label_indices)
+        # print("Map label indices:", self.map_train_label_indices)
 
 
 if __name__ == "__main__":
