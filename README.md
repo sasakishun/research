@@ -58,4 +58,5 @@
   - Representation Learning: A Review and New Perspectives(https://arxiv.org/pdf/1206.5538.pdf )    
 
 # 深く勉強中
-- Siamese Network https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e
+- Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
+- Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
