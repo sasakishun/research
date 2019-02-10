@@ -31,6 +31,8 @@
   - GANの応用
   - FaceNetsの実装
   
+# 環境構築
+  - Windows10でのtensorflow-gpuの使用するために（https://ossyaritoori.hatenablog.com/entry/2018/03/27/Keras_%26_Tensorflow_%28GPU%E6%9C%89%29%E3%81%AE%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89_on_Windows_with_Anaconda ）  
 # 読むリスト
   - Neural Message Passing for Quantum Chemistry(https://arxiv.org/pdf/1704.01212.pdf )
     - message passing algorithmというものを用いる。入力は隣接行列とノードの持つ信号。
