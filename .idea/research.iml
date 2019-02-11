@@ -4,7 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/graphConvolution/keras-gcn" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.6.1 (~/.pyenv/versions/anaconda3-4.4.0/bin/python)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.7.0 (C:\Users\papap\Anaconda3\python.exe)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">

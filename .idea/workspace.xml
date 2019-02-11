@@ -2,8 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="951e9af6-9bf3-429b-a61f-9b44017a7e78" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network" afterPath="$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/graphConvolution/keras-gcn" afterPath="$PROJECT_DIR$/graphConvolution/keras-gcn" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/research.iml" afterPath="$PROJECT_DIR$/.idea/research.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/siamesenetwork-tensorflow/.idea/workspace.xml" afterPath="$PROJECT_DIR$/siamesenetwork-tensorflow/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -13,80 +15,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="train.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="352">
-              <caret line="26" column="0" lean-forward="false" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="arrayPractice.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/arrayPractice.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="utils.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="990">
-              <caret line="49" column="10" lean-forward="false" selection-start-line="49" selection-start-column="4" selection-end-line="49" selection-end-column="10" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="graph.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="748">
-              <caret line="39" column="8" lean-forward="false" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="8" />
-              <folding>
-                <element signature="e#0#37#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="tensorflow_backend.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="57926">
-              <caret line="2658" column="0" lean-forward="false" selection-start-line="2658" selection-start-column="0" selection-end-line="2658" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="training_arrays.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training_arrays.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4070">
-              <caret line="198" column="0" lean-forward="false" selection-start-line="198" selection-start-column="0" selection-end-line="198" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="training.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="22352">
-              <caret line="1041" column="0" lean-forward="false" selection-start-line="1041" selection-start-column="0" selection-end-line="1041" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <leaf />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -120,14 +49,14 @@
         <option value="$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network/20180614_DMNN.py" />
         <option value="$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/arrayPractice.py" />
         <option value="$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py" />
+        <option value="$PROJECT_DIR$/DynamicallyMultilayerdNeuralNetwork/1105_make_dataset_for_numpy.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1160" />
-    <option name="y" value="56" />
-    <option name="width" value="1388" />
-    <option name="height" value="1460" />
+    <option name="x" value="1273" />
+    <option name="width" value="1294" />
+    <option name="height" value="1567" />
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -144,8 +73,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -156,34 +85,7 @@
             <path>
               <item name="research" type="b2602c69:ProjectViewProjectNode" />
               <item name="research" type="462c0819:PsiDirectoryNode" />
-              <item name="graphConvolution" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="research" type="b2602c69:ProjectViewProjectNode" />
-              <item name="research" type="462c0819:PsiDirectoryNode" />
-              <item name="graphConvolution" type="462c0819:PsiDirectoryNode" />
-              <item name="gcn" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="research" type="b2602c69:ProjectViewProjectNode" />
-              <item name="research" type="462c0819:PsiDirectoryNode" />
-              <item name="graphConvolution" type="462c0819:PsiDirectoryNode" />
-              <item name="keras-gcn" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="research" type="b2602c69:ProjectViewProjectNode" />
-              <item name="research" type="462c0819:PsiDirectoryNode" />
-              <item name="graphConvolution" type="462c0819:PsiDirectoryNode" />
-              <item name="keras-gcn" type="462c0819:PsiDirectoryNode" />
-              <item name="kegra" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="research" type="b2602c69:ProjectViewProjectNode" />
-              <item name="research" type="462c0819:PsiDirectoryNode" />
-              <item name="graphConvolution" type="462c0819:PsiDirectoryNode" />
-              <item name="keras-gcn" type="462c0819:PsiDirectoryNode" />
-              <item name="kegra" type="462c0819:PsiDirectoryNode" />
-              <item name="layers" type="462c0819:PsiDirectoryNode" />
+              <item name="DynamicallyMultilayerdNeuralNetwork" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -192,7 +94,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/embedded_gcnn" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -310,19 +212,18 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1160" y="56" width="1388" height="1460" extended-state="0" />
-    <editor active="true" />
+    <frame x="1273" y="0" width="1294" height="1567" extended-state="0" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16169895" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17214398" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23065364" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.23065364" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39969948" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -350,106 +251,18 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1672">
-          <caret line="90" column="0" lean-forward="false" selection-start-line="90" selection-start-column="0" selection-end-line="90" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/arrayPractice.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="154">
-          <caret line="7" column="0" lean-forward="false" selection-start-line="5" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="990">
-          <caret line="49" column="10" lean-forward="false" selection-start-line="49" selection-start-column="4" selection-end-line="49" selection-end-column="10" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="748">
-          <caret line="39" column="8" lean-forward="false" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="8" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="57926">
-          <caret line="2658" column="0" lean-forward="false" selection-start-line="2658" selection-start-column="0" selection-end-line="2658" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training_arrays.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4070">
-          <caret line="198" column="0" lean-forward="false" selection-start-line="198" selection-start-column="0" selection-end-line="198" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22352">
-          <caret line="1041" column="0" lean-forward="false" selection-start-line="1041" selection-start-column="0" selection-end-line="1041" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1386">
-          <caret line="67" column="10" lean-forward="false" selection-start-line="67" selection-start-column="10" selection-end-line="67" selection-end-column="10" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="748">
-          <caret line="39" column="8" lean-forward="false" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="8" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1012">
-          <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/arrayPractice.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py" />
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py" />
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training_arrays.py" />
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py" />
     <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/README.md">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -485,13 +298,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/h5py/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-264">
-          <caret line="35" column="0" lean-forward="false" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/h5py/__init__.py" />
     <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/layers.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -506,20 +313,8 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network/cifar10vgg.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1782">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network/20180614_DMNN.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="135" column="0" lean-forward="true" selection-start-line="135" selection-start-column="0" selection-end-line="135" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network/cifar10vgg.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/Dynamically-Multilayered-Neural-Network/20180614_DMNN.py" />
     <entry file="file://$PROJECT_DIR$/graphConvolution/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -527,20 +322,8 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/__init__.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/__init__.py" />
     <entry file="file://$PROJECT_DIR$/graphConvolution/gcn/train.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="154">
@@ -548,68 +331,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/__init__.py">
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/__init__.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py" />
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py" />
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training_arrays.py" />
+    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/arrayPractice.py" />
+    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py" />
+    <entry file="file://$PROJECT_DIR$/DynamicallyMultilayerdNeuralNetwork/1105_make_dataset_for_numpy.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/layers/graph.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="748">
-          <caret line="39" column="8" lean-forward="false" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="8" />
+        <state relative-caret-position="240">
+          <caret line="8" column="25" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="130" selection-end-column="0" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="990">
-          <caret line="49" column="10" lean-forward="false" selection-start-line="49" selection-start-column="4" selection-end-line="49" selection-end-column="10" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/backend/tensorflow_backend.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="57926">
-          <caret line="2658" column="0" lean-forward="false" selection-start-line="2658" selection-start-column="0" selection-end-line="2658" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training_arrays.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4070">
-          <caret line="198" column="0" lean-forward="false" selection-start-line="198" selection-start-column="0" selection-end-line="198" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.pyenv/versions/anaconda3-4.4.0/lib/python3.6/site-packages/keras/engine/training.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="22352">
-          <caret line="1041" column="0" lean-forward="false" selection-start-line="1041" selection-start-column="0" selection-end-line="1041" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/arrayPractice.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/graphConvolution/keras-gcn/kegra/train.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="352">
-          <caret line="26" column="0" lean-forward="false" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
