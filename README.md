@@ -59,6 +59,7 @@
     （構文情報とは何の事なのか？）→主語述語関係などのルールベースのような対応関係
   - Representation Learning: A Review and New Perspectives(https://arxiv.org/pdf/1206.5538.pdf )    
 
-# 深く勉強中
+# 深く勉強すべき
 - Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
+- AnoGAN (https://qiita.com/NakaokaRei/items/231ec4efe42dfe79d1ff )
