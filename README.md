@@ -63,3 +63,6 @@
 - Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
 - AnoGAN (https://qiita.com/NakaokaRei/items/231ec4efe42dfe79d1ff )
+
+# 便利メモ
+  - tqdmを使うとデータの処理状況(itarationできるもの)がわかる
