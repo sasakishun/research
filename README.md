@@ -67,3 +67,4 @@
 - GANで異常検知（http://ni4muraano.hatenablog.com/entry/2018/08/14/174901 ）
 # 便利メモ
   - tqdmを使うとデータの処理状況(itarationできるもの)がわかる
+  - numpyのconcatenateではaxisを指定することで、任意の要素を連結可能
