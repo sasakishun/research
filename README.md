@@ -27,7 +27,7 @@
   - seq2seq
   - Attention
   - q-learning
-  - コントラスティブダイバージェンス
+  - コントラスティブダイバージェンス（Siamese Networkで使用、ユークリッド距離の代わり）
   - Variational Auto Encoder
   - GANの応用
   - FaceNetsの実装
