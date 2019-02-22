@@ -68,6 +68,7 @@
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
 - AnoGAN (https://qiita.com/NakaokaRei/items/231ec4efe42dfe79d1ff )
 - GANで異常検知（http://ni4muraano.hatenablog.com/entry/2018/08/14/174901 ）
+- 画像を周波数分解してCNNに入力、チャネル数を増やしたことでどのような結果になるか？
 # 便利メモ
   - tqdmを使うとデータの処理状況(itarationできるもの)がわかる
   - numpyのconcatenateではaxisを指定することで、任意の要素を連結可能
