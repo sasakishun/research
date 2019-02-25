@@ -34,7 +34,8 @@
   - ResNet
   - batch normalization(inference)
   - 異常検知で間違い方によりロスの重みづけ、という方法があるか？ないならどうやってnegative Falseを避けているのか調べる
-  - siamese and gan
+  - siamese and gan（GANのGeneratoerとDiscremenaterをSiameseNetにして、2つの出力[(True or False), (True or False)]を得る。この出力差をSiamameseで学習
+  
   
 # 環境構築
   - Windows10でのtensorflow-gpuの使用するために（https://ossyaritoori.hatenablog.com/entry/2018/03/27/Keras_%26_Tensorflow_%28GPU%E6%9C%89%29%E3%81%AE%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89_on_Windows_with_Anaconda ）  
