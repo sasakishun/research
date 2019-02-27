@@ -34,7 +34,7 @@
   - ResNet
   - batch normalization(inference)
   - 異常検知で間違い方によりロスの重みづけ、という方法があるか？ないならどうやってnegative Falseを避けているのか調べる
-  - siamese and gan
+  - siamese and gan (https://aws.amazon.com/jp/blogs/news/combining-deep-learning-networks-gan-and-siamese-to-generate-high-quality-life-like-images/ )
     - GANのGeneratoerとDiscremenaterをSiameseNetにして、2つの出力[(True or False), (True or False)]を得る。この出力差をSiamameseで学習
     - siameseはnormal type
   
