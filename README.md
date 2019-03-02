@@ -74,6 +74,7 @@
 - GANで異常検知（http://ni4muraano.hatenablog.com/entry/2018/08/14/174901 ）
 - 画像を周波数分解してCNNに入力、チャネル数を増やしたことでどのような結果になるか？
 - FaceNet
+- pairwise cnn
 # 便利メモ
   - tqdmを使うとデータの処理状況(itarationできるもの)がわかる
   - numpyのconcatenateではaxisを指定することで、任意の要素を連結可能
