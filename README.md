@@ -30,13 +30,17 @@
   - コントラスティブダイバージェンス（Siamese Networkで使用、ユークリッド距離の代わり）
   - Variational Auto Encoder
   - GANの応用
-  - FaceNetsの実装
+  - FaceNets
+    - 入力画像を128次元の特徴ベクトルに変換、このベクトル間のユークリッド距離をそのまま類似度と定義
+    - triplet lossを使用
+      - negative : ランダムに選定したサンプルの中でhard negativeを使用（一番距離が近いnegativeのみを見て、それが離れるように学習）
+      - positive : 全て使用
   - ResNet
   - batch normalization(inference)
   - 異常検知で間違い方によりロスの重みづけ、という方法があるか？ないならどうやってnegative Falseを避けているのか調べる
   - siamese and gan (https://aws.amazon.com/jp/blogs/news/combining-deep-learning-networks-gan-and-siamese-to-generate-high-quality-life-like-images/ )
     - GANのGeneratoerとDiscremenaterをSiameseNetにして、2つの出力[(True or False), (True or False)]を得る。この出力差をSiamameseで学習
-    - siameseはnormal type
+    - siameseは一般的なものを使用
   - Discriminative Learning of Deep Convolutional Feature Point Descriptors
     - siamese networkには識別困難なペアから学習すべきという、カリキュラムラーニングと反対の考え方
 # 環境構築
