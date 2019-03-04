@@ -22,12 +22,13 @@
   - Graph Convolution(Graphフーリエ変換使用、"The Emerging Field of Signal Processing on Graphs") (10/23) 
   - Graph Convolution(直観的分類、“Modeling Relational Data with Graph Convolutional Networks”)(10/23)
   - Generative Adversarial Networks（10/29）
+  - コントラスティブダイバージェンス（Siamese Networkで使用、ユークリッド距離の代わり）
+    - マージンを設定することで、特徴ベクトル間距離が完全にゼロになり、同一クラスが一点に集中するよう学習されるのを防ぎ、ある程度集合すれば誤差0となるようにする。これにより過適合を低減。
 
 勉強すること
   - seq2seq
   - Attention
   - q-learning
-  - コントラスティブダイバージェンス（Siamese Networkで使用、ユークリッド距離の代わり）
   - Variational Auto Encoder
   - GANの応用
   - FaceNets
