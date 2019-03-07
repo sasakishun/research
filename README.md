@@ -36,7 +36,7 @@
     - triplet lossを使用
       - negative : ランダムに選定したサンプルの中でhard negativeを使用（一番距離が近いnegativeのみを見て、それが離れるように学習）
       - positive : 全て使用
-  - ResNet
+  - ResNet(3,40層などの少数層でどれだけ性能が向上するか検証)
   - batch normalization(inference)
   - 異常検知で間違い方によりロスの重みづけ、という方法があるか？ないならどうやってnegative Falseを避けているのか調べる
   - siamese and gan (https://aws.amazon.com/jp/blogs/news/combining-deep-learning-networks-gan-and-siamese-to-generate-high-quality-life-like-images/ )
