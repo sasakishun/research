@@ -47,6 +47,7 @@
   - GANの異常検知まとめ(http://habakan6.hatenablog.com/entry/2018/04/29/013200 )
   - 強化学習（https://qiita.com/sugulu/items/3c7d6cbe600d455e853b ）
     - q-learning（実際に実装して性能検証してみる）
+      - dqn (https://lp-tech.net/articles/DYD3x )
 # 環境構築
   - Windows10でのtensorflow-gpuの使用するために（https://ossyaritoori.hatenablog.com/entry/2018/03/27/Keras_%26_Tensorflow_%28GPU%E6%9C%89%29%E3%81%AE%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89_on_Windows_with_Anaconda ）  
 # 読むリスト
