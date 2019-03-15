@@ -27,7 +27,7 @@
 
 勉強すること
   - seq2seq
-  - Attention
+  - Attention（soft, hard）
   - q-learning
   - Variational Auto Encoder
   - GANの応用
