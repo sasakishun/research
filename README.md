@@ -76,7 +76,8 @@
     著者は意味だけでなく構文情報も重要になると考え、意味を抽出するLSTMに構文情報を処理できるGraphCNNを組み合わせる。
     （構文情報とは何の事なのか？）→主語述語関係などのルールベースのような対応関係
   - Representation Learning: A Review and New Perspectives(https://arxiv.org/pdf/1206.5538.pdf )    
-
+  - Graph Convolution まとめ2019(https://arxiv.org/pdf/1901.00596.pdf )
+  
 # 深く勉強すべき
 - Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
