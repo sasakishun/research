@@ -77,7 +77,9 @@
     （構文情報とは何の事なのか？）→主語述語関係などのルールベースのような対応関係
   - Representation Learning: A Review and New Perspectives(https://arxiv.org/pdf/1206.5538.pdf )    
   - Graph Convolution まとめ2019(https://arxiv.org/pdf/1901.00596.pdf )
-  
+  - 2画像を2グラフに変換→和→GCN→各ピクセルごとのクラスラベル(セグメンテーション)→(https://www.ee.iitb.ac.in/course/~avik/ICVGIP18_arXiv.pdf )
+      - 2グラフの和を取る(pairwiseCNNなど)よりseamese network形式の方が一般的にいいため、ここでも和でなくsiamse形式に変更してみるといい可能性
+      
 # 深く勉強すべき
 - Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
