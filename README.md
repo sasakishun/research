@@ -94,3 +94,4 @@
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
+    - 局所的な繋がり（隣接ピクセル）を考慮できるためsegmentationに適しているかもしれない
