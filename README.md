@@ -96,3 +96,4 @@
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
     - 局所的な繋がり（隣接ピクセル）を考慮できるためsegmentationに適しているかもしれない
+      - CRF(Conditional Random Field)(条件付き確率場後処理)を実装して結果観察
