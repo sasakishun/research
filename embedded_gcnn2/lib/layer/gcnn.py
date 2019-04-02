@@ -38,7 +38,10 @@ class GCNN(VarLayer):
         outputs = []
 
         for i in xrange(batch_size):
-            output = conv(inputs[i], self.adjs[i], self.vars['weights'])
+            print("input[{}]:{}".format(i, inputs[i]))
+            output = conv(inputs[i],
+                          self.adjs[i],
+                          self.vars['weights'])
 
             if self.bias:
                 output = tf.nn.bias_add(output, self.vars['bias'])

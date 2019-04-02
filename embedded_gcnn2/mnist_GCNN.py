@@ -18,6 +18,7 @@ PREPROCESS_FIRST = 'data/mnist/quickshift'
 LEVELS = 4
 CONNECTIVITY = 8
 SCALE_INVARIANCE = False
+SCALE_INVARIANCE = False
 STDDEV = 1
 
 LEARNING_RATE = 0.001
@@ -49,7 +50,8 @@ preprocess_algorithm = preprocess_pipeline_fixed(
 
 
 def grid_adj(shape):
-    return grid.grid_adj(shape)
+    # return grid.grid_adj(shape)
+    return grid.grid_points(shape)
     # return [[1 for _ in range(shape[1])] for _ in range(shape[0])]
 
 
@@ -57,35 +59,38 @@ class Model(BaseModel):
     def _build(self):
         conv_1_1 = Conv(
             in_channels=NUM_FEATURES,
-            out_channels=64,
-            adjs=grid_adj([784, 784])
+            out_channels=10,
+            # adjs=grid_adj([784, 784])
+            adjs=grid_adj([28, 28])
         )
         conv_1_2 = Conv(
-            64,
-            64,
-            adjs=grid_adj([64, 64])
+            10,
+            10,
+            # adjs=grid_adj([64, 64])
+            adjs = grid_adj([28, 28])
         )
         max_pool_1 = MaxPool(size=4)
         conv_2_1 = Conv(
-            64,
-            128,
-            adjs=grid_adj([64, 64])
+            10,
+            10,
+            # adjs=grid_adj([64, 64])
+            adjs=grid_adj([28, 28])
         )
         conv_2_2 = Conv(
-            128,
-            128,
-            adjs=grid_adj([128, 128])
+            10,
+            10,
+            # adjs=grid_adj([128, 128])
+            adjs=grid_adj([28, 28])
         )
         max_pool_2 = MaxPool(size=4)
         average_pool = AveragePool()
         fc_1 = FC(
-            128,
+            10*28*28,
             data.num_classes,
             act=lambda x: x,
             bias=False,
             dropout=self.placeholders['dropout'],
             logging=self.logging)
-
         self.layers = [
             conv_1_1, conv_1_2, max_pool_1, conv_2_1, conv_2_2, max_pool_2,
             average_pool, fc_1
@@ -94,9 +99,9 @@ class Model(BaseModel):
 
 placeholders = generate_placeholders(BATCH_SIZE, LEVELS, NUM_FEATURES,
                                      data.num_classes)
-print(grid.grid_adj((28, 28)))
-print(grid.grid_points((28, 28)))
-print(grid.grid_mass((28, 28)))
+print("grid.grid_adj((28, 28)):{}".format(grid.grid_adj((28, 28))))
+print("grid.grid_points((28, 28)):{}".format(grid.grid_points((28, 28))))
+print("grid.grid_mass((28, 28)):{}".format(grid.grid_mass((28, 28))))
 model = Model(
     placeholders=placeholders,
     learning_rate=LEARNING_RATE,
