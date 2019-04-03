@@ -61,26 +61,26 @@ class Model(BaseModel):
             in_channels=NUM_FEATURES,
             out_channels=10,
             # adjs=grid_adj([784, 784])
-            adjs=grid_adj([28, 28])
+            adjs=[None, grid_adj([28, 28])]
         )
         conv_1_2 = Conv(
             10,
             10,
             # adjs=grid_adj([64, 64])
-            adjs = grid_adj([28, 28])
+            adjs=[None, grid_adj([28, 28])]
         )
         max_pool_1 = MaxPool(size=4)
         conv_2_1 = Conv(
             10,
             10,
             # adjs=grid_adj([64, 64])
-            adjs=grid_adj([28, 28])
+            adjs=[None, grid_adj([28, 28])]
         )
         conv_2_2 = Conv(
             10,
             10,
             # adjs=grid_adj([128, 128])
-            adjs=grid_adj([28, 28])
+            adjs=[None, grid_adj([28, 28])]
         )
         max_pool_2 = MaxPool(size=4)
         average_pool = AveragePool()
