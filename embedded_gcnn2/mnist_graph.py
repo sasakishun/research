@@ -37,6 +37,8 @@ data = Data(DATA_DIR)
 
 # segmentation_algorithm = slic_fixed(
 #     num_segments=100, compactness=5, max_iterations=10, sigma=0)
+# ここでセグメンテーションのアルゴリズムを決定し、隣接行列の形式も定義
+# 隣接行列は勝手にpaceholderに投げられるので意識する必要はない
 segmentation_algorithm = quickshift_fixed(
     ratio=1, kernel_size=2, max_dist=2, sigma=0)
 

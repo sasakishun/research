@@ -7,6 +7,7 @@ from ..tf import sparse_tensor_diag_matmul
 
 
 def conv(features, adj, weights):
+    print("adj:{}".format(adj))
     degree = tf.sparse_reduce_sum(adj, axis=1) + 1
     degree = tf.cast(degree, tf.float32)
     degree = tf.pow(degree, -0.5)
@@ -26,7 +27,7 @@ def conv(features, adj, weights):
 
 class GCNN(VarLayer):
     def __init__(self, in_channels, out_channels, adjs, **kwargs):
-        self.adjs = adjs
+        self.adjs = adjs  # adjsは各ミニバッチごとの隣接行列
 
         super(GCNN, self).__init__(
             weight_shape=[in_channels, out_channels],
@@ -39,6 +40,8 @@ class GCNN(VarLayer):
 
         for i in xrange(batch_size):
             print("input[{}]:{}".format(i, inputs[i]))
+            print("adjs[{}]:{}".format(i, self.adjs[i]))
+            print("vars['weights']:{}".format(self.vars['weights']))
             output = conv(inputs[i],
                           self.adjs[i],
                           self.vars['weights'])
