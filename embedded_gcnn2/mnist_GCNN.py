@@ -54,38 +54,43 @@ def grid_adj(shape):
     return grid.grid_points(shape)
     # return [[1 for _ in range(shape[1])] for _ in range(shape[0])]
 
-
+GRAPH_CH = 64
 class Model(BaseModel):
     def _build(self):
         conv_1_1 = Conv(
             in_channels=NUM_FEATURES,
-            out_channels=10,
+            out_channels=GRAPH_CH,
             # adjs=grid_adj([784, 784])
-            adjs=[None, grid_adj([28, 28])]
+            # adjs=[None, grid_adj([28, 28])]
+            adjs=self.placeholders['adj_dist_1'],
         )
         conv_1_2 = Conv(
-            10,
-            10,
+            GRAPH_CH,
+            GRAPH_CH,
             # adjs=grid_adj([64, 64])
-            adjs=[None, grid_adj([28, 28])]
+            # adjs=[None, grid_adj([28, 28])]
+            adjs=self.placeholders['adj_dist_2'],
         )
         max_pool_1 = MaxPool(size=4)
         conv_2_1 = Conv(
-            10,
-            10,
+            GRAPH_CH,
+            GRAPH_CH,
             # adjs=grid_adj([64, 64])
-            adjs=[None, grid_adj([28, 28])]
+            # adjs=[None, grid_adj([28, 28])]
+            adjs=self.placeholders['adj_dist_3'],
+
         )
         conv_2_2 = Conv(
-            10,
-            10,
+            GRAPH_CH,
+            GRAPH_CH,
             # adjs=grid_adj([128, 128])
-            adjs=[None, grid_adj([28, 28])]
+            # adjs=[None, grid_adj([28, 28])]
+            adjs=self.placeholders['adj_dist_4'],
         )
         max_pool_2 = MaxPool(size=4)
         average_pool = AveragePool()
         fc_1 = FC(
-            10*28*28,
+            GRAPH_CH,
             data.num_classes,
             act=lambda x: x,
             bias=False,
