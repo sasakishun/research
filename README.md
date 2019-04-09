@@ -94,6 +94,8 @@
   - tqdmを使うとデータの処理状況(itarationできるもの)がわかる
   - numpyのconcatenateではaxisを指定することで、任意の要素を連結可能
   - 疎行列の使用方法(http://nktmemoja.github.io/ml/2016/12/29/tensorflow-sparse.html )
+    - tf.sparse.add(A, B) などを使うには、引数A,Bが両方ともsparseでなくてはならない
+      - 片方がdenseなら、sparse行列をdenseにしてからtf.add()などを使用する (sparseに統一してもいいが、indice,value,shapeを指定する必要)
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
