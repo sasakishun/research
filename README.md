@@ -81,7 +81,8 @@
   - Graph Convolution まとめ2019(https://arxiv.org/pdf/1901.00596.pdf )
   - 2画像を2グラフに変換→和→GCN→各ピクセルごとのクラスラベル(セグメンテーション)→(https://www.ee.iitb.ac.in/course/~avik/ICVGIP18_arXiv.pdf )
       - 2グラフの和を取る(pairwiseCNNなど)よりseamese network形式の方が一般的にいいため、ここでも和でなくsiamse形式に変更してみるといい可能性
-      
+  - 条件付き確率場をどのタイミングで使うのか？連続値なのか（勾配計算は可能か）を調べること
+  
 # 深く勉強すべき
 - Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
