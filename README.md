@@ -102,3 +102,4 @@
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
     - 局所的な繋がり（隣接ピクセル）を考慮できるためsegmentationに適しているかもしれない
       - CRF(Conditional Random Field)(条件付き確率場後処理)を実装して結果観察
+    - Segmentationタスクは分野的に大きな発展が困難な可能性があり、別領域（データセット、タスク）での応用も考えること
