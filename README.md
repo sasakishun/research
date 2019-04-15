@@ -105,4 +105,5 @@
     - Segmentationタスクは分野的に大きな発展が困難な可能性があり、別領域（データセット、タスク）での応用も考えること
       — データセットを自作するようなタスク
         - 知識グラフの「A is B」関係の推論（「A=B」関係のみで繋がるようクラスタリングすれば上位概念のクラスタが抽出可能かもしれない）
+          - 知識グラフをGraph Convolutionする手法 (https://medium.com/programming-soda/graph-convolution%E3%82%92%E8%87%AA%E7%84%B6%E8%A8%80%E8%AA%9E%E5%87%A6%E7%90%86%E3%81%AB%E5%BF%9C%E7%94%A8%E3%81%99%E3%82%8B-part1-b792d53c4c18)
       
