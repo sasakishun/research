@@ -103,7 +103,7 @@
     - 活性化関数act()と勾配d_act()を設定
       - act()はnumpy関数に変換するだけ→順伝播だから単純
       - d_act()は勾配の逆伝播をtensorflow側(tf.py_funcをオーバーライドした関数py_func(活性化関数, 入力仮引数, 出力型([tf.float32など]), stateful=stateful, 名前, 勾配関数))を定義
-        - 
+         
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
