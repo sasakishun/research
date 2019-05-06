@@ -101,8 +101,8 @@
       - 片方がdenseなら、sparse行列をdenseにしてからtf.add()などを使用する (sparseに統一してもいいが、indice,value,shapeを指定する必要)
   - tensorflowにおいて任意の活性化関数の使用方法(https://stackoverflow.com/questions/39921607/how-to-make-a-custom-activation-function-with-only-python-in-tensorflow )
     - 活性化関数act()と勾配d_act()を設定
-      - act()はnumpy関数に変換するだけ→順伝播だから単純
-      - d_act()は勾配の逆伝播をtensorflow側(tf.py_funcをオーバーライドした関数py_func(活性化関数, 入力仮引数, 出力型([tf.float32など]), stateful=stateful, 名前, 勾配関数))を定義
+      - act()はnumpy関数に変換する
+      - act()とd_act()をtensorflow側(tf.py_funcをオーバーライドした関数py_func(活性化関数, 入力仮引数, 出力型([tf.float32など]), stateful=stateful, 名前, 勾配関数)を使用)に登録→これをやって初めて計算グラフに乗る
          
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
