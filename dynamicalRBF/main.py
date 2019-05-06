@@ -18,7 +18,8 @@ def d_spiky(x):
     else:
         return 0
 
-
+np_d_spiky = np.vectorize(d_spiky)
+np_d_spiky_32 = lambda x: np_d_spiky(x).astype(np.float32)
 def tf_d_spiky(x, name=None):
     with tf.name_scope(name, "d_spiky", [x]) as name:
         y = tf.py_func(np_d_spiky_32,
@@ -47,9 +48,7 @@ def spikygrad(op, grad):
 
 
 np_spiky = np.vectorize(spiky)
-np_d_spiky = np.vectorize(d_spiky)
-np_d_spiky_32 = lambda x: np_d_spiky(x).astype(np.float32)
-
+np_spiky_32 = lambda x: np_spiky(x).astype(np.float32)
 
 def tf_spiky(x, name=None):
     with tf.name_scope(name, "spiky", [x]) as name:
