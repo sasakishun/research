@@ -39,6 +39,7 @@ class GCNN(VarLayer):
 
         for i in xrange(batch_size):
             print("input[{}]:{}".format(i, inputs[i]))
+            print("adj[{}]:{}".format(i, self.adjs[i]))
             output = conv(inputs[i],
                           self.adjs[i],
                           self.vars['weights'])
