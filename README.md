@@ -36,6 +36,8 @@
     - triplet lossを使用
       - negative : ランダムに選定したサンプルの中でhard negativeを使用（一番距離が近いnegativeのみを見て、それが離れるように学習）
       - positive : 全て使用
+      - 解説記事（https://qiita.com/tancoro/items/35d0925de74f21bfff14 ）
+        - Verification方法は、学習時の入力サンプル組でSotmaxLossタイプ(1サンプル)、Siamese Network(2枚1組)、TripletLoss(3枚1組)、Quadruplet Loss(4枚1組)などに分類できる
   - ResNet(3,40層などの少数層でどれだけ性能が向上するか検証)
   - batch normalization(inference)
   - 異常検知で間違い方によりロスの重みづけ、という方法があるか？ないならどうやってnegative Falseを避けているのか調べる
@@ -50,6 +52,7 @@
       - dqn (https://lp-tech.net/articles/DYD3x )
   - Graph NN(https://qiita.com/shionhonda/items/d27b8f13f7e9232a4ae5 )
   - segmentation U-Net(https://qiita.com/tktktks10/items/0f551aea27d2f62ef708 )
+  - sci-kit learnのsegmentation方法(skimage.segmentation...)を調べること(2019/4/5)
 # 環境構築
   - Windows10でのtensorflow-gpuの使用するために（https://ossyaritoori.hatenablog.com/entry/2018/03/27/Keras_%26_Tensorflow_%28GPU%E6%9C%89%29%E3%81%AE%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89_on_Windows_with_Anaconda ）  
 # 読むリスト
@@ -80,7 +83,8 @@
   - Graph Convolution まとめ2019(https://arxiv.org/pdf/1901.00596.pdf )
   - 2画像を2グラフに変換→和→GCN→各ピクセルごとのクラスラベル(セグメンテーション)→(https://www.ee.iitb.ac.in/course/~avik/ICVGIP18_arXiv.pdf )
       - 2グラフの和を取る(pairwiseCNNなど)よりseamese network形式の方が一般的にいいため、ここでも和でなくsiamse形式に変更してみるといい可能性
-      
+  - 条件付き確率場をどのタイミングで使うのか？連続値なのか（勾配計算は可能か）を調べること
+  
 # 深く勉強すべき
 - Siamese Network (https://qiita.com/TatsuyaMizuguchi17/items/f6ef9d7884b4cf4b364e )
 - Siamese triplet loss (https://github.com/adambielski/siamese-triplet/blob/master/README.md )
@@ -92,8 +96,29 @@
 # 便利メモ
   - tqdmを使うとデータの処理状況(itarationできるもの)がわかる
   - numpyのconcatenateではaxisを指定することで、任意の要素を連結可能
+  - 疎行列の使用方法(http://nktmemoja.github.io/ml/2016/12/29/tensorflow-sparse.html )
+    - tf.sparse.add(A, B) などを使うには、引数A,Bが両方ともsparseでなくてはならない
+      - 片方がdenseなら、sparse行列をdenseにしてからtf.add()などを使用する (sparseに統一してもいいが、indice,value,shapeを指定する必要)
+  - tensorflowにおいて任意の活性化関数の使用方法(https://stackoverflow.com/questions/39921607/how-to-make-a-custom-activation-function-with-only-python-in-tensorflow )
+    - 活性化関数act()と勾配d_act()を設定
+      - act()はnumpy関数に変換する
+      - act()とd_act()をtensorflow側(tf.py_funcをオーバーライドした関数py_func(活性化関数, 入力仮引数, 出力型([tf.float32など]), stateful=stateful, 名前, 勾配関数)を使用)に登録→これをやって初めて計算グラフに乗る
+         
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
     - 局所的な繋がり（隣接ピクセル）を考慮できるためsegmentationに適しているかもしれない
       - CRF(Conditional Random Field)(条件付き確率場後処理)を実装して結果観察
+    - Segmentationタスクは分野的に大きな発展が困難な可能性があり、別領域（データセット、タスク）での応用も考えること
+      — データセットを自作するようなタスク
+        - 知識グラフの「A is B」関係の推論（「A=B」関係のみで繋がるようクラスタリングすれば上位概念のクラスタが抽出可能かもしれない）
+          - 知識グラフをGraph Convolutionする手法 (https://medium.com/programming-soda/graph-convolution%E3%82%92%E8%87%AA%E7%84%B6%E8%A8%80%E8%AA%9E%E5%87%A6%E7%90%86%E3%81%AB%E5%BF%9C%E7%94%A8%E3%81%99%E3%82%8B-part1-b792d53c4c18)
+  - GANで手書き文字を自動生成、その際の潜在変数により書き手の類似度を出力する
+    - Generator部分では、生成画像がストロークの集合になっているかの制約も加える
+      - ストロークを20つくらいに仮定し、拡大縮小、回転、位置を変えることで文字生成（20画以下の場合は不要分を画面外に位置が移るようにすることで対処）
+      - 回転行列や拡大行列、移動行列を定義しそれと行列積を取ればBP可能（回転行列などでは回転角θを共有するため、ある種の重み共有かもしれない）
+    - 手書き文字でなく、絵画の集合を用いれば画家（イラストレータの）の類似度計算もできる
+  - RBFを用いつつ汎化性を上げられれば、学習が高速という利点がある
+    - 汎化性を上げるために、最初はRBFにより近似するが、徐々にReLUに近づけていくといいかもしれない
+    - RBF解説記事(https://towardsdatascience.com/radial-basis-functions-neural-networks-all-we-need-to-know-9a88cc053448 )
+      - 通常のNNと分離平面が異なる（RBFは分離平面を用いない？→要確認20190424）
