@@ -57,3 +57,5 @@ embedded_gcnn2/lib/layer/__pycache__/max_pool.cpython-35.pyc
 embedded_gcnn2/lib/segmentation/__pycache__/adjacency.cpython-35.pyc
 .idea/research.iml
 .idea/workspace.xml
+*.DESKTOP-MO312VG
+*.pyc

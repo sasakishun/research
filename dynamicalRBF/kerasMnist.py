@@ -16,6 +16,7 @@ from keras import backend as K
 import keras.callbacks
 import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
+import rbflayer
 
 old_session = KTF.get_session()
 
@@ -27,7 +28,7 @@ KTF.set_learning_phase(1)
 import activations
 batch_size = 128
 num_classes = 10
-epochs = 1
+epochs = 10
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -55,19 +56,24 @@ print(x_test.shape[0], 'test samples')
 # convert class vectors to binary class matrices
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
-activation = activations.swish
 
 model = Sequential()
+activation = activations.swish
 model.add(Conv2D(32, kernel_size=(3, 3),
                  activation=activation,
                  input_shape=input_shape))
-model.add(Conv2D(64, (3, 3), activation=activations.swish))
+model.add(Conv2D(64, (3, 3), activation=activation))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 model.add(Flatten())
-model.add(Dense(128, activation=activation))
+model.add(rbflayer.RBFLayer(output_dim=x_train,
+                            initializer=rbflayer.InitCentersRandom(10),
+                            betas=1.0,
+                            input_shape=(1,)))
+# model.add(Dense(128, activation=activation))
 model.add(Dropout(0.5))
 model.add(Dense(num_classes, activation='softmax'))
+# model.add(Dense(num_classes, activation=activation))
 model.summary()
 model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
