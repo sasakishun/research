@@ -16,18 +16,21 @@ class InitCentersRandom(Initializer):
 
     def __init__(self, X):
         self.X = X
+        print("\ninitialized in InitCentersRandom")
+        print("X.shape:{}".format(self.X.shape))
 
     def __call__(self, shape, dtype=None):
+        print("shape:{}".format(shape))
         assert shape[1] == self.X.shape[1]
         idx = np.random.randint(self.X.shape[0], size=shape[0])
+        # shape[0]がrbfの出力サイズ
+        # なので訓練データ数からランダムにshape[0]つ抽出して返す
         return self.X[idx, :]
 
 
 class RBFLayer(Layer):
     """ Layer of Gaussian RBF units.
-
     # Example
-
     ```python
         model = Sequential()
         model.add(RBFLayer(10,
@@ -36,8 +39,6 @@ class RBFLayer(Layer):
                            input_shape=(1,)))
         model.add(Dense(1))
     ```
-
-
     # Arguments
         output_dim: number of hidden units (i.e. number of outputs of the layer)
         initializer: instance of initiliazer to initialize centers
@@ -55,8 +56,8 @@ class RBFLayer(Layer):
             self.initializer = initializer
         super(RBFLayer, self).__init__(**kwargs)
 
-    def build(self, input_shape):
-
+    def build(self, input_shape): # input_shape:(None, rbfLayer()を呼び出した時のinput_shape)
+        print("\nbuild input_shape:{}".format(input_shape))
         self.centers = self.add_weight(name='centers',
                                        shape=(self.output_dim, input_shape[1]),
                                        initializer=self.initializer,
@@ -66,18 +67,14 @@ class RBFLayer(Layer):
                                      initializer=Constant(value=self.init_betas),
                                      # initializer='ones',
                                      trainable=True)
-
         super(RBFLayer, self).build(input_shape)
 
     def call(self, x):
-
         C = K.expand_dims(self.centers)
-        H = K.transpose(C - K.transpose(x))
+        H = K.transpose(C - K.transpose(x))# 距離算出
         return K.exp(-self.betas * K.sum(H ** 2, axis=1))
-
         # C = self.centers[np.newaxis, :, :]
         # X = x[:, np.newaxis, :]
-
         # diffnorm = K.sum((C-X)**2, axis=-1)
         # ret = K.exp( - self.betas * diffnorm)
         # return ret

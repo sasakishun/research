@@ -11,6 +11,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
+import numpy as np
 
 ### add for TensorBoard
 import keras.callbacks
@@ -28,7 +29,7 @@ KTF.set_learning_phase(1)
 import activations
 batch_size = 128
 num_classes = 10
-epochs = 10
+epochs = 100
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -58,6 +59,17 @@ y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
 model = Sequential()
+data = x_train# [:, :-1]
+data = data.reshape(60000, 784)
+x_train = x_train.reshape(60000, 784)
+x_test = x_test.reshape(10000, 784)
+# data = [data[i] for i in range(np.shape(data)[0])]
+print("mnist  data:{}".format(np.shape(data)))
+model.add(rbflayer.RBFLayer(output_dim=1000,# セントロイドの数
+                            initializer=rbflayer.InitCentersRandom(data),
+                            betas=1.0,
+                            input_shape=(784, )))
+"""
 activation = activations.swish
 model.add(Conv2D(32, kernel_size=(3, 3),
                  activation=activation,
@@ -66,12 +78,10 @@ model.add(Conv2D(64, (3, 3), activation=activation))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 model.add(Flatten())
-model.add(rbflayer.RBFLayer(output_dim=x_train,
-                            initializer=rbflayer.InitCentersRandom(10),
-                            betas=1.0,
-                            input_shape=(1,)))
 # model.add(Dense(128, activation=activation))
 model.add(Dropout(0.5))
+"""
+model.add(Dense(128, activation="relu", input_shape=(784, )))
 model.add(Dense(num_classes, activation='softmax'))
 # model.add(Dense(num_classes, activation=activation))
 model.summary()
