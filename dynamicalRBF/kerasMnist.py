@@ -27,9 +27,10 @@ KTF.set_learning_phase(1)
 ###
 
 import activations
-batch_size = 128
+batch_size = 32
 num_classes = 10
-epochs = 100
+epochs = 1000
+rbfNodes = 100
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -65,12 +66,13 @@ x_train = x_train.reshape(60000, 784)
 x_test = x_test.reshape(10000, 784)
 # data = [data[i] for i in range(np.shape(data)[0])]
 print("mnist  data:{}".format(np.shape(data)))
-model.add(rbflayer.RBFLayer(output_dim=1000,# セントロイドの数
+"""
+model.add(rbflayer.RBFLayer(output_dim=rbfNodes,# セントロイドの数
                             initializer=rbflayer.InitCentersRandom(data),
                             betas=1.0,
                             input_shape=(784, )))
 """
-activation = activations.swish
+activation = "relu"# activations.swish
 model.add(Conv2D(32, kernel_size=(3, 3),
                  activation=activation,
                  input_shape=input_shape))
@@ -78,9 +80,11 @@ model.add(Conv2D(64, (3, 3), activation=activation))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 model.add(Flatten())
+model.add(rbflayer.RBFLayer(output_dim=rbfNodes,# セントロイドの数
+                            initializer=None,
+                            betas=1.0))
 # model.add(Dense(128, activation=activation))
 model.add(Dropout(0.5))
-"""
 model.add(Dense(128, activation="relu", input_shape=(784, )))
 model.add(Dense(num_classes, activation='softmax'))
 # model.add(Dense(num_classes, activation=activation))
@@ -101,8 +105,15 @@ history = model.fit(x_train, y_train,
                     callbacks=cbks,
                     validation_data=(x_test, y_test))
 score = model.evaluate(x_test, y_test, verbose=0)
+scoreTrain = model.evaluate(x_train, y_train, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
+
 ### add for TensorBoard
 KTF.set_session(old_session)
+###
+
+### save result -> log.txt
+with open("log.txt", mode='w') as f:
+    f.write("batchsize:{} epoch:{} rbfNode:{} traAcc:{} valAcc:{}".format(batch_size, epochs, rbfNodes, scoreTrain[1], score[1]))
 ###
