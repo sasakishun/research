@@ -60,12 +60,12 @@ y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
 model = Sequential()
-data = x_train# [:, :-1]
-data = data.reshape(60000, 784)
-x_train = x_train.reshape(60000, 784)
-x_test = x_test.reshape(10000, 784)
+# data = x_train# [:, :-1]
+# data = data.reshape(60000, 784)
+# x_train = x_train.reshape(60000, 784)
+# x_test = x_test.reshape(10000, 784)
 # data = [data[i] for i in range(np.shape(data)[0])]
-print("mnist  data:{}".format(np.shape(data)))
+# print("mnist  data:{}".format(np.shape(data)))
 """
 model.add(rbflayer.RBFLayer(output_dim=rbfNodes,# セントロイドの数
                             initializer=rbflayer.InitCentersRandom(data),
