@@ -128,3 +128,4 @@
     - 汎化性を上げるために、最初はRBFにより近似するが、徐々にReLUに近づけていくといいかもしれない
     - RBF解説記事(https://towardsdatascience.com/radial-basis-functions-neural-networks-all-we-need-to-know-9a88cc053448 )
       - 通常のNNと分離平面が異なる（RBFは分離平面を用いない？→要確認20190424）
+      - RBFがとてつもなく遅い理由を調査すべき
