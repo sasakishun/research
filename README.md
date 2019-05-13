@@ -132,3 +132,4 @@
         - そもそも速い理由がExtreme Learning Machineと同様に3層しかないからと考えられる
   - Graph Convolutionのsegmentation結果の可視化
     - 疎行列の3次元以上の表現方法を調査
+    - tensorの要素指定方法（tfarray[:10][:10]のようにする方法）を調査
