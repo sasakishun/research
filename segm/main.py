@@ -1,7 +1,7 @@
 from model import Model
 from load_data import Datagen, plot_data
 import tensorflow as tf
-from util import plot_segm_map, calc_iou
+from util import *
 import numpy as np
 import networkx as nx
 import adjacency
@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import scipy
 import scipy.sparse as sp
 import math
+import copy
 
 np.set_printoptions(threshold=np.inf)
 
@@ -65,6 +66,7 @@ hidden_size = 8  # 1層目の出力サイズ
 learning_rate = 1e-3  # 学習率
 
 # モデル定義
+# weight0 = 1000
 X0 = tf.placeholder(tf.float32, shape=[G.number_of_nodes(), 256])
 X1 = tf.placeholder(tf.float32, shape=[G.number_of_nodes(), 256])
 X2 = tf.placeholder(tf.float32, shape=[G.number_of_nodes(), 256])
@@ -91,13 +93,17 @@ print("L2:{}".format(tf.shape(L2)))
 
 # loss = tf.nn.l2_loss(tf.sparse.add(-1 * A_rec, A_chil))
 # L2 = tf.sparse.to_dense(L2)
-loss = tf.nn.l2_loss(tf.add(-1 * L2, _segm_map))
+cost_per_pixel = _segm_map * tf.log(L2 + 1E-13)\
+                 + (1 - _segm_map) * tf.log(1 - L2 + 1E-13)  # add +1E-13 to prevent log(0)
+# loss = tf.nn.l2_loss(tf.add(-1 * L2, _segm_map))
+loss = -1 * tf.reduce_mean(cost_per_pixel)
+
 # loss = tf.nn.l2_loss(tf.sparse.add(-1 * L2, _segm_map))
 # loss = tf.transpose(loss)
 train = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 batch_size = 1
-dg = Datagen('data/mnist', 'data/cifar')
+dg = Datagen('data/mnist/', 'data/cifar/')
 data, segm_map = dg.sample(batch_size, norm=False)
 
 # 学習部分
@@ -106,17 +112,35 @@ epoch = 100001
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     loss_list = list()
-    data_batch, segm_map_batch = dg.sample(batch_size)
+    data_batch, segm_map_batch = dg.sample(1, norm=False)# batch_size)
+    # show_images(data_batch)
+    # show_images(segm_map_batch)
     for e in range(epoch):
         # 学習
         # data_batch, segm_map_batch = dg.sample(batch_size)
         # data_batch, segm_map_batch = dg.sample(batch_size, norm=False)
         # print("data_batch:{} segm_map_batch:{}".format(data_batch.shape, segm_map_batch.shape))
-        x = data_batch.reshape([3, 1024])
+        x = copy.deepcopy(data_batch)
+        show_images(x)
+        show_images(segm_map_batch, norm=False)
+
+        x.reshape([3, 32*32])
+        # show_image(x.reshape([32, 32, 3]))
+
         x = np.array(x, dtype=np.int64)
-        x = np.identity(256)[x]
+        x = np.identity(256, dtype=np.int64)[x]
         # print("#{} databatch:{}".format(e, data_batch))
-        x = x.reshape([3, G.number_of_nodes(), 256])
+        x = x.reshape([3, 32 * 32, 256])
+        tmp = np.zeros([3, 32, 32])
+        for i in range(3):
+            for j in range(32):
+                for k in range(32):
+                    for l in range(256):
+                        if x[i][j][k][l] == 1:
+                            tmp[i][j][k] = l
+        print("{}\n --x:{}".format(x, np.shape(x)))
+        print("{}\n --tmp:{}".format(tmp, np.shape(tmp)))
+        show_image(tmp.reshape([32, 32, 3]))
 
         segm_map_batch = np.array(segm_map_batch, dtype=np.int64)
         # print("segm_map_batch.shape:{}".format(segm_map_batch.shape))
@@ -148,7 +172,8 @@ with tf.Session() as sess:
         # segm_map_batch})
         loss_list.append(tloss)
         print("#{} loss:{}".format(e, tloss))
-        if (e + 1) % 100000 == 0 or tloss < 1:
+        # if (e + 1) % 100000 == 0 or tloss < 1:
+        if (e + 1) % 1000 == 0 or tloss < 1:
             # data_batch, segm_map_batch = dg.sample(batch_size)  # , dataset='test')
             # x = data_batch.reshape([3, 1024])
             # x = np.array(x, dtype=np.int64)
@@ -162,8 +187,12 @@ with tf.Session() as sess:
                                                 feed_dict={X0: x[0], X1: x[1], X2: x[2], _segm_map: segm_map_batch})
             # print("shapes input:{} output:{} target:{}".format(np.shape(data_batch), np.shape(segm_map_batch), np.shape(segm_map_pred)))
             print("#{} loss:{}".format(e, test_loss))
+            print("data_batch\n{}".format(data_batch))
+            print("data_batch\n{}".format(np.shape(data_batch)))
+            # print("reshaped data_batch\n{}".format(data_batch.reshape([1, 32, 32, 3])))
             plot_segm_map(data_batch.reshape([1, 32, 32, 3]), segm_map_batch.reshape([1, 32, 32]),
                           np.squeeze(segm_map_pred).reshape([1, 32, 32]))
+            exit()
         """
         # 学習結果の出力
         if (e + 1) % 100 == 0:

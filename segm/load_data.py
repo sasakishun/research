@@ -157,7 +157,7 @@ if __name__ == "__main__":
     data_batch = np.array(data_batch, dtype=np.int64)
     data_batch = np.identity(256)[data_batch]
     # print("#{} databatch:{}".format(e, data_batch))
-    x = data_batch.reshape([G.number_of_nodes(), 256])
+    # x = data_batch.reshape([G.number_of_nodes(), 256])
 
     segm_map_batch = np.array(segm_map_batch, dtype=np.int64)
     segm_map_batch = segm_map_batch.reshape([32 * 32])

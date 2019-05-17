@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def plot_segm_map(data, segm_map, segm_map_pred):
     num_samples = data.shape[0]
 
@@ -32,3 +31,25 @@ def calc_iou(segm_map, segm_map_pred):
     intersection = np.sum(np.logical_and(segm_map, segm_map_pred), axis=(1, 2))
     union = np.sum(np.logical_or(segm_map, segm_map_pred), axis=(1, 2))
     return np.mean(intersection / union)
+
+
+def show_images(images, norm=True):
+    # (32, 32, 3)だと表示可能
+    print("x:{}".format(np.shape(images)))
+    graphs_count = len(images)  # グラフ6個(2*3)
+    axes = []
+    # print("{}\n --images:{}".format(np.shape(images[0]), images[0]))
+    fig = plt.figure(figsize=(9, 6))
+    for i in range(len(images)):
+        axes.append(fig.add_subplot(1, len(images), i + 1))
+        if norm:
+            images[i] = (images[i] - 130.) / 70.
+        axes[i].imshow(images[i])
+    # fig.add_subplot(2, 3, 1)
+    plt.show()
+
+def show_image(image):
+    # (32, 32, 3)だと表示可能
+    print("image:{}".format(np.shape(image)))
+    plt.imshow(image)
+    plt.show()
