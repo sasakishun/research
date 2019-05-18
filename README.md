@@ -130,6 +130,7 @@
       - 通常のNNと分離平面が異なる（RBFは分離平面を用いない？→要確認20190424）
       - RBFがとてつもなく遅い理由を調査すべき
         - そもそも速い理由がExtreme Learning Machineと同様に3層しかないからと考えられる
+      - 現在のNNはReLUを使うため線形性が高すぎてAdversarial Exampleに弱いため、RBFで非線形性を学習するといい可能性
   - Graph Convolutionのsegmentation結果の可視化
     - 疎行列の3次元以上の表現方法を調査
     - tensorの要素指定方法（tfarray[:10][:10]のようにする方法）を調査
