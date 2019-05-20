@@ -1,3 +1,9 @@
 *.npy
 *.pkl
 *~
+embedded_gcnn2/.idea/
+.idea/
+embedded_gcnn2/lib/__pycache__/
+embedded_gcnn2/data/summaries/mnist_quickshift_graph/events.out.tfevents.1554537739.DYNABOOK
+*.pyc
+embedded_gcnn2/data/summaries/mnist_quickshift_spatial/events.out.tfevents.1554305641.DYNABOOK

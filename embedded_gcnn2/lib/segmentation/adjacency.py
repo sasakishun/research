@@ -3,6 +3,7 @@ import numpy_groupies as npg
 import scipy.sparse as sp
 
 
+# ここで隣接行列を返す
 def segmentation_adjacency(segmentation, connectivity=4):
     """Generate an adjacency matrix out of a given segmentation."""
 
@@ -42,5 +43,5 @@ def segmentation_adjacency(segmentation, connectivity=4):
     result = tmp | tmp.T
     result = result.astype(np.uint8)
     adj = sp.coo_matrix(result)
-
+    print("adj in adjacency.py:{}".format(adj))
     return adj, points, mass
