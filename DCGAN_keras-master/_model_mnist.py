@@ -17,8 +17,9 @@ def G_model(Height, Width, channel=3):
     x = Conv2D(channel, (5, 5), padding='same', activation='tanh', name='g_out')(x)
     """
     inputs_z = Input((Height, Width, channel), name='Z') # generator出力を取得
-    x = Conv2D(32, (3, 3), padding='same', activation='relu', name='g_conv1')(inputs_z)
-    x = Conv2D(64, (3, 3), padding='same', activation='relu', name='g_conv2')(x)
+    # x = Conv2D(32, (3, 3), padding='same', activation='relu', name='g_conv1')(inputs_z)
+    x = Conv2D(64, (3, 3), padding='same', activation='relu', name='g_conv1')(inputs_z)
+    # x = Conv2D(64, (3, 3), padding='same', activation='relu', name='g_conv2')(x)
     x = MaxPooling2D(pool_size=(2, 2))(x)
     x = Dropout(0.25)(x)
     model = Model(inputs=[inputs_z], outputs=[x], name='G')

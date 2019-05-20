@@ -65,8 +65,8 @@ class Main_train():
             layer.trainable = True
         d.compile(loss='binary_crossentropy', optimizer=d_opt)# 識別機を更新可能にしてコンパイル
         cnn.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # CNNをコンパイル
-        for layer in g.layers:
-            layer.trainable = False
+        # for layer in g.layers:
+            # layer.trainable = False
         cnn_g.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # テスト用CNNは全結合層のみ学習するようにしてコンパイル
 
         ## Prepare Training data　前処理
