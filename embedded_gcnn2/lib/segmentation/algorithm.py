@@ -15,6 +15,7 @@ def slic_fixed(num_segments, compactness=10, max_iterations=10, sigma=0):
     return slic_image
 
 
+# sci-kit learnの内部関数でセグメンテーション方法を実装
 def quickshift(image, ratio=1, kernel_size=5, max_dist=1, sigma=0):
     image = _preprocess(image)
     return segmentation.quickshift(
