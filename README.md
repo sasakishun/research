@@ -53,6 +53,12 @@
   - Graph NN(https://qiita.com/shionhonda/items/d27b8f13f7e9232a4ae5 )
   - segmentation U-Net(https://qiita.com/tktktks10/items/0f551aea27d2f62ef708 )
   - sci-kit learnのsegmentation方法(skimage.segmentation...)を調べること(2019/4/5)
+  - RBF
+    - 訓練データをランダムに抽出しセントロイドとする（訓練データの代わりに"バイアス"として学習してもいい）
+    - 下位層からの"重み"をスケールとする合成ガウス分布を算出
+    - 入力がはこの合成ガウス分布上にプロットされる
+      - セントロイドが多いほど任意の関数を実現できるため、表現力が上がる
+    
 # 環境構築
   - Windows10でのtensorflow-gpuの使用するために（https://ossyaritoori.hatenablog.com/entry/2018/03/27/Keras_%26_Tensorflow_%28GPU%E6%9C%89%29%E3%81%AE%E7%92%B0%E5%A2%83%E6%A7%8B%E7%AF%89_on_Windows_with_Anaconda ）  
 # 読むリスト
@@ -122,3 +128,12 @@
     - 汎化性を上げるために、最初はRBFにより近似するが、徐々にReLUに近づけていくといいかもしれない
     - RBF解説記事(https://towardsdatascience.com/radial-basis-functions-neural-networks-all-we-need-to-know-9a88cc053448 )
       - 通常のNNと分離平面が異なる（RBFは分離平面を用いない？→要確認20190424）
+      - RBFがとてつもなく遅い理由を調査すべき
+        - そもそも速い理由がExtreme Learning Machineと同様に3層しかないからと考えられる
+      - 現在のNNはReLUを使うため線形性が高すぎてAdversarial Exampleに弱いため、RBFで非線形性を学習するといい可能性
+  - Graph Convolutionのsegmentation結果の可視化
+    - 疎行列の3次元以上の表現方法を調査
+    - tensorの要素指定方法（tfarray[:10][:10]のようにする方法）を調査
+      - これによりCNNのように局所グラフを畳み込む
+    - GANによる蒸留
+      - 蒸留の性能検証のためには、表現力が足らないモデルで実験する（過学習を解決すべき問題としない）
