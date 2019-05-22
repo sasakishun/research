@@ -115,7 +115,7 @@ class Main_train():
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
             # x_fake = X_train[_inds]
             cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-            cnn_g_loss = cnn_g.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
+            cnn_g_loss = 0 # cnn_g.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
             x_fake = conv.predict(X_train[_inds], verbose=0)  # fake画像にcnnの中間特徴を使用
 
             # z = np.random.uniform(-1, 1, size=(cf.Minibatch, 100))
@@ -125,13 +125,74 @@ class Main_train():
             x_real = g.predict([z], verbose=0)
             x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
             t = [1] * cf.Minibatch + [0] * cf.Minibatch
-            d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
+            d_loss = 0 # d.train_on_batch(x, t)  # これで重み更新までされる
 
             # Generator training
             # z = np.random.uniform(-1, 1, size=(cf.Minibatch, 100))
             # zは識別機学習で使用した訓練画像をそのまま使用
 
             # input_noise = np.random.normal(0, 0.3, size=(cf.Minibatch, 100))
+            g_loss = 0 # c.train_on_batch([z], [1] * cf.Minibatch)
+
+            con = '|'
+            if ite % cf.Save_train_step != 0:
+                for i in range(ite % cf.Save_train_step):
+                    con += '>'
+                for i in range(cf.Save_train_step - ite % cf.Save_train_step):
+                    con += ' '
+            else:
+                for i in range(cf.Save_train_step):
+                    con += '>'
+            con += '| '
+            if ite % 100 == 0:
+                cnn_val_loss = cnn.test_on_batch(X_test, y_test)  # 超多層CNNの性能測定
+                cnn_test_val_loss = cnn_g.test_on_batch(X_test, y_test)  # 低層CNNの性能測定
+                max_score = max(max_score, 1. - cnn_test_val_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_g: {:.6f} , cnn_val: {:.6f} , cnn_test_val: {:.6f} " \
+                    .format(ite, g_loss, d_loss, cnn_loss, cnn_g_loss, cnn_val_loss, cnn_test_val_loss)
+            else:
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}, cnn_g: {:.6f}".format(ite, g_loss, d_loss, cnn_loss,
+                                                                                         cnn_g_loss)
+            sys.stdout.write("\r" + con)
+
+            if ite % cf.Save_train_step == 0 or ite == 1:
+                print()
+                f.write("{},{},{}{}".format(ite, g_loss, d_loss, os.linesep))
+                # save weights
+                d.save_weights(cf.Save_d_path)
+                g.save_weights(cf.Save_g_path)
+
+                gerated = g.predict([z], verbose=0)
+                # save some samples
+                if cf.Save_train_combine is True:
+                    save_images(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+                elif cf.Save_train_combine is False:
+                    save_images_separate(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+        # f.close()
+        ## Save trained model
+        d.save_weights(cf.Save_d_path)
+        g.save_weights(cf.Save_g_path)
+        print('Model saved -> ', cf.Save_d_path, cf.Save_g_path)
+        print("maxAcc:{}".format(max_score * 100))
+
+        ###distillation
+        for ite in range(cf.DistillationIteGAN):
+            ite += 1
+            train_ind = ite % (train_num_per_step - 1)
+            if ite % (train_num_per_step + 1) == max_ite:
+                np.random.shuffle(data_inds)
+
+            _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
+            cnn_loss = cnn.test_on_batch(X_train[_inds], y_train[_inds]) # cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
+            cnn_g_loss = cnn_g.test_on_batch(X_train[_inds], y_train[_inds])  # CNNは学習しない
+            x_fake = conv.predict(X_train[_inds], verbose=0)  # fake画像にcnnの中間特徴を使用
+
+            z = X_train[_inds]  # ノイズに訓練画像を使用
+
+            x_real = g.predict([z], verbose=0)
+            x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
+            t = [1] * cf.Minibatch + [0] * cf.Minibatch
+            d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
             g_loss = c.train_on_batch([z], [1] * cf.Minibatch)
 
             con = '|'
@@ -168,13 +229,63 @@ class Main_train():
                     save_images(gerated, index=ite, dir_path=cf.Save_train_img_dir)
                 elif cf.Save_train_combine is False:
                     save_images_separate(gerated, index=ite, dir_path=cf.Save_train_img_dir)
-        f.close()
-        ## Save trained model
-        d.save_weights(cf.Save_d_path)
-        g.save_weights(cf.Save_g_path)
-        print('Model saved -> ', cf.Save_d_path, cf.Save_g_path)
-        print("maxAcc:{}".format(max_score * 100))
 
+        # classified learning by softmax
+        for ite in range(cf.DistillationIteCNN):
+            ite += 1
+            train_ind = ite % (train_num_per_step - 1)
+            if ite % (train_num_per_step + 1) == max_ite:
+                np.random.shuffle(data_inds)
+
+            _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
+            cnn_loss = cnn.test_on_batch(X_train[_inds], y_train[_inds]) # cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
+            cnn_g_loss = cnn_g.train_on_batch(X_train[_inds], y_train[_inds])  # CNNをファインチューニング
+            x_fake = conv.predict(X_train[_inds], verbose=0)  # fake画像にcnnの中間特徴を使用
+
+            z = X_train[_inds]  # ノイズに訓練画像を使用
+
+            x_real = g.predict([z], verbose=0)
+            x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
+            t = [1] * cf.Minibatch + [0] * cf.Minibatch
+            d_loss = d.test_on_batch(x, t)  # これで重み更新までされる
+            g_loss = c.test_on_batch([z], [1] * cf.Minibatch)
+
+            con = '|'
+            if ite % cf.Save_train_step != 0:
+                for i in range(ite % cf.Save_train_step):
+                    con += '>'
+                for i in range(cf.Save_train_step - ite % cf.Save_train_step):
+                    con += ' '
+            else:
+                for i in range(cf.Save_train_step):
+                    con += '>'
+            con += '| '
+            if ite % 100 == 0:
+                cnn_val_loss = cnn.test_on_batch(X_test, y_test)  # 超多層CNNの性能測定
+                cnn_test_val_loss = cnn_g.test_on_batch(X_test, y_test)  # 低層CNNの性能測定
+                max_score = max(max_score, 1. - cnn_test_val_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_g: {:.6f} , cnn_val: {:.6f} , cnn_test_val: {:.6f} " \
+                    .format(ite, g_loss, d_loss, cnn_loss, cnn_g_loss, cnn_val_loss, cnn_test_val_loss)
+            else:
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}, cnn_g: {:.6f}".format(ite, g_loss, d_loss, cnn_loss,
+                                                                                         cnn_g_loss)
+            sys.stdout.write("\r" + con)
+
+            if ite % cf.Save_train_step == 0 or ite == 1:
+                print()
+                f.write("{},{},{}{}".format(ite, g_loss, d_loss, os.linesep))
+                # save weights
+                d.save_weights(cf.Save_d_path)
+                g.save_weights(cf.Save_g_path)
+
+                gerated = g.predict([z], verbose=0)
+                # save some samples
+                if cf.Save_train_combine is True:
+                    save_images(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+                elif cf.Save_train_combine is False:
+                    save_images_separate(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+        f.close()
+        ###distillation end
 
 class Main_test():
     def __init__(self):
@@ -182,7 +293,7 @@ class Main_test():
 
     def test(self):
         ## Load network model
-        g = G_model(Height=Height, Width=Width, channel=Channel)
+        g, size = G_model(Height=Height, Width=Width, channel=Channel)
         g.load_weights(cf.Save_g_path, by_name=True)
 
         print('-- Test start!!')
@@ -254,23 +365,23 @@ def arg_parse():
 if __name__ == '__main__':
     args = arg_parse()
 
+    if args.mnist:
+        Height = 28
+        Width = 28
+        Channel = 1
+        from keras.datasets import mnist
+        import config_mnist as cf
+        from _model_mnist import *
+        np.random.seed(cf.Random_seed)
+    elif args.cifar10:
+        Height = 32
+        Width = 32
+        Channel = 3
+        import config_cifar10 as cf
+        from keras.datasets import cifar10 as mnist
+        from _model_cifar10 import *
+        np.random.seed(cf.Random_seed)
     if args.train:
-        if args.mnist:
-            Height = 28
-            Width = 28
-            Channel = 1
-            from keras.datasets import mnist
-            import config_mnist as cf
-            from _model_mnist import *
-            np.random.seed(cf.Random_seed)
-        elif args.cifar10:
-            Height = 32
-            Width = 32
-            Channel = 3
-            import config_cifar10 as cf
-            from keras.datasets import cifar10 as mnist
-            from _model_cifar10 import *
-            np.random.seed(cf.Random_seed)
         main = Main_train()
         main.train()
     if args.test:

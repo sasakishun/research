@@ -24,7 +24,9 @@ Input_type = 'channels_last'
 File_extensions = ['.jpg', '.png']
 
 ## Training config
-Iteration = 10000
+Iteration = 2000
+DistillationIteGAN = 10000
+DistillationIteCNN = 10000
 Minibatch = 64
 
 ## Test config
