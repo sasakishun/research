@@ -108,16 +108,12 @@ class Main_train():
                 np.random.shuffle(data_inds)
 
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
-            x_fake = X_train[_inds]
+            # x_fake = X_train[_inds]
             cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-            # x_fake = g.predict(X_train[_inds], verbose=0)  # fake画像にcnnの中間特徴を使用
 
             z = X_train[_inds]  # ノイズに訓練画像を使用
-            z = arrange(z) # np.ndarray(np.shape(X_train[_inds]))
-
-            # input_noise = np.random.normal(0, 0.3, size=(cf.Minibatch, 100))
-            x_real = g.predict([z], verbose=0)
-            # print("x_real:{} x_fake:{}".format(np.shape(x_real), np.shape(x_fake)))
+            x_real = arrange(z) # np.ndarray(np.shape(X_train[_inds]))
+            x_fake = g.predict([z], verbose=0)
             x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
             t = [1] * cf.Minibatch + [0] * cf.Minibatch
             d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
@@ -139,9 +135,10 @@ class Main_train():
                 max_score = max(max_score, 1. - cnn_val_loss)
                 con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_val: {:.6f} "\
                     .format(ite, g_loss, d_loss, cnn_loss, cnn_loss, cnn_val_loss)
-                if ite % 1000 == 0:
-                    save_images(g.predict([z], verbose=0), index=ite, dir_path=cf.Save_test_img_dir)
+                if ite % 100 == 0:
+                    save_images(g.predict(z, verbose=0), index="g" + str(ite), dir_path=cf.Save_test_img_dir)
                     save_images(X_train[_inds], index="x" + str(ite), dir_path=cf.Save_test_img_dir)
+                    save_images(z, index="z" + str(ite), dir_path=cf.Save_test_img_dir)
             else:
                 con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}".format(ite, g_loss, d_loss, cnn_loss)
             sys.stdout.write("\r" + con)
@@ -210,7 +207,7 @@ def save_images(imgs, index, dir_path):
         x = i % w_num
         y = i // w_num
         out[y * H:(y + 1) * H, x * W:(x + 1) * W] = batch[i, ..., 0]
-    fname = str(index).zfill(len(str(cf.Iteration))) + '.jpg'
+    fname = str(index) + '.jpg' # str(index).zfill(len(str(cf.Iteration))) + '.jpg'
     save_path = os.path.join(dir_path, fname)
 
     if cf.Save_iteration_disp:
