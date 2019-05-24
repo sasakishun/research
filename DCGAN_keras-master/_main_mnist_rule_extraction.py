@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
 from image_to_dot import *
+import copy
 
 # import config_mnist as cf
 
@@ -70,7 +71,7 @@ class Main_train():
         ## Prepare Training data　前処理
         # dl_train = DataLoader(phase='Train', shuffle=True)
         (X_train, y_train), (X_test, y_test) = mnist.load_data()
-        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+        X_train = X_train.astype(np.float32) / 255. # (X_train.astype(np.float32) - 127.5) / 127.5
         if X_train.ndim == 3:
             X_train = X_train[:, :, :, None]
         train_num = X_train.shape[0]
@@ -110,14 +111,13 @@ class Main_train():
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
             # x_fake = X_train[_inds]
             cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-
-            z = X_train[_inds]  # ノイズに訓練画像を使用
+            z = X_train[_inds] # ノイズに訓練画像を使用
             x_real = arrange(z) # np.ndarray(np.shape(X_train[_inds]))
-            x_fake = g.predict([z], verbose=0)
+            x_fake = g.predict([X_train[_inds]], verbose=0)
             x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
-            t = [1] * cf.Minibatch + [0] * cf.Minibatch
+            t = [1] * cf.Minibatch + [0] * cf.Minibatch # fake:1 real:0
             d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
-            g_loss = c.train_on_batch([z], [1] * cf.Minibatch)
+            g_loss = c.train_on_batch([X_train[_inds]], [0] * cf.Minibatch)
 
             con = '|'
             if ite % cf.Save_train_step != 0:
@@ -136,9 +136,10 @@ class Main_train():
                 con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_val: {:.6f} "\
                     .format(ite, g_loss, d_loss, cnn_loss, cnn_loss, cnn_val_loss)
                 if ite % 100 == 0:
-                    save_images(g.predict(z, verbose=0), index="g" + str(ite), dir_path=cf.Save_test_img_dir)
+                    save_images(x_fake, index="g" + str(ite), dir_path=cf.Save_test_img_dir)
                     save_images(X_train[_inds], index="x" + str(ite), dir_path=cf.Save_test_img_dir)
-                    save_images(z, index="z" + str(ite), dir_path=cf.Save_test_img_dir)
+                    save_images(x_real, index="z" + str(ite), dir_path=cf.Save_test_img_dir)
+                print("x_fake\n{} \n\nx_real:{}\n\ntrain:{}".format(x_fake[0], x_real[0], X_train[0]))
             else:
                 con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}".format(ite, g_loss, d_loss, cnn_loss)
             sys.stdout.write("\r" + con)
@@ -198,7 +199,7 @@ def save_images(imgs, index, dir_path):
     # Argment
     #  img_batch = np.array((batch, height, width, channel)) with value range [-1, 1]
     B, H, W, C = imgs.shape
-    batch = imgs * 127.5 + 127.5
+    batch = imgs * 255. # 127.5 + 127.5
     batch = batch.astype(np.uint8)
     w_num = np.ceil(np.sqrt(B)).astype(np.int)
     h_num = int(np.ceil(B / w_num))
