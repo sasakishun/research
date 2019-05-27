@@ -111,7 +111,7 @@
       - act()とd_act()をtensorflow側(tf.py_funcをオーバーライドした関数py_func(活性化関数, 入力仮引数, 出力型([tf.float32など]), stateful=stateful, 名前, 勾配関数)を使用)に登録→これをやって初めて計算グラフに乗る
   - GANの学習がうまくいかないとき（https://gangango.com/2018/11/16/post-322/ ）
     - 学習回数比率を「生成器 : 識別器 = 2 : 1」などに偏らせる
-         
+  - kerasで複数の出力を取得し、それらを同時に最適化する方法（https://codeday.me/jp/qa/20190409/586386.html ） 
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
