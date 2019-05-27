@@ -109,8 +109,8 @@
     - 活性化関数act()と勾配d_act()を設定
       - act()はnumpy関数に変換する
       - act()とd_act()をtensorflow側(tf.py_funcをオーバーライドした関数py_func(活性化関数, 入力仮引数, 出力型([tf.float32など]), stateful=stateful, 名前, 勾配関数)を使用)に登録→これをやって初めて計算グラフに乗る
-    - GANの学習がうまくいかないとき（https://gangango.com/2018/11/16/post-322/ ）
-      - 学習回数比率を「生成器 : 識別器 = 2 : 1」などに偏らせる
+  - GANの学習がうまくいかないとき（https://gangango.com/2018/11/16/post-322/ ）
+    - 学習回数比率を「生成器 : 識別器 = 2 : 1」などに偏らせる
          
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
