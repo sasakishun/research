@@ -35,7 +35,7 @@ class Main_train():
     def __init__(self):
         pass
 
-    def train(self):
+    def train(self, irisflag=False):
         # 性能評価用パラメータ
         max_score = 0.
 
@@ -74,8 +74,14 @@ class Main_train():
 
         ## Prepare Training data　前処理
         # dl_train = DataLoader(phase='Train', shuffle=True)
-        (X_train, y_train), (X_test, y_test) = mnist.load_data()
-        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+        if irisflag:
+            X_train = iris.data[:120]
+            y_train = np_utils.to_categorical(iris.data[120:])
+            X_test = iris.target[:120]
+            y_test = np_utils.to_categorical(iris.target[120:])
+        else:
+            (X_train, y_train), (X_test, y_test) = mnist.load_data()
+            X_train = (X_train.astype(np.float32) - 127.5) / 127.5
         if X_train.ndim == 3:
             X_train = X_train[:, :, :, None]
         train_num = X_train.shape[0]
@@ -247,6 +253,7 @@ def arg_parse():
     parser.add_argument('--test', dest='test', action='store_true')
     parser.add_argument('--mnist', dest='mnist', action='store_true')
     parser.add_argument('--cifar10', dest='cifar10', action='store_true')
+    parser.add_argument('--iris', dest='iris', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -263,6 +270,8 @@ if __name__ == '__main__':
             import config_mnist as cf
             from _model_mnist import *
             np.random.seed(cf.Random_seed)
+            main = Main_train()
+            main.train(irisflag=True)
         elif args.cifar10:
             Height = 32
             Width = 32
@@ -271,8 +280,19 @@ if __name__ == '__main__':
             from keras.datasets import cifar10 as mnist
             from _model_cifar10 import *
             np.random.seed(cf.Random_seed)
-        main = Main_train()
-        main.train()
+            main = Main_train()
+            main.train(irisflag=True)
+        elif args.iris:
+            Height = 1
+            Width = 3
+            Channel = 1
+            import config_mnist as cf
+            from _model_iris import *
+            np.random.seed(cf.Random_seed)
+            from sklearn.datasets import load_iris
+            iris = load_iris()
+            main = Main_train()
+            main.train(irisflag=True)
     if args.test:
         main = Main_test()
         main.test()

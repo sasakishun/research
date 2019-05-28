@@ -19,6 +19,8 @@ import glob
 import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
+from image_to_dot import *
+import copy
 
 # import config_mnist as cf
 
@@ -42,21 +44,27 @@ class Main_train():
         ## Load network model
         g, size = G_model(Height=Height, Width=Width, channel=Channel)
         d = D_model(Height=size[0], Width=size[1], channel=size[2])
-        c = Combined_model(g=g, d=d)
-        conv = conv_x(Height=Height, Width=Width, channel=Channel)
         fc = classifying(Height=size[0], Width=size[1], channel=size[2])
-        fc_test = classifying(Height=size[0], Width=size[1], channel=size[2])
-        cnn = Combined_model(g=conv, d=fc)  # 超多層CNN
-        cnn_g = Combined_model(g=g, d=fc_test)  # 低層CNN（これを使って超多層CNNを近似する）
+        c = Combined_model(g=g, d=d)
+        cnn = Combined_model(g=g, d=fc)
         g.summary()
         d.summary()
-        cnn.summary()
+        c.summary()
 
         g_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
         d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
         cnn_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
 
-        g.compile(loss='binary_crossentropy', optimizer='SGD')
+        g.compile(loss='binary_crossentropy', optimizer='SGD')  # generatorの学習設定
+        g.trainable = False
+        for layer in g.layers:
+            layer.trainable = False
+        cnn.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # CNNをコンパイル
+        # generatorは固定し全結合層のみ学習
+        g.trainable = True
+        for layer in g.layers:
+            layer.trainable = True
+
         d.trainable = False
         for layer in d.layers:
             layer.trainable = False
@@ -67,15 +75,12 @@ class Main_train():
         for layer in d.layers:
             layer.trainable = True
         d.compile(loss='binary_crossentropy', optimizer=d_opt)  # 識別機を更新可能にしてコンパイル
-        cnn.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # CNNをコンパイル
-        # for layer in g.layers:
-            # layer.trainable = False
-        cnn_g.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # テスト用CNNは全結合層のみ学習するようにしてコンパイル
+
 
         ## Prepare Training data　前処理
         # dl_train = DataLoader(phase='Train', shuffle=True)
         (X_train, y_train), (X_test, y_test) = mnist.load_data()
-        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+        X_train = X_train.astype(np.float32) / 255. # (X_train.astype(np.float32) - 127.5) / 127.5
         if X_train.ndim == 3:
             X_train = X_train[:, :, :, None]
         train_num = X_train.shape[0]
@@ -114,25 +119,17 @@ class Main_train():
 
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
             # x_fake = X_train[_inds]
-            cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-            cnn_g_loss = cnn_g.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-            x_fake = conv.predict(X_train[_inds], verbose=0)  # fake画像にcnnの中間特徴を使用
 
-            # z = np.random.uniform(-1, 1, size=(cf.Minibatch, 100))
-            z = X_train[_inds]  # ノイズに訓練画像を使用
-
-            # input_noise = np.random.normal(0, 0.3, size=(cf.Minibatch, 100))
-            x_real = g.predict([z], verbose=0)
+            z = X_train[_inds] # ノイズに訓練画像を使用
+            survival_rate = 10000/ite
+            x_real = arrange(z, survival_rate) # np.ndarray(np.shape(X_train[_inds]))
+            x_fake = g.predict([X_train[_inds]], verbose=0)
             x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
-            t = [1] * cf.Minibatch + [0] * cf.Minibatch
+            t = [1] * cf.Minibatch + [0] * cf.Minibatch # fake:1 real:0
+
             d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
-
-            # Generator training
-            # z = np.random.uniform(-1, 1, size=(cf.Minibatch, 100))
-            # zは識別機学習で使用した訓練画像をそのまま使用
-
-            # input_noise = np.random.normal(0, 0.3, size=(cf.Minibatch, 100))
-            g_loss = c.train_on_batch([z], [1] * cf.Minibatch)
+            g_loss = c.train_on_batch([X_train[_inds]], [0] * cf.Minibatch)
+            cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
 
             con = '|'
             if ite % cf.Save_train_step != 0:
@@ -144,30 +141,38 @@ class Main_train():
                 for i in range(cf.Save_train_step):
                     con += '>'
             con += '| '
+            cnn_val_loss = 0
             if ite % 100 == 0:
-                cnn_val_loss = cnn.test_on_batch(X_test, y_test)  # 超多層CNNの性能測定
-                cnn_test_val_loss = cnn_g.test_on_batch(X_test, y_test)  # 低層CNNの性能測定
-                max_score = max(max_score, 1. - cnn_test_val_loss)
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_g: {:.6f} , cnn_val: {:.6f} , cnn_test_val: {:.6f} " \
-                    .format(ite, g_loss, d_loss, cnn_loss, cnn_g_loss, cnn_val_loss, cnn_test_val_loss)
+                # print("X_test:{} y_test:{}".format(np.shape(X_test), np.shape(y_test)))
+                for i in range(len(X_test)//1000):
+                    cnn_val_loss += cnn.test_on_batch(X_test[1000*i:1000*(i+1)], y_test[1000*i:1000*(i+1)])/1000
+                # print("cnn_val_loss:{}".format(cnn_val_loss))
+                max_score = max(max_score, 1. - cnn_val_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_val: {:.6f} "\
+                    .format(ite, g_loss, d_loss, cnn_loss, cnn_loss, cnn_val_loss)
+                if ite % 100 == 0:
+                    save_images(x_fake, index="g" + str(ite), dir_path=cf.Save_test_img_dir)
+                    save_images(X_train[_inds], index="x" + str(ite), dir_path=cf.Save_test_img_dir)
+                    save_images(x_real, index="z" + str(ite), dir_path=cf.Save_test_img_dir)
+                # print("x_fake\n{} \n\nx_real:{}\n\ntrain:{}".format(x_fake[0], x_real[0], X_train[0]))
             else:
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}, cnn_g: {:.6f}".format(ite, g_loss, d_loss, cnn_loss,
-                                                                                         cnn_g_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}".format(ite, g_loss, d_loss, cnn_loss)
             sys.stdout.write("\r" + con)
 
             if ite % cf.Save_train_step == 0 or ite == 1:
                 print()
-                f.write("{},{},{}{}".format(ite, g_loss, d_loss, os.linesep))
+                f.write("{},{},{}, {}, {} {}".format(ite, g_loss, d_loss, cnn_loss, cnn_val_loss, os.linesep))
+                """
                 # save weights
                 d.save_weights(cf.Save_d_path)
                 g.save_weights(cf.Save_g_path)
-
                 gerated = g.predict([z], verbose=0)
                 # save some samples
                 if cf.Save_train_combine is True:
                     save_images(gerated, index=ite, dir_path=cf.Save_train_img_dir)
                 elif cf.Save_train_combine is False:
                     save_images_separate(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+                """
         f.close()
         ## Save trained model
         d.save_weights(cf.Save_d_path)
@@ -209,7 +214,7 @@ def save_images(imgs, index, dir_path):
     # Argment
     #  img_batch = np.array((batch, height, width, channel)) with value range [-1, 1]
     B, H, W, C = imgs.shape
-    batch = imgs * 127.5 + 127.5
+    batch = imgs * 255. # 127.5 + 127.5
     batch = batch.astype(np.uint8)
     w_num = np.ceil(np.sqrt(B)).astype(np.int)
     h_num = int(np.ceil(B / w_num))
@@ -218,7 +223,7 @@ def save_images(imgs, index, dir_path):
         x = i % w_num
         y = i // w_num
         out[y * H:(y + 1) * H, x * W:(x + 1) * W] = batch[i, ..., 0]
-    fname = str(index).zfill(len(str(cf.Iteration))) + '.jpg'
+    fname = str(index) + '.jpg' # str(index).zfill(len(str(cf.Iteration))) + '.jpg'
     save_path = os.path.join(dir_path, fname)
 
     if cf.Save_iteration_disp:
@@ -261,7 +266,7 @@ if __name__ == '__main__':
             Channel = 1
             from keras.datasets import mnist
             import config_mnist as cf
-            from _model_mnist import *
+            from _model_mnist_rule_extraction import *
             np.random.seed(cf.Random_seed)
         elif args.cifar10:
             Height = 32
