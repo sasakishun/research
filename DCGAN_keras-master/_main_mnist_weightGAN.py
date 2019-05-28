@@ -40,37 +40,34 @@ class Main_train():
         max_score = 0.
 
         ## Load network model
-        g, size = G_model(Height=Height, Width=Width, channel=Channel)
-        d = D_model(Height=size[0], Width=size[1], channel=size[2])
-        c = Combined_model(g=g, d=d)
-        conv = conv_x(Height=Height, Width=Width, channel=Channel)
-        fc = classifying(Height=size[0], Width=size[1], channel=size[2])
-        fc_test = classifying(Height=size[0], Width=size[1], channel=size[2])
-        cnn = Combined_model(g=conv, d=fc)  # 超多層CNN
-        cnn_g = Combined_model(g=g, d=fc_test)  # 低層CNN（これを使って超多層CNNを近似する）
-        g.summary()
-        d.summary()
-        cnn.summary()
+        Size = 4
+        wSize = 4*5
+        inputs_z = Input(shape=(Size,), name='Z')  # 入力を取得
+        layer1 = Dense(5, activation='relu', name='g_dense1')
+        x = layer1(inputs_z)
+        x = Dense(3, activation='softmax', name='x_out')(x)
+        weight = Flatten()(layer1.kernel)
+        # 識別機を学習
+        inputs_w = Input(shape=(wSize,), name='weight')  # 入力重みを取得
+        d_out = Dense(100, activation='relu', name='d_dense1')(inputs_w)
+        d_out = Dense(1, activation='relu', name='d_out')(d_out)
 
-        g_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-        d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-        cnn_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
+        g = Model(inputs=[inputs_z], outputs=[x, weight], name='G')
+        d = Model(inputs=inputs_w, outputs=d_out, name='D')
+        c = Model(inputs=[inputs_z, inputs_w], outputs=[x, d_out], name='C')
 
-        g.compile(loss='binary_crossentropy', optimizer='SGD')
-        d.trainable = False
+        # g_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
+        # g.compile(optimizer=g_opt, loss={'x_out': 'binary_crossentropy', 'weight_out': 'mean_squared_error'})
+        #  生成器の学習時は識別機は固定
         for layer in d.layers:
             layer.trainable = False
-        c.compile(loss='binary_crossentropy', optimizer=g_opt)
-        # 識別機を固定した状態で全体をコンパイル
-        # 生成器の学習では識別機の出力を使用するが、識別機は更新しないため
-        d.trainable = True
+        c_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
+        c.compile(optimizer=c_opt, loss={'x_out': 'binary_crossentropy', 'd_out': 'mean_squared_error'})
+
         for layer in d.layers:
             layer.trainable = True
-        d.compile(loss='binary_crossentropy', optimizer=d_opt)  # 識別機を更新可能にしてコンパイル
-        cnn.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # CNNをコンパイル
-        # for layer in g.layers:
-            # layer.trainable = False
-        cnn_g.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # テスト用CNNは全結合層のみ学習するようにしてコンパイル
+        d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
+        d.compile(optimizer=d_opt, loss='mean_squared_error')
 
         ## Prepare Training data　前処理
         # dl_train = DataLoader(phase='Train', shuffle=True)
@@ -79,21 +76,25 @@ class Main_train():
             y_train = np_utils.to_categorical(iris.data[120:])
             X_test = iris.target[:120]
             y_test = np_utils.to_categorical(iris.target[120:])
+            train_num = X_train.shape[0]
+            train_num_per_step = train_num // cf.Minibatch
+            data_inds = np.arange(train_num)
+            max_ite = cf.Minibatch * train_num_per_step
         else:
             (X_train, y_train), (X_test, y_test) = mnist.load_data()
             X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-        if X_train.ndim == 3:
-            X_train = X_train[:, :, :, None]
-        train_num = X_train.shape[0]
-        train_num_per_step = train_num // cf.Minibatch
-        data_inds = np.arange(train_num)
-        max_ite = cf.Minibatch * train_num_per_step
-        # クラス分類モデル用に追加
-        y_train = np_utils.to_categorical(y_train)
-        y_test = np_utils.to_categorical(y_test)
-        X_test = (X_test.astype(np.float32) - 127.5) / 127.5
-        if X_test.ndim == 3:
-            X_test = X_test[:, :, :, None]
+            if X_train.ndim == 3:
+                X_train = X_train[:, :, :, None]
+            train_num = X_train.shape[0]
+            train_num_per_step = train_num // cf.Minibatch
+            data_inds = np.arange(train_num)
+            max_ite = cf.Minibatch * train_num_per_step
+            # クラス分類モデル用に追加
+            y_train = np_utils.to_categorical(y_train)
+            y_test = np_utils.to_categorical(y_test)
+            X_test = (X_test.astype(np.float32) - 127.5) / 127.5
+            if X_test.ndim == 3:
+                X_test = X_test[:, :, :, None]
 
         ## Start Train
         print('-- Training Start!!')
@@ -104,7 +105,10 @@ class Main_train():
         elif cf.Save_train_combine is False:
             print("generated image write separately >>", cf.Save_train_img_dir)
 
-        fname = os.path.join(cf.Save_dir, 'loss.txt')
+        if irisflag:
+            fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
+        else:
+            fname = os.path.join(cf.Save_dir, 'loss.txt')
         f = open(fname, 'w')
         f.write("Iteration,G_loss,D_loss{}".format(os.linesep))
         print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
@@ -120,25 +124,18 @@ class Main_train():
 
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
             # x_fake = X_train[_inds]
-            cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-            cnn_g_loss = cnn_g.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
-            x_fake = conv.predict(X_train[_inds], verbose=0)  # fake画像にcnnの中間特徴を使用
-
-            # z = np.random.uniform(-1, 1, size=(cf.Minibatch, 100))
-            z = X_train[_inds]  # ノイズに訓練画像を使用
-
-            # input_noise = np.random.normal(0, 0.3, size=(cf.Minibatch, 100))
-            x_real = g.predict([z], verbose=0)
-            x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
+            real_weight=np.ndarray([[0,0,0,1],
+                               [0,0,0,0],
+                               [0,0,0,0],
+                               [0,0,0,0],
+                               [0,0,0,0]])
+            real_weight = [real_weight for _ in range(cf.Minibatch)]
+            fake_weight = g.predict(X_train[_inds], verbose=0)[1]
+            t = [0] * cf.Minibatch
+            g_loss = c.train_on_batch([X_train[_inds], fake_weight], [y_train[_inds], t])  # 生成器を学習
+            concated_weight = np.concatenate((fake_weight, real_weight))
             t = [1] * cf.Minibatch + [0] * cf.Minibatch
-            d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
-
-            # Generator training
-            # z = np.random.uniform(-1, 1, size=(cf.Minibatch, 100))
-            # zは識別機学習で使用した訓練画像をそのまま使用
-
-            # input_noise = np.random.normal(0, 0.3, size=(cf.Minibatch, 100))
-            g_loss = c.train_on_batch([z], [1] * cf.Minibatch)
+            d_loss = d.train_on_batch(concated_weight, t)  # これで重み更新までされる
 
             con = '|'
             if ite % cf.Save_train_step != 0:
@@ -151,14 +148,11 @@ class Main_train():
                     con += '>'
             con += '| '
             if ite % 100 == 0:
-                cnn_val_loss = cnn.test_on_batch(X_test, y_test)  # 超多層CNNの性能測定
-                cnn_test_val_loss = cnn_g.test_on_batch(X_test, y_test)  # 低層CNNの性能測定
-                max_score = max(max_score, 1. - cnn_test_val_loss)
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_g: {:.6f} , cnn_val: {:.6f} , cnn_test_val: {:.6f} " \
-                    .format(ite, g_loss, d_loss, cnn_loss, cnn_g_loss, cnn_val_loss, cnn_test_val_loss)
+                test_val_loss = g.test_on_batch(X_test, y_test)  # 低層CNNの性能測定
+                max_score = max(max_score, 1. - test_val_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, test_val: {:.6f} ".format(ite, g_loss, d_loss, test_val_loss)
             else:
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}, cnn_g: {:.6f}".format(ite, g_loss, d_loss, cnn_loss,
-                                                                                         cnn_g_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}".format(ite, g_loss, d_loss)
             sys.stdout.write("\r" + con)
 
             if ite % cf.Save_train_step == 0 or ite == 1:
@@ -168,12 +162,14 @@ class Main_train():
                 d.save_weights(cf.Save_d_path)
                 g.save_weights(cf.Save_g_path)
 
+                """
                 gerated = g.predict([z], verbose=0)
                 # save some samples
                 if cf.Save_train_combine is True:
                     save_images(gerated, index=str(ite)+" loss:{}".format(cnn_val_loss), dir_path=cf.Save_train_img_dir)
                 elif cf.Save_train_combine is False:
                     save_images_separate(gerated, index=str(ite)+" loss:{}".format(cnn_val_loss), dir_path=cf.Save_train_img_dir)
+                """
         f.close()
         ## Save trained model
         d.save_weights(cf.Save_d_path)

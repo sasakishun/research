@@ -5,15 +5,19 @@ from keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Activation, Flatt
 from keras.applications.vgg16 import VGG16
 
 
-def G_model(Height, Width, channel=3):
-    inputs_z = Input((Height, Width, channel), name='Z')  # 入力画像を取得
-    x = Conv2D(32, (3, 3), padding='same', activation='relu', name='g_conv1')(inputs_z)
-    x = Conv2D(64, (3, 3), padding='same', activation='relu', name='g_conv2')(x)
-    x = MaxPooling2D(pool_size=(2, 2))(x)
-    x = Dropout(0.25)(x)
-    model = Model(inputs=[inputs_z], outputs=[x], name='G')
-    return model, [Height//2, Width//2, 64]
-
+def G_model(Size=4, wSize=4*5):
+    inputs_z = Input(shape=(Size,), name='Z')  # 入力を取得
+    layer1 = Dense(5, activation='relu', name='g_dense1')
+    x = layer1(inputs_z)
+    x = Dense(3, activation='softmax', name='g_dense2')(x)
+    model_classify = Model(inputs=[inputs_z], outputs=[x], name='classify')
+    # 識別機を学習
+    inputs_weight = Input(shape=(wSize,), name='weight')  # 入力重みを取得
+    concat = concatenate()([Flatten(layer1.kernel), Flatten(inputs_weight)])
+    concat = Dense(100, activation='relu', name='d_dense1')(concat)
+    concat = Dense(100, activation='relu', name='d_dense2')(concat)
+    model = Model(inputs=[inputs_z], outputs=[x, concat], name='G')
+    return model_classify
 
 def D_model(Height, Width, channel=3):
     inputs_x = Input((Height, Width, channel), name='X')  # generator出力を取得
