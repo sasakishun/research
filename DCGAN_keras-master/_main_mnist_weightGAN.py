@@ -171,9 +171,9 @@ class Main_train():
                 gerated = g.predict([z], verbose=0)
                 # save some samples
                 if cf.Save_train_combine is True:
-                    save_images(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+                    save_images(gerated, index=str(ite)+" loss:{}".format(cnn_val_loss), dir_path=cf.Save_train_img_dir)
                 elif cf.Save_train_combine is False:
-                    save_images_separate(gerated, index=ite, dir_path=cf.Save_train_img_dir)
+                    save_images_separate(gerated, index=str(ite)+" loss:{}".format(cnn_val_loss), dir_path=cf.Save_train_img_dir)
         f.close()
         ## Save trained model
         d.save_weights(cf.Save_d_path)
