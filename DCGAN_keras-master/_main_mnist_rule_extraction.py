@@ -6,6 +6,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import keras
 import tensorflow as tf
 from keras import backend as K
+from keras import metrics
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -56,10 +57,12 @@ class Main_train():
         cnn_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
 
         g.compile(loss='binary_crossentropy', optimizer='SGD')  # generatorの学習設定
-        g.trainable = False
-        for layer in g.layers:
-            layer.trainable = False
-        cnn.compile(loss='binary_crossentropy', optimizer=cnn_opt)  # CNNをコンパイル
+        # g.trainable = False
+        # for layer in g.layers:
+            # layer.trainable = False
+        cnn.compile(loss='categorical_crossentropy',
+                    optimizer=cnn_opt,
+                    metrics=[metrics.categorical_accuracy])  # CNNをコンパイル
         # generatorは固定し全結合層のみ学習
         g.trainable = True
         for layer in g.layers:
@@ -126,8 +129,10 @@ class Main_train():
             x_fake = g.predict([X_train[_inds]], verbose=0)
             x = np.concatenate((x_fake, x_real))  # fakeとrealをコンカットして1枚の画像として入力
             t = [1] * cf.Minibatch + [0] * cf.Minibatch # fake:1 real:0
-
-            d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
+            if ite % 2 == 0:
+                d_loss = d.train_on_batch(x, t)  # これで重み更新までされる
+            else:
+                d_loss = d.test_on_batch(x, t)
             g_loss = c.train_on_batch([X_train[_inds]], [0] * cf.Minibatch)
             cnn_loss = cnn.train_on_batch(X_train[_inds], y_train[_inds])  # CNNを学習
 
@@ -141,22 +146,23 @@ class Main_train():
                 for i in range(cf.Save_train_step):
                     con += '>'
             con += '| '
-            cnn_val_loss = 0
+            cnn_val_loss = [0, 0]
             if ite % 100 == 0:
                 # print("X_test:{} y_test:{}".format(np.shape(X_test), np.shape(y_test)))
-                for i in range(len(X_test)//1000):
-                    cnn_val_loss += cnn.test_on_batch(X_test[1000*i:1000*(i+1)], y_test[1000*i:1000*(i+1)])/1000
+                cnn_val_loss = cnn.evaluate(X_test, y_test)
+                # for i in range(len(X_test)//1000):
+                    # cnn_val_loss += cnn.test_on_batch(X_test[1000*i:1000*(i+1)], y_test[1000*i:1000*(i+1)])/(len(X_test)//1000)
                 # print("cnn_val_loss:{}".format(cnn_val_loss))
-                max_score = max(max_score, 1. - cnn_val_loss)
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_val: {:.6f} "\
-                    .format(ite, g_loss, d_loss, cnn_loss, cnn_loss, cnn_val_loss)
+                max_score = max(max_score, 1. - cnn_val_loss[1])
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f} , cnn_val: {:.6f} acc: {}"\
+                    .format(ite, g_loss, d_loss, cnn_loss[0], cnn_val_loss[0], cnn_val_loss[1])
                 if ite % 100 == 0:
                     save_images(x_fake, index="g" + str(ite), dir_path=cf.Save_test_img_dir)
                     save_images(X_train[_inds], index="x" + str(ite), dir_path=cf.Save_test_img_dir)
                     save_images(x_real, index="z" + str(ite), dir_path=cf.Save_test_img_dir)
                 # print("x_fake\n{} \n\nx_real:{}\n\ntrain:{}".format(x_fake[0], x_real[0], X_train[0]))
             else:
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}".format(ite, g_loss, d_loss, cnn_loss)
+                con += "Ite:{}, g: {:.6f}, d: {:.6f}, cnn: {:.6f}".format(ite, g_loss, d_loss, cnn_loss[0])
             sys.stdout.write("\r" + con)
 
             if ite % cf.Save_train_step == 0 or ite == 1:

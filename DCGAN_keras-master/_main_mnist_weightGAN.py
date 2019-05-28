@@ -46,7 +46,9 @@ class Main_train():
         layer1 = Dense(5, activation='relu', name='g_dense1')
         x = layer1(inputs_z)
         x = Dense(3, activation='softmax', name='x_out')(x)
-        weight = Flatten()(layer1.kernel)
+        weight = layer1.kernel
+        print("weight:{}".format(weight))
+        weight = Flatten(weight)
         # 識別機を学習
         inputs_w = Input(shape=(wSize,), name='weight')  # 入力重みを取得
         d_out = Dense(100, activation='relu', name='d_dense1')(inputs_w)
