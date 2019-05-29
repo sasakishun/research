@@ -6,6 +6,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import keras
 import tensorflow as tf
 from keras import backend as K
+from keras import metrics
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -19,6 +20,7 @@ import glob
 import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
+from sklearn.model_selection import train_test_split
 
 # import config_mnist as cf
 
@@ -41,43 +43,55 @@ class Main_train():
 
         ## Load network model
         Size = 4
-        wSize = 4*5
+        wSize = 5
         inputs_z = Input(shape=(Size,), name='Z')  # 入力を取得
-        layer1 = Dense(5, activation='relu', name='g_dense1')
+        layer1 = Dense(wSize, activation='relu', name='g_dense1')
         x = layer1(inputs_z)
+        weight = x  # layer1.kernel
         x = Dense(3, activation='softmax', name='x_out')(x)
-        weight = layer1.kernel
         print("weight:{}".format(weight))
-        weight = Flatten(weight)
+        # weight = Flatten(weight)
+
         # 識別機を学習
         inputs_w = Input(shape=(wSize,), name='weight')  # 入力重みを取得
         d_out = Dense(100, activation='relu', name='d_dense1')(inputs_w)
-        d_out = Dense(1, activation='relu', name='d_out')(d_out)
+        d_out = Dense(1, activation='sigmoid', name='d_out')(d_out)
 
         g = Model(inputs=[inputs_z], outputs=[x, weight], name='G')
-        d = Model(inputs=inputs_w, outputs=d_out, name='D')
+        d = Model(inputs=[inputs_w], outputs=[d_out], name='D')
         c = Model(inputs=[inputs_z, inputs_w], outputs=[x, d_out], name='C')
-
+        classify = Model(inputs=[inputs_z], outputs=[x], name='classify')
+        classify.compile(loss='categorical_crossentropy',
+                         optimizer="adam",
+                         metrics=[metrics.categorical_accuracy])
         # g_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
         # g.compile(optimizer=g_opt, loss={'x_out': 'binary_crossentropy', 'weight_out': 'mean_squared_error'})
         #  生成器の学習時は識別機は固定
         for layer in d.layers:
             layer.trainable = False
         c_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-        c.compile(optimizer=c_opt, loss={'x_out': 'binary_crossentropy', 'd_out': 'mean_squared_error'})
+        c.compile(optimizer=c_opt, loss={'x_out': 'categorical_crossentropy', 'd_out': 'mean_squared_error'})
 
         for layer in d.layers:
             layer.trainable = True
         d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
         d.compile(optimizer=d_opt, loss='mean_squared_error')
+        g.summary()
+        d.summary()
+        c.summary()
+        classify.summary()
 
         ## Prepare Training data　前処理
         # dl_train = DataLoader(phase='Train', shuffle=True)
         if irisflag:
-            X_train = iris.data[:120]
-            y_train = np_utils.to_categorical(iris.data[120:])
-            X_test = iris.target[:120]
-            y_test = np_utils.to_categorical(iris.target[120:])
+            # print("data\n{}".format(iris.data))
+            # print("target\n{}".format(iris.target))
+            X_train, X_test, y_train, y_test\
+                = train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True)
+            # X_train = iris.data[:150]
+            y_train = np_utils.to_categorical(y_train, 3)
+            # X_test = iris.data[:150]
+            y_test = np_utils.to_categorical(y_test, 3)
             train_num = X_train.shape[0]
             train_num_per_step = train_num // cf.Minibatch
             data_inds = np.arange(train_num)
@@ -120,25 +134,40 @@ class Main_train():
             ite += 1
             # Discremenator training
             # y = dl_train.get_minibatch(shuffle=True)
+            # print("train_num_per_step:{} minibatch:{}".format(train_num_per_step, cf.Minibatch))
             train_ind = ite % (train_num_per_step - 1)
             if ite % (train_num_per_step + 1) == max_ite:
                 np.random.shuffle(data_inds)
 
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
             # x_fake = X_train[_inds]
-            real_weight=np.ndarray([[0,0,0,1],
-                               [0,0,0,0],
-                               [0,0,0,0],
-                               [0,0,0,0],
-                               [0,0,0,0]])
-            real_weight = [real_weight for _ in range(cf.Minibatch)]
+            real_weight = np.zeros((cf.Minibatch, 5))
+            for i in range(cf.Minibatch):
+                if y_train[_inds][i][0] == 1:
+                    real_weight[i][0] = 1
+                elif y_train[_inds][i][1] == 1:
+                    real_weight[i][1] = 1
+                elif y_train[_inds][i][2] == 1:
+                    real_weight[i][2] = 1
+            # print(real_weight)
             fake_weight = g.predict(X_train[_inds], verbose=0)[1]
-            t = [0] * cf.Minibatch
-            g_loss = c.train_on_batch([X_train[_inds], fake_weight], [y_train[_inds], t])  # 生成器を学習
-            concated_weight = np.concatenate((fake_weight, real_weight))
-            t = [1] * cf.Minibatch + [0] * cf.Minibatch
-            d_loss = d.train_on_batch(concated_weight, t)  # これで重み更新までされる
+            # print("X_train:{}".format(np.shape(X_train[_inds])))
+            # print("y_train:{}".format(np.shape(y_train[_inds])))
+            # print("g_out:{}".format(np.shape(g.predict(X_train[_inds])[0])))
+            # print("real_weight:{}".format(np.shape(real_weight)))
+            # print("fake_weight:{}".format(np.shape(fake_weight)))
+            # print("t:{}".format(np.shape(t)))
+            # print("d_out:{}".format(np.shape(d.predict(fake_weight, verbose=0))))
 
+            t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
+            concated_weight = np.concatenate((fake_weight, real_weight))
+            if ite % 2 == 0:
+                d_loss = d.train_on_batch(concated_weight, t)  # これで重み更新までされる
+            else:
+                d_loss = d.test_on_batch(concated_weight, t)  # これで重み更新までされる
+            t = np.array([[0] for _ in range(cf.Minibatch)])# [0] * cf.Minibatch
+            g_loss = c.train_on_batch([X_train[_inds], real_weight], [y_train[_inds], t])  # 生成器を学習
+            # d_loss = classify.train_on_batch(X_train[_inds], y_train[_inds])[1]  # これで重み更新までされる
             con = '|'
             if ite % cf.Save_train_step != 0:
                 for i in range(ite % cf.Save_train_step):
@@ -150,11 +179,27 @@ class Main_train():
                     con += '>'
             con += '| '
             if ite % 100 == 0:
-                test_val_loss = g.test_on_batch(X_test, y_test)  # 低層CNNの性能測定
-                max_score = max(max_score, 1. - test_val_loss)
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}, test_val: {:.6f} ".format(ite, g_loss, d_loss, test_val_loss)
+                # test_val_loss = classify.evaluate(X_test, y_test)
+                test_val_loss = classify.evaluate(X_train, y_train)  # 低層CNNの性能測定
+                max_score = max(max_score, 1. - test_val_loss[1])
+                con += "Ite:{}, g: {}, d: {:.6f}, test_val: {} ".format(ite, g_loss, d_loss, test_val_loss)
+                # print("fake_weight\n{}".format(fake_weight))
+                # print("real_weight\n{}".format(real_weight))
+                # print("d_out\n{}".format(d.predict(fake_weight, verbose=0)))
+                # for i in range(10):
+                    # print(classify.layers[i].get_weights())
+                    # print(classify.layers[i].get_weights()[0])
+                if ite % 100000 == 0:
+                    for i in [1]:
+                        # weights 結果をplot
+                        w1 = classify.layers[i].get_weights()[0]
+                        plt.imshow(w1, cmap='coolwarm', interpolation='nearest')
+                        plt.colorbar()
+                        plt.figure()
+                        plt.plot((w1 ** 2).mean(axis=1), 'o-')
+                        plt.show()
             else:
-                con += "Ite:{}, g: {:.6f}, d: {:.6f}".format(ite, g_loss, d_loss)
+                con += "Ite:{}, g: {}, d: {:.6f}".format(ite, g_loss, d_loss)
             sys.stdout.write("\r" + con)
 
             if ite % cf.Save_train_step == 0 or ite == 1:
