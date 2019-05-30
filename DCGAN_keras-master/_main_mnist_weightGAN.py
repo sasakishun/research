@@ -185,19 +185,22 @@ class Main_train():
                 con += "Ite:{}, g: {}, d: {:.6f}, test_val: {} ".format(ite, g_loss, d_loss, test_val_loss)
                 # print("fake_weight\n{}".format(fake_weight))
                 # print("real_weight\n{}".format(real_weight))
-                print("layer1_out\n{}".format(g.predict(X_train[_inds], verbose=0)[0]))
+                print("layer1_out\n{}".format(g.predict(X_train[_inds], verbose=0)[1]))
+                print("real_weight\n{}".format(real_weight))
                 # for i in range(10):
                     # print(classify.layers[i].get_weights())
                     # print(classify.layers[i].get_weights()[0])
-                if ite % 100000 == 0:
+                if ite % 10000 == 0:
+                    print("layer1_out\n{}".format(g.predict(X_test, verbose=0)[1]))
                     for i in [1]:
                         # weights 結果をplot
                         w1 = classify.layers[i].get_weights()[0]
-                        plt.imshow(w1, cmap='coolwarm', interpolation='nearest')
-                        plt.colorbar()
-                        plt.figure()
-                        plt.plot((w1 ** 2).mean(axis=1), 'o-')
-                        plt.show()
+                        print("w1\n{}".format(w1))
+                        # plt.imshow(w1, cmap='coolwarm', interpolation='nearest')
+                        # plt.colorbar()
+                        # plt.figure()
+                        # plt.plot((w1 ** 2).mean(axis=1), 'o-')
+                        # plt.show()
             else:
                 con += "Ite:{}, g: {}, d: {:.6f}".format(ite, g_loss, d_loss)
             sys.stdout.write("\r" + con)
