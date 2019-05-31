@@ -112,6 +112,7 @@
   - GANの学習がうまくいかないとき（https://gangango.com/2018/11/16/post-322/ ）
     - 学習回数比率を「生成器 : 識別器 = 2 : 1」などに偏らせる
   - kerasで複数の出力を取得し、それらを同時に最適化する方法（https://codeday.me/jp/qa/20190409/586386.html ） 
+  - kerasで複数の出力に、別々の最適化法を適用する方法（https://www.st-hakky-blog.com/entry/2017/12/07/173928 ）
 # いますること
   - Graph ConvolutionでMNISTの分類、実世界画像でセグメンテーション
     - segmenationではsiamese networkを参考に2画像同時入力でより高精度化を期待
