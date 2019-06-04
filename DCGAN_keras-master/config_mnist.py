@@ -25,7 +25,7 @@ File_extensions = ['.jpg', '.png']
 
 ## Training config
 Iteration = 500000
-Minibatch = 20# 64
+Minibatch = 32# 64
 
 ## Test config
 ## The total number of generated images is Test_Minibatch * Test_num
@@ -39,7 +39,7 @@ Save_test_img_dir = 'test_images_mnist'
 Save_train_combine = True
 Save_test_combine = True
 
-Save_train_step = 20000
+Save_train_step = 1000
 Save_iteration_disp = True
 
 ## Save config
