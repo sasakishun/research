@@ -172,16 +172,23 @@ class Main_train():
             g_loss = c.train_on_batch([X_train[_inds]], [y_train[_inds], t])  # 生成器を学習
             # d_loss = classify.train_on_batch(X_train[_inds], y_train[_inds])[1]  # これで重み更新までされる
             con = '|'
+            _div = cf.Save_train_step//20
             if ite % cf.Save_train_step != 0:
-                for i in range(ite % cf.Save_train_step):
+                # for i in range(ite % cf.Save_train_step):
+                    # if i % cf.Save_train_step//10 == 0:
+                for i in range((ite % cf.Save_train_step)//_div):
                     con += '>'
-                for i in range(cf.Save_train_step - ite % cf.Save_train_step):
+                # for i in range(cf.Save_train_step - ite % cf.Save_train_step):
+                    # if i % cf.Save_train_step//10 == 0:
+                for i in range(cf.Save_train_step // _div - (ite % cf.Save_train_step) // _div):
                     con += ' '
             else:
-                for i in range(cf.Save_train_step):
+                # for i in range(cf.Save_train_step):
+                    # if i % cf.Save_train_step // 10 == 0:
+                for i in range(cf.Save_train_step // _div):
                     con += '>'
             con += '| '
-            if ite % 100 == 0:
+            if ite % cf.Save_train_step == 0:
                 # test_val_loss = classify.evaluate(X_test, y_test)
                 test_val_loss = classify.evaluate(X_train, y_train)  # 低層CNNの性能測定
                 max_score = max(max_score, 1. - test_val_loss[1])

@@ -39,7 +39,7 @@ Save_test_img_dir = 'test_images_mnist'
 Save_train_combine = True
 Save_test_combine = True
 
-Save_train_step = 20
+Save_train_step = 20000
 Save_iteration_disp = True
 
 ## Save config
