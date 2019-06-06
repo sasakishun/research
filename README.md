@@ -149,3 +149,5 @@
         - filter = dense(100)([1])などとすればいい、ダメならInput()で常に1を受け取る
     -GANのスタイル変換を用いつつ分類精度を保つには、MSEとCrossEntropyの更新比率を色々試してみるしかない
       - もしくはそれぞれのロスでの更新回数の比率を偏らせる（GANの生成器と識別器の更新回数比率を2:1にするような）
+    - NN内の各ノード活性率をも盛りネットワークに保存
+      - メモリネットワーク(http://deeplearning.hatenablog.com/entry/memory_networks )
