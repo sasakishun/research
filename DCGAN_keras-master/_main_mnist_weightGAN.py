@@ -67,7 +67,7 @@ class Main_train():
 
         ## Load network model
         Size = 4
-        wSize = 20
+        wSize = 10
         inputs_z = Input(shape=(Size,), name='Z')  # 入力を取得
         # g_dense0 = Dense(wSize*10, activation='relu', name='g_dense0')(inputs_z)
         # g_dense1 = Dense(wSize, activation='relu', name='g_dense1')(g_dense0)
@@ -80,7 +80,7 @@ class Main_train():
         d_dense1 = Dense(100, activation='relu', name='d_dense1')
 
         ### Minibatch Discrimination用のパラメータ
-        num_kernels = 100
+        num_kernels = 10 # 100まで大きくすると識別機誤差が0.5で固定
         dim_per_kernel = 5
         M = Dense(num_kernels * dim_per_kernel, bias=False, activation=None)
         MBD = Lambda(minb_disc, output_shape=lambda_output)
@@ -120,7 +120,7 @@ class Main_train():
         c_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
         c.compile(optimizer=c_opt,
                   loss={'x_out': 'categorical_crossentropy', 'd_out': 'mse'},
-                  loss_weights={'x_out': 1., 'd_out': 0.5})
+                  loss_weights={'x_out': 0., 'd_out': 1.})
         for layer in d.layers:
             layer.trainable = True
         d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
@@ -200,8 +200,8 @@ class Main_train():
                 _list = list(range(wSize))
                 random.shuffle(_list)
                 # print(_list)
-                for j in _list[:4]: # ランダムに4つ選んで発火するようノード選択
-                    real_weight[i][j] = 1
+                for j in _list[:1]: # ランダムに4つ選んで発火するようノード選択
+                    real_weight[i][j] = 2
                 """
                 if y_train[_inds][i][0] == 1:
                     real_weight[i][0] = 1
@@ -245,8 +245,10 @@ class Main_train():
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
                 print("real_weight\n{}".format(real_weight))
                 print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2))) # 訓練データ時
-                if ite % 2000 == 0:
-                    print("layer1_out:test\n{}".format(np.round(g.predict(X_test, verbose=0)[1], decimals=2)))
+                print("labels:{}".format(np.argmax(y_train, axis=1)))
+                if ite % 1000 == 0:
+                    show_result(onehot_labels=y_train, layer1_out=np.round(g.predict(X_train, verbose=0)[1], decimals=2), testflag=False)
+                    show_result(onehot_labels=y_test, layer1_out=np.round(g.predict(X_test, verbose=0)[1], decimals=2), testflag=True)
                     for i in [1]:
                         # weights 結果をplot
                         w1 = classify.layers[i].get_weights()[0]
@@ -284,6 +286,15 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
+def show_result(onehot_labels, layer1_out, testflag=False):
+    print("\n{}".format(" test" if testflag else "train"))
+    labels_scalar = np.argmax(onehot_labels, axis=1)
+    # print("labels:{}".format(labels_scalar))
+    layer1_outs = [[] for _ in range(3)]
+    for i in range(len(labels_scalar)):
+        layer1_outs[labels_scalar[i]].append(layer1_out[i])
+    for i in range(len(layer1_outs)):
+        print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i]), np.array(layer1_outs[i])))
 
 
 class Main_test():
