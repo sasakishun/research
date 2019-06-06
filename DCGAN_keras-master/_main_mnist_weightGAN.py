@@ -67,7 +67,7 @@ class Main_train():
 
         ## Load network model
         Size = 4
-        wSize = 10
+        wSize = 20
         inputs_z = Input(shape=(Size,), name='Z')  # 入力を取得
         # g_dense0 = Dense(wSize*10, activation='relu', name='g_dense0')(inputs_z)
         # g_dense1 = Dense(wSize, activation='relu', name='g_dense1')(g_dense0)
@@ -80,8 +80,8 @@ class Main_train():
         d_dense1 = Dense(100, activation='relu', name='d_dense1')
 
         ### Minibatch Discrimination用のパラメータ
-        num_kernels = 10 # 100まで大きくすると識別機誤差が0.5で固定
-        dim_per_kernel = 5
+        num_kernels = 15 # 100まで大きくすると識別機誤差が0.5で固定
+        dim_per_kernel = 50
         M = Dense(num_kernels * dim_per_kernel, bias=False, activation=None)
         MBD = Lambda(minb_disc, output_shape=lambda_output)
         ### Minibatch Discrimination用のパラメータ
@@ -120,7 +120,7 @@ class Main_train():
         c_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
         c.compile(optimizer=c_opt,
                   loss={'x_out': 'categorical_crossentropy', 'd_out': 'mse'},
-                  loss_weights={'x_out': 0., 'd_out': 1.})
+                  loss_weights={'x_out': 1., 'd_out': 1.})
         for layer in d.layers:
             layer.trainable = True
         d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
@@ -200,8 +200,8 @@ class Main_train():
                 _list = list(range(wSize))
                 random.shuffle(_list)
                 # print(_list)
-                for j in _list[:1]: # ランダムに4つ選んで発火するようノード選択
-                    real_weight[i][j] = 2
+                for j in _list[:2]: # ランダムに4つ選んで発火するようノード選択
+                    real_weight[i][j] = 1
                 """
                 if y_train[_inds][i][0] == 1:
                     real_weight[i][0] = 1
