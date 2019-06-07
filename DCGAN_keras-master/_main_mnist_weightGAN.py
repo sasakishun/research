@@ -24,6 +24,7 @@ import sys
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
+from visualization import visualize
 # import config_mnist as cf
 
 # from _model_mnist import *
@@ -205,15 +206,15 @@ class Main_train():
                 """
                 if y_train[_inds][i][0] == 1:
                     real_weight[i][0] = 1
-                    # real_weight[i][1] = 1
+                    real_weight[i][1] = 1
                     # real_weight[i][2] = 1
                 elif y_train[_inds][i][1] == 1:
                     real_weight[i][3] = 1
-                    # real_weight[i][4] = 1
+                    real_weight[i][4] = 1
                     # real_weight[i][5] = 1
                 elif y_train[_inds][i][2] == 1:
                     real_weight[i][6] = 1
-                    # real_weight[i][7] = 1
+                    real_weight[i][7] = 1
                     # real_weight[i][8] = 1
                 """
             fake_weight = g.predict(X_train[_inds], verbose=0)[1]
@@ -247,8 +248,8 @@ class Main_train():
                 print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2))) # 訓練データ時
                 print("labels:{}".format(np.argmax(y_train, axis=1)))
                 if ite % 1000 == 0:
-                    show_result(onehot_labels=y_train, layer1_out=np.round(g.predict(X_train, verbose=0)[1], decimals=2), testflag=False)
-                    show_result(onehot_labels=y_test, layer1_out=np.round(g.predict(X_test, verbose=0)[1], decimals=2), testflag=True)
+                    show_result(onehot_labels=y_train, layer1_out=np.round(g.predict(X_train, verbose=0)[1], decimals=2), ite=ite, testflag=False)
+                    show_result(onehot_labels=y_test, layer1_out=np.round(g.predict(X_test, verbose=0)[1], decimals=2), ite=ite, testflag=True)
                     for i in [1]:
                         # weights 結果をplot
                         w1 = classify.layers[i].get_weights()[0]
@@ -286,7 +287,7 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
-def show_result(onehot_labels, layer1_out, testflag=False):
+def show_result(onehot_labels, layer1_out, ite, testflag=False):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
     # print("labels:{}".format(labels_scalar))
@@ -295,6 +296,7 @@ def show_result(onehot_labels, layer1_out, testflag=False):
         layer1_outs[labels_scalar[i]].append(layer1_out[i])
     for i in range(len(layer1_outs)):
         print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i]), np.array(layer1_outs[i])))
+    visualize(layer1_outs, labels_scalar, ite, testflag)
 
 
 class Main_test():
