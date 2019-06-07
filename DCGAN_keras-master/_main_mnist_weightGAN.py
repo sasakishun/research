@@ -221,7 +221,7 @@ class Main_train():
 
             t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
             concated_weight = np.concatenate((fake_weight, real_weight))
-            if ite % 10 == 0:
+            if ite % 100 == 0:
                 d_loss = d.train_on_batch(concated_weight, t)  # これで重み更新までされる
             else:
                 d_loss = d.test_on_batch(concated_weight, t)  # これで重み更新までされる
