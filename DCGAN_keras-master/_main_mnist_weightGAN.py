@@ -45,7 +45,9 @@ from keras.utils import np_utils
 
 Height, Width = 28, 28
 Channel = 1
-
+output_size = 10
+input_size = Height * Width * Channel
+irisflag=False
 
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
@@ -62,22 +64,22 @@ class Main_train():
     def __init__(self):
         pass
 
-    def train(self, irisflag=False, use_mbd=False):
+    def train(self, use_mbd=False):
         # 性能評価用パラメータ
         max_score = 0.
 
         ## Load network model
-        Size = 4
         wSize = 20
-        inputs_z = Input(shape=(Size,), name='Z')  # 入力を取得
+        inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
         # g_dense0 = Dense(wSize*10, activation='relu', name='g_dense0')(inputs_z)
         # g_dense1 = Dense(wSize, activation='relu', name='g_dense1')(g_dense0)
         g_dense1 = Dense(wSize, activation='sigmoid', name='g_dense1')(inputs_z)
         # g_dense2 = Dense(wSize, activation='sigmoid', name='g_dense2')(g_dense1)
-        x = Dense(3, activation='softmax', name='x_out')(g_dense1)
+        x = Dense(output_size, activation='softmax', name='x_out')(g_dense1)
         print("g_dense1:{}".format(g_dense1))
 
         # 識別機を学習
+        inputs_labels = Input(shape=(output_size,), name='label')  # 入力を取得
         d_dense1 = Dense(100, activation='relu', name='d_dense1')
 
         ### Minibatch Discrimination用のパラメータ
@@ -92,7 +94,7 @@ class Main_train():
         # true画像の入力の時(Gの出力を外部に吐き出し、それを入力すると勾配計算がされない)
         inputs_w = Input(shape=(wSize,), name='weight')  # 入力重みを取得
 
-        d_out_true = d_dense1(inputs_w)
+        d_out_true = d_dense1(keras.layers.concatenate([inputs_w, inputs_labels]))# d_dense1(inputs_w)
         if use_mbd:
             x_mbd_true = M(d_out_true)
             x_mbd_true = Reshape((num_kernels, dim_per_kernel))(x_mbd_true)
@@ -100,7 +102,7 @@ class Main_train():
             d_out_true = keras.layers.concatenate([d_out_true, x_mbd_true])
         d_out_true = d_out(d_out_true)
 
-        d_out_fake = d_dense1(g_dense1)
+        d_out_fake = d_dense1(keras.layers.concatenate([g_dense1, inputs_labels])) # d_dense1(g_dense1)
         if use_mbd:
             x_mbd_fake = M(d_out_fake)
             x_mbd_fake = Reshape((num_kernels, dim_per_kernel))(x_mbd_fake)
@@ -109,8 +111,8 @@ class Main_train():
         d_out_fake = d_out(d_out_fake)
 
         g = Model(inputs=[inputs_z], outputs=[x, g_dense1], name='G')
-        d = Model(inputs=[inputs_w], outputs=[d_out_true], name='D')
-        c = Model(inputs=[inputs_z], outputs=[x, d_out_fake], name='C')
+        d = Model(inputs=[inputs_w, inputs_labels], outputs=[d_out_true], name='D')
+        c = Model(inputs=[inputs_z, inputs_labels], outputs=[x, d_out_fake], name='C')# end-to-end学習(g+d)
         classify = Model(inputs=[inputs_z], outputs=[x], name='classify')
         classify.compile(loss='categorical_crossentropy',
                          optimizer="adam",
@@ -136,8 +138,7 @@ class Main_train():
         if irisflag:
             # print("data\n{}".format(iris.data))
             # print("target\n{}".format(iris.target))
-            X_train, X_test, y_train, y_test \
-                = train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True)
+            X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True)
             y_train = np_utils.to_categorical(y_train, 3)
             y_test = np_utils.to_categorical(y_test, 3)
             train_num = X_train.shape[0]
@@ -147,18 +148,20 @@ class Main_train():
         else:
             (X_train, y_train), (X_test, y_test) = mnist.load_data()
             X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-            if X_train.ndim == 3:
-                X_train = X_train[:, :, :, None]
+            X_test = (X_test.astype(np.float32) - 127.5) / 127.5
+            X_train = X_train.reshape((X_train.shape[0], 28*28))
+            X_test = X_test.reshape((X_test.shape[0], 28*28))
+            # クラス分類モデル用に追加
+            y_train = np_utils.to_categorical(y_train, 10)
+            y_test = np_utils.to_categorical(y_test, 10)
+            # if X_train.ndim == 3:
+                # X_train = X_train[:, :, :, None]
+            # if X_test.ndim == 3:
+                # X_test = X_test[:, :, :, None]
             train_num = X_train.shape[0]
             train_num_per_step = train_num // cf.Minibatch
             data_inds = np.arange(train_num)
             max_ite = cf.Minibatch * train_num_per_step
-            # クラス分類モデル用に追加
-            y_train = np_utils.to_categorical(y_train)
-            y_test = np_utils.to_categorical(y_test)
-            X_test = (X_test.astype(np.float32) - 127.5) / 127.5
-            if X_test.ndim == 3:
-                X_test = X_test[:, :, :, None]
 
         """
         ## Start Train
@@ -193,40 +196,47 @@ class Main_train():
             # print("\ntrain_ind:{} train_num_per_step:{} max_ite:{}\nite % (train_num_per_step + 1):{}".format(train_ind, train_num_per_step, max_ite, ite % (train_num_per_step + 1)))
 
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
-            # print("_inds\n{}".format(_inds))
+            # print("_inds: {}".format(_inds))
             # x_fake = X_train[_inds]
             # GAN用のreal画像生成
             real_weight = np.zeros((cf.Minibatch, wSize))
+            real_labels = np.zeros((cf.Minibatch*2, output_size))
             for i in range(cf.Minibatch):
                 _list = list(range(wSize))
                 random.shuffle(_list)
-                # print(_list)
                 for j in _list[:2]: # ランダムに4つ選んで発火するようノード選択
                     real_weight[i][j] = 1
+                real_labels[i][np.random.randint(output_size)] = 1 # ノードごとの真の画像ラベル条件
                 """
                 if y_train[_inds][i][0] == 1:
                     real_weight[i][0] = 1
                     real_weight[i][1] = 1
+                    real_labels[i][0] = 1
                     # real_weight[i][2] = 1
                 elif y_train[_inds][i][1] == 1:
                     real_weight[i][3] = 1
                     real_weight[i][4] = 1
                     # real_weight[i][5] = 1
+                    real_labels[i][1] = 1
                 elif y_train[_inds][i][2] == 1:
                     real_weight[i][6] = 1
                     real_weight[i][7] = 1
                     # real_weight[i][8] = 1
+                    real_labels[i][2] = 1
                 """
+            # print("y_train[_inds]: {} vs {}".format(np.shape(y_train[_inds]), np.shape(real_labels)))
+            real_labels[cf.Minibatch:] = y_train[_inds]
             fake_weight = g.predict(X_train[_inds], verbose=0)[1]
 
             t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
             concated_weight = np.concatenate((fake_weight, real_weight))
-            if ite % 100 == 0:
-                d_loss = d.train_on_batch(concated_weight, t)  # これで重み更新までされる
+            if ite % 1000 == 0:
+                # d_loss = d.test_on_batch([concated_weight, np.zeros((128, 3))], t)
+                d_loss = d.train_on_batch([concated_weight, real_labels], t)  # これで重み更新までされる
             else:
-                d_loss = d.test_on_batch(concated_weight, t)  # これで重み更新までされる
+                d_loss = 0 # d.evaluate([concated_weight, real_labels], t)
             t = np.array([[0] for _ in range(cf.Minibatch)])  # [0] * cf.Minibatch
-            g_loss = c.train_on_batch([X_train[_inds]], [y_train[_inds], t])  # 生成器を学習
+            g_loss = c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
             # d_loss = classify.train_on_batch(X_train[_inds], y_train[_inds])[1]  # これで重み更新までされる
             con = '|'
             _div = cf.Save_train_step//20
@@ -245,14 +255,27 @@ class Main_train():
                 max_score = max(max_score, 1. - test_val_loss[1])
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
                 print("real_weight\n{}".format(real_weight))
+                print("real_labels\n{}".format(real_labels))
                 print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2))) # 訓練データ時
-                print("labels:{}".format(np.argmax(y_train, axis=1)))
-                if ite % 1000 == 0:
-                    show_result(onehot_labels=y_train, layer1_out=np.round(g.predict(X_train, verbose=0)[1], decimals=2), ite=ite, testflag=False)
-                    show_result(onehot_labels=y_test, layer1_out=np.round(g.predict(X_test, verbose=0)[1], decimals=2), ite=ite, testflag=True)
-                    for i in [1]:
+                if ite % cf.Save_train_step == 0:
+                    if irisflag:
+                        print("labels:{}".format(np.argmax(y_train, axis=1)))
+                        show_result(input=X_train, onehot_labels=y_train,
+                                    layer1_out=np.round(g.predict(X_train, verbose=0)[1], decimals=2), ite=ite,
+                                    classify=np.round(g.predict(X_train, verbose=0)[0], decimals=2), testflag=False)
+                        show_result(input=X_test, onehot_labels=y_test,
+                                    layer1_out=np.round(g.predict(X_test, verbose=0)[1], decimals=2), ite=ite,
+                                    classify=np.round(g.predict(X_test, verbose=0)[0], decimals=2), testflag=True)
+                    else:
+                        show_result(input=X_train[:100], onehot_labels=y_train[:100],
+                                    layer1_out=np.round(g.predict(X_train[:100], verbose=0)[1], decimals=2), ite=ite,
+                                    classify=np.round(g.predict(X_train[:100], verbose=0)[0], decimals=2), testflag=False)
+                        show_result(input=X_test[:100], onehot_labels=y_test[:100],
+                                    layer1_out=np.round(g.predict(X_test[:100], verbose=0)[1], decimals=2), ite=ite,
+                                    classify=np.round(g.predict(X_test[:100], verbose=0)[0], decimals=2), testflag=True)
+                    # for i in [1]:
                         # weights 結果をplot
-                        w1 = classify.layers[i].get_weights()[0]
+                        # w1 = classify.layers[i].get_weights()[0]
                         # print("w1\n{}".format(w1))
                         # plt.imshow(w1, cmap='coolwarm', interpolation='nearest')
                         # plt.colorbar()
@@ -287,16 +310,33 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
-def show_result(onehot_labels, layer1_out, ite, testflag=False):
+def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
     # print("labels:{}".format(labels_scalar))
-    layer1_outs = [[] for _ in range(3)]
+    layer1_outs = [[[], [], []] for _ in range(output_size)]
     for i in range(len(labels_scalar)):
-        layer1_outs[labels_scalar[i]].append(layer1_out[i])
+        layer1_outs[labels_scalar[i]][0].append(input[i]) # 入力
+        layer1_outs[labels_scalar[i]][1].append(layer1_out[i]) # 中間層出力
+        layer1_outs[labels_scalar[i]][2].append(classify[i]) # 分類層出力
+    # print("layer1_outs:{}".format(layer1_outs))
     for i in range(len(layer1_outs)):
-        print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i]), np.array(layer1_outs[i])))
-    visualize(layer1_outs, labels_scalar, ite, testflag)
+        print("\nlabel:{}".format(i))
+        for j in range(len(layer1_outs[i][0])):
+            # print("{}".format(np.argmax(layer1_outs[i][2][j])))
+            if irisflag:
+                print("{} -> {} -> {} :{}".format(np.array(layer1_outs[i][0][j]),
+                                                  np.array(layer1_outs[i][1][j]),
+                                                  np.array(layer1_outs[i][2][j]),
+                                                  "" if np.argmax(layer1_outs[i][2][j]) == i else "x"))
+            else:
+                print("-> {} -> {} :{}".format(np.array(layer1_outs[i][1][j]),
+                                               np.array(layer1_outs[i][2][j]),
+                                               "" if np.argmax(layer1_outs[i][2][j]) == i else "x"))
+        # print("\nlabel:{} input / {}\n{}".format(i, len(layer1_outs[i][0]), np.array(layer1_outs[i][0])))
+        # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
+        # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
+    visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite, testflag)
 
 
 class Main_test():
@@ -386,33 +426,40 @@ if __name__ == '__main__':
             Height = 28
             Width = 28
             Channel = 1
+            input_size = Height * Width * Channel
+            output_size = 10
             from keras.datasets import mnist
             import config_mnist as cf
             from _model_mnist import *
             np.random.seed(cf.Random_seed)
             main = Main_train()
-            main.train(irisflag=True)
+            main.train()
         elif args.cifar10:
             Height = 32
             Width = 32
             Channel = 3
+            input_size = Height * Width * Channel
+            output_size = 10
             import config_cifar10 as cf
             from keras.datasets import cifar10 as mnist
             from _model_cifar10 import *
             np.random.seed(cf.Random_seed)
             main = Main_train()
-            main.train(irisflag=True)
+            main.train()
         elif args.iris:
             Height = 1
             Width = 3
             Channel = 1
+            input_size = Height * Width * Channel
+            output_size = 3
             import config_mnist as cf
             from _model_iris import *
             np.random.seed(cf.Random_seed)
             from sklearn.datasets import load_iris
             iris = load_iris()
             main = Main_train()
-            main.train(irisflag=True, use_mbd=use_mbd)
+            irisflag = True
+            main.train(use_mbd=use_mbd)
     if args.test:
         main = Main_test()
         main.test()
