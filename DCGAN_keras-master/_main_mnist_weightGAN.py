@@ -25,6 +25,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
 from visualization import visualize
+from _model_weightGAN import weightGAN_Model
 # import config_mnist as cf
 
 # from _model_mnist import *
@@ -39,8 +40,9 @@ session = tf.Session('')
 KTF.set_session(session)
 KTF.set_learning_phase(1)
 ###
-
-
+from keras.models import load_model
+import numpy as np
+from keras.preprocessing.image import img_to_array, load_img
 from keras.utils import np_utils
 
 Height, Width = 28, 28
@@ -48,17 +50,53 @@ Channel = 1
 output_size = 10
 input_size = Height * Width * Channel
 irisflag=False
+wSize = 5
 
-def minb_disc(x):
-    diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
-    abs_diffs = K.sum(K.abs(diffs), 2)
-    x = K.sum(K.exp(-abs_diffs), 2)
-    return x
+def iris_data():
+    X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8,
+                                                        shuffle=True)
+    y_train = np_utils.to_categorical(y_train, 3)
+    y_test = np_utils.to_categorical(y_test, 3)
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+def mnist_data():
+    (X_train, y_train), (X_test, y_test) = mnist.load_data()
+    X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+    X_test = (X_test.astype(np.float32) - 127.5) / 127.5
+    X_train = X_train.reshape((X_train.shape[0], 28 * 28))
+    X_test = X_test.reshape((X_test.shape[0], 28 * 28))
+    # クラス分類モデル用に追加
+    y_train = np_utils.to_categorical(y_train, 10)
+    y_test = np_utils.to_categorical(y_test, 10)
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-def lambda_output(input_shape):
-    return input_shape[:2]
-
+def my_tqdm(ite):
+    ### 学習進行状況表示
+    con = '|'
+    _div = cf.Save_train_step // 20
+    if ite % cf.Save_train_step != 0:
+        for i in range((ite % cf.Save_train_step) // _div):
+            con += '>'
+        for i in range(cf.Save_train_step // _div - (ite % cf.Save_train_step) // _div):
+            con += ' '
+    else:
+        for i in range(cf.Save_train_step // _div):
+            con += '>'
+    con += '| '
+    ### 学習進行状況表示
+    return con
 
 class Main_train():
     def __init__(self):
@@ -67,101 +105,14 @@ class Main_train():
     def train(self, use_mbd=False):
         # 性能評価用パラメータ
         max_score = 0.
-
-        ## Load network model
-        wSize = 20
-        inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
-        # g_dense0 = Dense(wSize*10, activation='relu', name='g_dense0')(inputs_z)
-        # g_dense1 = Dense(wSize, activation='relu', name='g_dense1')(g_dense0)
-        g_dense1 = Dense(wSize, activation='sigmoid', name='g_dense1')(inputs_z)
-        # g_dense2 = Dense(wSize, activation='sigmoid', name='g_dense2')(g_dense1)
-        x = Dense(output_size, activation='softmax', name='x_out')(g_dense1)
-        print("g_dense1:{}".format(g_dense1))
-
-        # 識別機を学習
-        inputs_labels = Input(shape=(output_size,), name='label')  # 入力を取得
-        d_dense1 = Dense(100, activation='relu', name='d_dense1')
-
-        ### Minibatch Discrimination用のパラメータ
-        num_kernels = 15 # 100まで大きくすると識別機誤差が0.5で固定
-        dim_per_kernel = 50
-        M = Dense(num_kernels * dim_per_kernel, bias=False, activation=None)
-        MBD = Lambda(minb_disc, output_shape=lambda_output)
-        ### Minibatch Discrimination用のパラメータ
-
-        d_out = Dense(1, activation='sigmoid', name='d_out')
-
-        # true画像の入力の時(Gの出力を外部に吐き出し、それを入力すると勾配計算がされない)
-        inputs_w = Input(shape=(wSize,), name='weight')  # 入力重みを取得
-
-        d_out_true = d_dense1(keras.layers.concatenate([inputs_w, inputs_labels]))# d_dense1(inputs_w)
-        if use_mbd:
-            x_mbd_true = M(d_out_true)
-            x_mbd_true = Reshape((num_kernels, dim_per_kernel))(x_mbd_true)
-            x_mbd_true = MBD(x_mbd_true)
-            d_out_true = keras.layers.concatenate([d_out_true, x_mbd_true])
-        d_out_true = d_out(d_out_true)
-
-        d_out_fake = d_dense1(keras.layers.concatenate([g_dense1, inputs_labels])) # d_dense1(g_dense1)
-        if use_mbd:
-            x_mbd_fake = M(d_out_fake)
-            x_mbd_fake = Reshape((num_kernels, dim_per_kernel))(x_mbd_fake)
-            x_mbd_fake = MBD(x_mbd_fake)
-            d_out_fake = keras.layers.concatenate([d_out_fake, x_mbd_fake])
-        d_out_fake = d_out(d_out_fake)
-
-        g = Model(inputs=[inputs_z], outputs=[x, g_dense1], name='G')
-        d = Model(inputs=[inputs_w, inputs_labels], outputs=[d_out_true], name='D')
-        c = Model(inputs=[inputs_z, inputs_labels], outputs=[x, d_out_fake], name='C')# end-to-end学習(g+d)
-        classify = Model(inputs=[inputs_z], outputs=[x], name='classify')
-        classify.compile(loss='categorical_crossentropy',
-                         optimizer="adam",
-                         metrics=[metrics.categorical_accuracy])
-        #  生成器の学習時は識別機は固定
-        for layer in d.layers:
-            layer.trainable = False
-        c_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-        c.compile(optimizer=c_opt,
-                  loss={'x_out': 'categorical_crossentropy', 'd_out': 'mse'},
-                  loss_weights={'x_out': 1., 'd_out': 1.})
-        for layer in d.layers:
-            layer.trainable = True
-        d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-        d.compile(optimizer=d_opt, loss='mean_squared_error')
-        g.summary()
-        d.summary()
-        c.summary()
-        classify.summary()
-
+        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         ## Prepare Training data　前処理
-        # dl_train = DataLoader(phase='Train', shuffle=True)
         if irisflag:
-            # print("data\n{}".format(iris.data))
-            # print("target\n{}".format(iris.target))
-            X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True)
-            y_train = np_utils.to_categorical(y_train, 3)
-            y_test = np_utils.to_categorical(y_test, 3)
-            train_num = X_train.shape[0]
-            train_num_per_step = train_num // cf.Minibatch
-            data_inds = np.arange(train_num)
-            max_ite = cf.Minibatch * train_num_per_step
+            fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
         else:
-            (X_train, y_train), (X_test, y_test) = mnist.load_data()
-            X_train = (X_train.astype(np.float32) - 127.5) / 127.5
-            X_test = (X_test.astype(np.float32) - 127.5) / 127.5
-            X_train = X_train.reshape((X_train.shape[0], 28*28))
-            X_test = X_test.reshape((X_test.shape[0], 28*28))
-            # クラス分類モデル用に追加
-            y_train = np_utils.to_categorical(y_train, 10)
-            y_test = np_utils.to_categorical(y_test, 10)
-            # if X_train.ndim == 3:
-                # X_train = X_train[:, :, :, None]
-            # if X_test.ndim == 3:
-                # X_test = X_test[:, :, :, None]
-            train_num = X_train.shape[0]
-            train_num_per_step = train_num // cf.Minibatch
-            data_inds = np.arange(train_num)
-            max_ite = cf.Minibatch * train_num_per_step
+            fname = os.path.join(cf.Save_dir, 'loss.txt')
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
 
         """
         ## Start Train
@@ -173,34 +124,19 @@ class Main_train():
         elif cf.Save_train_combine is False:
             print("generated image write separately >>", cf.Save_train_img_dir)
         """
-        if irisflag:
-            fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
-        else:
-            fname = os.path.join(cf.Save_dir, 'loss.txt')
         f = open(fname, 'w')
         f.write("Iteration,G_loss,D_loss{}".format(os.linesep))
-        print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
-        print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
-        # exit()
+
         for ite in range(cf.Iteration):
             ite += 1
-            # Discremenator training
-            # y = dl_train.get_minibatch(shuffle=True)
-            # print("train_num_per_step:{} minibatch:{}".format(train_num_per_step, cf.Minibatch))
             train_ind = ite % train_num_per_step
-            # if ite % (train_num_per_step + 1) == max_ite:
             if ite % (train_num_per_step+1) == 0:
                 np.random.shuffle(data_inds)
-                # print("shuffle\ndata:{}\n".format(data_inds))
-
-            # print("\ntrain_ind:{} train_num_per_step:{} max_ite:{}\nite % (train_num_per_step + 1):{}".format(train_ind, train_num_per_step, max_ite, ite % (train_num_per_step + 1)))
-
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
-            # print("_inds: {}".format(_inds))
-            # x_fake = X_train[_inds]
-            # GAN用のreal画像生成
+
+            ### GAN用の真画像(real_weight)、分類ラベル(real_labels)生成
             real_weight = np.zeros((cf.Minibatch, wSize))
-            real_labels = np.zeros((cf.Minibatch*2, output_size))
+            real_labels = np.zeros((cf.Minibatch, output_size))
             for i in range(cf.Minibatch):
                 _list = list(range(wSize))
                 random.shuffle(_list)
@@ -224,31 +160,26 @@ class Main_train():
                     # real_weight[i][8] = 1
                     real_labels[i][2] = 1
                 """
-            # print("y_train[_inds]: {} vs {}".format(np.shape(y_train[_inds]), np.shape(real_labels)))
-            real_labels[cf.Minibatch:] = y_train[_inds]
+            ### GAN用のreal画像、分類ラベル生成
+
+            ### GAN用のfake画像、分類ラベル生成
             fake_weight = g.predict(X_train[_inds], verbose=0)[1]
+            fake_labels = y_train[_inds]
+            ### GAN用のfake画像、分類ラベル生成
 
             t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
             concated_weight = np.concatenate((fake_weight, real_weight))
+            concated_labels = np.concatenate((fake_labels, real_labels))
+
             if ite % 1000 == 0:
-                # d_loss = d.test_on_batch([concated_weight, np.zeros((128, 3))], t)
-                d_loss = d.train_on_batch([concated_weight, real_labels], t)  # これで重み更新までされる
+                d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
             else:
-                d_loss = 0 # d.evaluate([concated_weight, real_labels], t)
-            t = np.array([[0] for _ in range(cf.Minibatch)])  # [0] * cf.Minibatch
+                d_loss = 0
+
+            t = np.array([0] * cf.Minibatch)
             g_loss = c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
-            # d_loss = classify.train_on_batch(X_train[_inds], y_train[_inds])[1]  # これで重み更新までされる
-            con = '|'
-            _div = cf.Save_train_step//20
-            if ite % cf.Save_train_step != 0:
-                for i in range((ite % cf.Save_train_step)//_div):
-                    con += '>'
-                for i in range(cf.Save_train_step // _div - (ite % cf.Save_train_step) // _div):
-                    con += ' '
-            else:
-                for i in range(cf.Save_train_step // _div):
-                    con += '>'
-            con += '| '
+
+            con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
                 test_val_loss = classify.evaluate(X_test, y_test)
                 train_val_loss = classify.evaluate(X_train, y_train)
@@ -292,6 +223,7 @@ class Main_train():
                 # save weights
                 d.save_weights(cf.Save_d_path)
                 g.save_weights(cf.Save_g_path)
+                classify.save_weights(cf.Save_classify_path)
 
                 """
                 gerated = g.predict([z], verbose=0)
@@ -305,7 +237,8 @@ class Main_train():
         ## Save trained model
         d.save_weights(cf.Save_d_path)
         g.save_weights(cf.Save_g_path)
-        print('Model saved -> ', cf.Save_d_path, cf.Save_g_path)
+        classify.save_weights(cf.Save_classify_path)
+        print('Model saved -> ', cf.Save_d_path, cf.Save_g_path, cf.Save_classify_path)
         print("maxAcc:{}".format(max_score * 100))
         ### add for TensorBoard
         KTF.set_session(old_session)
@@ -342,8 +275,20 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False)
 class Main_test():
     def __init__(self):
         pass
-
     def test(self):
+        ite = 0
+        if irisflag:
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
+        else:
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
+
+        classify = load_model(cf.Save_classify_path)
+        test_val_loss = classify.evaluate(X_test, y_test)
+        train_val_loss = classify.evaluate(X_train, y_train)
+        print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
+              .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0],test_val_loss[1]))
+
+    def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
         g.load_weights(cf.Save_g_path, by_name=True)
