@@ -51,10 +51,7 @@ class Layer():
         line_x_data = (neuron1.x - x_adjustment, neuron2.x + x_adjustment)
         line_y_data = (neuron1.y - y_adjustment, neuron2.y + y_adjustment)
         # line = pyplot.Line2D(line_x_data, line_y_data, linewidth=linewidth)
-        if linewidth > 0:
-            color = "red"
-        else:
-            color = "blue"
+        color = "red" if linewidth > 0 else "blue"
         line = pyplot.Line2D(line_x_data, line_y_data, linewidth=1, color=color, alpha=abs(linewidth/2))
         pyplot.gca().add_line(line)
 
@@ -95,29 +92,23 @@ if __name__ == "__main__":
     number_of_neurons_in_widest_layer = 4
     network = NeuralNetwork()
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
-    weights1 = np.ones((10, 4))
-    """
-    np.array([[0, 0, 0, 0],
-             [0, 0, 0, 0],
-             [0, 0, 1, 1],
-             [0, 1, 0, 1],
-             [0, 0, 0, 0],
-             [0, 0, 1, 1],
-             [0, 1, 0, 1],
-             [0, 0, 0, 0],
-             [0, 0, 1, 1],
-             [0, 1, 0, 1]])
-     """
-    weights2 = np.ones((3, 10))
 
-    weights2[0:2, :6] = -0.5
-    weights2[0:1, 1] = -2
-    """
-    np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 2, 2],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],])
-    """
-    network.add_layer(4, weights1)
-    network.add_layer(10, weights2)
-    network.add_layer(3)
+    nodes = [4, 10, 20, 3]
+    weights = []
+    for i in range(len(nodes)-1):
+        weights.append(np.ones((nodes[i+1], nodes[i])))
+
+    weights[0][0:2, :6] = -0.4
+    weights[0][2:, ] = 0.5
+    weights[1][0:2, :6] = -0.2
+    weights[1][2:, 1:5] = -0.3
+    weights[1][2:, 8:] = -0.3
+    weights[2][8:, 2] = -0.7
+    weights[2][1:, 3:] = -0.5
+    for i in range(len(nodes)-1):
+        network.add_layer(nodes[i], weights[i])
+    network.add_layer(nodes[-1])
+    print("nodes:{}".format(nodes))
+    print("weights:{}".format(np.shape(weights)))
+    # print("weights:\n{}".format(weights))
     network.draw()
