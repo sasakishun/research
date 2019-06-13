@@ -74,7 +74,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     inputs_w = Input(shape=(wSize,), name='weight')  # 入力重みを取得
     d_out_true = _d_dense1(keras.layers.concatenate([inputs_w, inputs_labels]))  # d_dense1(inputs_w)
     if use_mbd:
-        d_out_true = minibatch_discrimination()
+        d_out_true = minibatch_discrimination(d_out_true)
     d_out_true = _d_out(d_out_true)
     # 識別器の順伝播（真入力）
 
@@ -99,7 +99,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     c_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
     c.compile(optimizer=c_opt,
               loss={'x_out': 'categorical_crossentropy', 'd_out': 'mse'},
-              loss_weights={'x_out': 1., 'd_out': 1.})
+              loss_weights={'x_out': 1., 'd_out': 0.})
     for layer in d.layers:
         layer.trainable = True
     d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)

@@ -24,7 +24,7 @@ Input_type = 'channels_last'
 File_extensions = ['.jpg', '.png']
 
 ## Training config
-Iteration = 1000000
+Iteration = 500000
 Minibatch = 32# 64
 
 ## Test config
@@ -46,9 +46,11 @@ Save_iteration_disp = True
 Save_dir = 'models_mnist'
 Save_d_name = 'D.h5'
 Save_g_name = 'G.h5'
+Save_c_name = 'C.h5'
 Save_classify_name = 'Classify.h5'
 Save_d_path = os.path.join(Save_dir, Save_d_name)
 Save_g_path = os.path.join(Save_dir, Save_g_name)
+Save_c_path = os.path.join(Save_dir, Save_c_name)
 Save_classify_path = os.path.join(Save_dir, Save_classify_name)
 Save_train_img_dir = 'train_images_mnist'
 Save_img_num = 5

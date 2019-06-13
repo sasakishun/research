@@ -50,11 +50,87 @@ Channel = 1
 output_size = 10
 input_size = Height * Width * Channel
 irisflag=False
-wSize = 5
+krkoptflag = False
+wSize = 20
+
+def krkopt_data():
+    _train = [[], []]
+    file_data = open("krkopt.data", "r")
+    # まず１行読み込む
+    line = file_data.readline()
+    # while文を使い、読み込んだ行の表示と次の行の取得を行う
+    while line:  # lineが取得できる限り繰り返す
+        print(line)
+        _line = (line.rstrip("\n")).split(",")
+        print(_line)
+        for i in range(len(_line)):
+            if _line[i] == "a":
+                _line[i] = 0
+            elif _line[i] == "b":
+                _line[i] = 1
+            elif _line[i] == "c":
+                _line[i] = 2
+            elif _line[i] == "draw":
+                _line[i] = 17
+            elif _line[i] == "zero":
+                _line[i] = 0
+            elif _line[i] == "one":
+                _line[i] = 1
+            elif _line[i] == "two":
+                _line[i] = 2
+            elif _line[i] == "three":
+                _line[i] = 3
+            elif _line[i] == "four":
+                _line[i] = 4
+            elif _line[i] == "five":
+                _line[i] = 5
+            elif _line[i] == "six":
+                _line[i] = 6
+            elif _line[i] == "seven":
+                _line[i] = 7
+            elif _line[i] == "eight":
+                _line[i] = 8
+            elif _line[i] == "nine":
+                _line[i] = 9
+            elif _line[i] == "ten":
+                _line[i] = 10
+            elif _line[i] == "eleven":
+                _line[i] = 11
+            elif _line[i] == "twelve":
+                _line[i] = 12
+            elif _line[i] == "thrteen":
+                _line[i] = 13
+            elif _line[i] == "fourteen":
+                _line[i] = 14
+            elif _line[i] == "fifteen":
+                _line[i] = 15
+            elif _line[i] == "sixteen":
+                _line[i] = 16
+            else:
+                _line[i] = int(_line[i])
+            print(_line[:6])
+            _train[0].append(_line[:6])
+            _train[1].append(_line[6])
+        line = file_data.readline()
+    # 開いたファイルを閉じる
+    file_data.close()
+    X_train, X_test, y_train, y_test = \
+        train_test_split(_train[0], _train[1], test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    y_train = np_utils.to_categorical(y_train, 17)
+    y_test = np_utils.to_categorical(y_test, 17)
+
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
 
 def iris_data():
-    X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8,
-                                                        shuffle=True)
+    X_train, X_test, y_train, y_test =\
+        train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
     y_train = np_utils.to_categorical(y_train, 3)
     y_test = np_utils.to_categorical(y_test, 3)
     train_num = X_train.shape[0]
@@ -103,13 +179,17 @@ class Main_train():
         pass
 
     def train(self, use_mbd=False):
+        print("irisflag:{}".format(irisflag))
         # 性能評価用パラメータ
         max_score = 0.
         g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         ## Prepare Training data　前処理
         if irisflag:
             fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = iris_data()
+        elif krkoptflag:
+            fname = os.path.join(cf.Save_dir, 'loss_krkopt.txt')
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = krkopt_data()
         else:
             fname = os.path.join(cf.Save_dir, 'loss.txt')
             X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
@@ -138,25 +218,25 @@ class Main_train():
             real_weight = np.zeros((cf.Minibatch, wSize))
             real_labels = np.zeros((cf.Minibatch, output_size))
             for i in range(cf.Minibatch):
+                """
                 _list = list(range(wSize))
                 random.shuffle(_list)
                 for j in _list[:2]: # ランダムに4つ選んで発火するようノード選択
                     real_weight[i][j] = 1
                 real_labels[i][np.random.randint(output_size)] = 1 # ノードごとの真の画像ラベル条件
-                """
                 if y_train[_inds][i][0] == 1:
                     real_weight[i][0] = 1
-                    real_weight[i][1] = 1
+                    # real_weight[i][1] = 1
                     real_labels[i][0] = 1
                     # real_weight[i][2] = 1
                 elif y_train[_inds][i][1] == 1:
-                    real_weight[i][3] = 1
-                    real_weight[i][4] = 1
+                    real_weight[i][2] = 1
+                    # real_weight[i][4] = 1
                     # real_weight[i][5] = 1
                     real_labels[i][1] = 1
                 elif y_train[_inds][i][2] == 1:
-                    real_weight[i][6] = 1
-                    real_weight[i][7] = 1
+                    real_weight[i][4] = 1
+                    # real_weight[i][7] = 1
                     # real_weight[i][8] = 1
                     real_labels[i][2] = 1
                 """
@@ -171,7 +251,7 @@ class Main_train():
             concated_weight = np.concatenate((fake_weight, real_weight))
             concated_labels = np.concatenate((fake_labels, real_labels))
 
-            if ite % 1000 == 0:
+            if ite % 1 == 0:
                 d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
             else:
                 d_loss = 0
@@ -223,6 +303,7 @@ class Main_train():
                 # save weights
                 d.save_weights(cf.Save_d_path)
                 g.save_weights(cf.Save_g_path)
+                c.save_weights(cf.Save_c_path)
                 classify.save_weights(cf.Save_classify_path)
 
                 """
@@ -237,6 +318,7 @@ class Main_train():
         ## Save trained model
         d.save_weights(cf.Save_d_path)
         g.save_weights(cf.Save_g_path)
+        c.save_weights(cf.Save_c_path)
         classify.save_weights(cf.Save_classify_path)
         print('Model saved -> ', cf.Save_d_path, cf.Save_g_path, cf.Save_classify_path)
         print("maxAcc:{}".format(max_score * 100))
@@ -278,13 +360,29 @@ class Main_test():
     def test(self):
         ite = 0
         if irisflag:
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = iris_data()
         else:
             X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
 
-        classify = load_model(cf.Save_classify_path)
+        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
+        g.load_weights(cf.Save_g_path)
+        d.load_weights(cf.Save_d_path)
+        c.load_weights(cf.Save_c_path)
+        classify.load_weights(cf.Save_classify_path)
+
+        # t = np.array([0] * len(X_train))
+        # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
         test_val_loss = classify.evaluate(X_test, y_test)
         train_val_loss = classify.evaluate(X_train, y_train)
+        # test_val_loss =  g.evaluate([X_train, y_train], [y_train, t]) # c.evaluate(X_test, y_test)
+        # train_val_loss = g.evaluate(X_train, y_train)
+
+        show_result(input=X_train, onehot_labels=y_train,
+                    layer1_out=g.predict(X_train, verbose=0)[1],
+                    ite=0, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False)
+        show_result(input=X_test, onehot_labels=y_test,
+                    layer1_out=g.predict(X_test, verbose=0)[1],
+                    ite=0, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=False)
         print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
               .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0],test_val_loss[1]))
 
@@ -356,7 +454,9 @@ def arg_parse():
     parser.add_argument('--mnist', dest='mnist', action='store_true')
     parser.add_argument('--cifar10', dest='cifar10', action='store_true')
     parser.add_argument('--iris', dest='iris', action='store_true')
+    parser.add_argument('--krkopt', dest='krkopt', action='store_true')
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
+    parser.add_argument('--wSize', type=int)
     args = parser.parse_args()
     return args
 
@@ -364,47 +464,57 @@ def arg_parse():
 if __name__ == '__main__':
     args = arg_parse()
     use_mbd=False
+    if args.wSize:
+        wSize = args.wSize
     if args.use_mbd:
         use_mbd=True
+    if args.mnist:
+        Height = 28
+        Width = 28
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 10
+        from keras.datasets import mnist
+        import config_mnist as cf
+        from _model_mnist import *
+        np.random.seed(cf.Random_seed)
+    elif args.cifar10:
+        Height = 32
+        Width = 32
+        Channel = 3
+        input_size = Height * Width * Channel
+        output_size = 10
+        import config_cifar10 as cf
+        from keras.datasets import cifar10 as mnist
+        from _model_cifar10 import *
+        np.random.seed(cf.Random_seed)
+    elif args.iris:
+        Height = 1
+        Width = 4
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 3
+        import config_mnist as cf
+        from _model_iris import *
+        np.random.seed(cf.Random_seed)
+        from sklearn.datasets import load_iris
+        iris = load_iris()
+        irisflag = True
+    elif args.krkopt:
+        Height = 1
+        Width = 6
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 17
+        import config_mnist as cf
+        from _model_iris import *
+        np.random.seed(cf.Random_seed)
+        # from sklearn.datasets import load_iris
+        # iris = load_iris()
+        krkoptflag = True
     if args.train:
-        if args.mnist:
-            Height = 28
-            Width = 28
-            Channel = 1
-            input_size = Height * Width * Channel
-            output_size = 10
-            from keras.datasets import mnist
-            import config_mnist as cf
-            from _model_mnist import *
-            np.random.seed(cf.Random_seed)
-            main = Main_train()
-            main.train()
-        elif args.cifar10:
-            Height = 32
-            Width = 32
-            Channel = 3
-            input_size = Height * Width * Channel
-            output_size = 10
-            import config_cifar10 as cf
-            from keras.datasets import cifar10 as mnist
-            from _model_cifar10 import *
-            np.random.seed(cf.Random_seed)
-            main = Main_train()
-            main.train()
-        elif args.iris:
-            Height = 1
-            Width = 3
-            Channel = 1
-            input_size = Height * Width * Channel
-            output_size = 3
-            import config_mnist as cf
-            from _model_iris import *
-            np.random.seed(cf.Random_seed)
-            from sklearn.datasets import load_iris
-            iris = load_iris()
-            main = Main_train()
-            irisflag = True
-            main.train(use_mbd=use_mbd)
+        main = Main_train()
+        main.train(use_mbd=use_mbd)
     if args.test:
         main = Main_test()
         main.test()
