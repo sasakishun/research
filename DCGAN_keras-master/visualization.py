@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as tick # 目盛り操作に必要なライブラリを読み込みます
 import pylab
 from datetime import datetime
+import config_mnist as cf
+
 
 def visualize(x, y, labels, ite, testflag):
     plt.figure(figsize=(10, len(x[0][0])//2), dpi=100)
@@ -45,7 +47,7 @@ def visualize(x, y, labels, ite, testflag):
     # save as png
     path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris"
     print("saved to -> " + path +"\{}{}".format("test" if testflag else "train", ite))
-    if ite % 10**5 == 0:
+    if ite % cf.Iteration == 0:
         plt.savefig(path+"{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite, datetime.now().strftime("%Y%m%d%H%M%S")))
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
