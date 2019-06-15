@@ -33,7 +33,7 @@ from _model_weightGAN import weightGAN_Model
 import keras.callbacks
 import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
-
+from draw_architecture import *
 old_session = KTF.get_session()
 
 session = tf.Session('')
@@ -217,8 +217,8 @@ class Main_train():
             ### GAN用の真画像(real_weight)、分類ラベル(real_labels)生成
             real_weight = np.zeros((cf.Minibatch, wSize))
             real_labels = np.zeros((cf.Minibatch, output_size))
+            """
             for i in range(cf.Minibatch):
-                """
                 _list = list(range(wSize))
                 random.shuffle(_list)
                 for j in _list[:2]: # ランダムに4つ選んで発火するようノード選択
@@ -251,7 +251,7 @@ class Main_train():
             concated_weight = np.concatenate((fake_weight, real_weight))
             concated_labels = np.concatenate((fake_labels, real_labels))
 
-            if ite % 1 == 0:
+            if ite % 100 == 0:
                 d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
             else:
                 d_loss = 0
@@ -325,7 +325,7 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
-def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False):
+def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
     # print("labels:{}".format(labels_scalar))
@@ -351,7 +351,8 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False)
         # print("\nlabel:{} input / {}\n{}".format(i, len(layer1_outs[i][0]), np.array(layer1_outs[i][0])))
         # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
         # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
-    visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite, testflag)
+    visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite, testflag, showflag=showflag)
+    # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite, testflag, showflag=False)
 
 
 class Main_test():
@@ -376,15 +377,20 @@ class Main_test():
         train_val_loss = classify.evaluate(X_train, y_train)
         # test_val_loss =  g.evaluate([X_train, y_train], [y_train, t]) # c.evaluate(X_test, y_test)
         # train_val_loss = g.evaluate(X_train, y_train)
-
         show_result(input=X_train, onehot_labels=y_train,
                     layer1_out=g.predict(X_train, verbose=0)[1],
-                    ite=0, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False)
+                    ite=0, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False, showflag=True)
         show_result(input=X_test, onehot_labels=y_test,
                     layer1_out=g.predict(X_test, verbose=0)[1],
-                    ite=0, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=False)
+                    ite=0, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True)
         print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
               .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0],test_val_loss[1]))
+        weights = classify.get_weights()
+        print(weights)
+        for i in range(len(weights)):
+            print(np.shape(weights[i]))
+        classify.summary()
+        mydraw(weights)
 
     def _test(self):
         ## Load network model
@@ -477,7 +483,7 @@ if __name__ == '__main__':
         from keras.datasets import mnist
         import config_mnist as cf
         from _model_mnist import *
-        np.random.seed(cf.Random_seed)
+        # np.random.seed(cf.Random_seed)
     elif args.cifar10:
         Height = 32
         Width = 32
@@ -487,7 +493,7 @@ if __name__ == '__main__':
         import config_cifar10 as cf
         from keras.datasets import cifar10 as mnist
         from _model_cifar10 import *
-        np.random.seed(cf.Random_seed)
+        # np.random.seed(cf.Random_seed)
     elif args.iris:
         Height = 1
         Width = 4
@@ -496,7 +502,7 @@ if __name__ == '__main__':
         output_size = 3
         import config_mnist as cf
         from _model_iris import *
-        np.random.seed(cf.Random_seed)
+        # np.random.seed(cf.Random_seed)
         from sklearn.datasets import load_iris
         iris = load_iris()
         irisflag = True
@@ -508,7 +514,7 @@ if __name__ == '__main__':
         output_size = 17
         import config_mnist as cf
         from _model_iris import *
-        np.random.seed(cf.Random_seed)
+        # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         # iris = load_iris()
         krkoptflag = True

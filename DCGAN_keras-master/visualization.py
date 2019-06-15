@@ -6,8 +6,8 @@ from datetime import datetime
 import config_mnist as cf
 
 
-def visualize(x, y, labels, ite, testflag):
-    plt.figure(figsize=(10, len(x[0][0])//2), dpi=100)
+def visualize(x, y, labels, ite, testflag, showflag=False):
+    plt.figure(figsize=(10, len(x[0][0])//2 + 5), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
@@ -51,4 +51,11 @@ def visualize(x, y, labels, ite, testflag):
         plt.savefig(path+"{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite, datetime.now().strftime("%Y%m%d%H%M%S")))
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
+    if showflag:
+        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\ネットワークアーキテクチャ"
+        plt.savefig(path + "{}{}_{}".format(
+            r"\test" if testflag else r"\train",
+            r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
+            "test" if testflag else "train"))
+        # plt.show()
     plt.close()
