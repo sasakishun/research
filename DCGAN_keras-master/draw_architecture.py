@@ -89,23 +89,29 @@ class NeuralNetwork():
         layer = Layer(self, number_of_neurons, weights)
         self.layers.append(layer)
 
+    """
     def draw(self):
         for layer in self.layers:
             layer.draw()
         pyplot.axis('scaled')
         pyplot.show()
-
+    """
     def draw(self, path, acc=-1):
         for layer in self.layers:
             layer.draw()
-        pyplot.title("acc:{}".format(acc))
+        pyplot.title("acc:{:.6f}".format(acc))
         pyplot.axis('scaled')
+        pyplot.tick_params(labelbottom=False,
+                        labelleft=False,
+                        labelright=False,
+                        labeltop=False)
+        pyplot.xlabel("input")
         path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")
-        pyplot.savefig(path)
+        pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0)
         print("saved to -> {}".format(path))
         # pyplot.show()
         pyplot.close()
-        return cv2.imread(path + ".pmg")
+        return cv2.imread(path + ".png")
 
 def mydraw(_weights, acc):
     vertical_distance_between_layers = 6
@@ -144,7 +150,7 @@ def mydraw(_weights, acc):
         network.add_layer(nodes[i], weights[i].T)
     network.add_layer(nodes[-1])
     # print("weights:\n{}".format(weights))
-    path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\ネットワークアーキテクチャ"
+    path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
     return network.draw(path=path, acc=acc)
 
 if __name__ == "__main__":

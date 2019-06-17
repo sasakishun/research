@@ -27,17 +27,18 @@ def visualize(x, y, labels, ite, testflag, showflag=False):
             if j == 0:
                 plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
                             s=5, label=i)
-                plt.legend(loc='uppper right',
-                           bbox_to_anchor=(0.75, 0.5, 0.5, .100),
-                           # borderaxespad=0.,
-                           facecolor="white")  # colors[i])
+                if testflag:
+                    plt.legend(loc='uppper right', bbox_to_anchor=(0.62, 0.5, 0.5, .100),
+                               # borderaxespad=0.,
+                               facecolor="white")  # colors[i])
                 # plt.legend(loc='lower right', facecolor=colors[i])
             else:
                 plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
                             s=5)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("hidden node")
-    plt.ylabel("output")
+    if not testflag:
+        plt.ylabel("output")
     plt.xticks(range(len(x[i][0])))
 
     # y軸に1刻みにで小目盛り(minor locator)表示
@@ -56,21 +57,30 @@ def visualize(x, y, labels, ite, testflag, showflag=False):
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     if showflag:
-        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\ネットワークアーキテクチャ"
+        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
         path += "{}{}_{}".format(
             r"\test" if testflag else r"\train",
             r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
             "test" if testflag else "train")
-        plt.savefig(path)
+        plt.savefig(path, bbox_inches="tight", pad_inches=0.1)
         # plt.show()
     plt.close()
-    return cv2.imread(path + ".pmg")
-
+    path += ".png"
+    print("path_real:{}".format(path))
+    img = cv2.imread(path)
+    # print("path_fake:{}".format(r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\train"))
+    print("\n\nimg:{}\n\n".format(type(img)))
+    return img
 
 def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
-    h_min = min(im.shape[0] for im in im_list)
+    # print("im_list[0]:{}".format(im_list[0]))
+    h_min = max(im.shape[0] for im in im_list)
     im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
                       for im in im_list]
     return cv2.hconcat(im_list_resize)
 
-
+def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    w_min = min(im.shape[1] for im in im_list)
+    im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
+                      for im in im_list]
+    return cv2.vconcat(im_list_resize)

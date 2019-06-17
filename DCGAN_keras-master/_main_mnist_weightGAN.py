@@ -25,7 +25,7 @@ import sys
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
-from visualization import visualize, hconcat_resize_min
+from visualization import visualize, hconcat_resize_min, vconcat_resize_min
 from _model_weightGAN import weightGAN_Model
 # import config_mnist as cf
 
@@ -363,8 +363,7 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
                 # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
                 # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
     return visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
-                     testflag,
-                     showflag=showflag)
+                     testflag, showflag=showflag)
     # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
     # testflag, showflag=False)
 
@@ -395,11 +394,11 @@ class Main_test():
         # train_val_loss = g.evaluate(X_train, y_train)
         im_train = show_result(input=X_train, onehot_labels=y_train,
                                layer1_out=g.predict(X_train, verbose=0)[1],
-                               ite=0, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
+                               ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
                                showflag=True)
         im_test = show_result(input=X_test, onehot_labels=y_test,
                               layer1_out=g.predict(X_test, verbose=0)[1],
-                              ite=0, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True)
+                              ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True)
         print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
               .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
         weights = classify.get_weights()
@@ -409,11 +408,12 @@ class Main_test():
         classify.summary()
         im_architecture = mydraw(weights, test_val_loss[1])
 
-        im_h_resize = hconcat_resize_min([im_train, im_test, im_architecture])
-        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\ネットワークアーキテクチャ"
-        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
-        cv2.imwrite('data/dst/opencv_hconcat_resize.jpg', im_h_resize)
-
+        im_h_resize = hconcat_resize_min([np.array(im_train), np.array(im_test)])
+        im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
+        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
+               + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+        cv2.imwrite(path, im_h_resize)
+        print("saved concated graph to -> {}".format(path))
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
