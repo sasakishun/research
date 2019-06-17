@@ -7,6 +7,7 @@ horizontal_distance_between_neurons = 2
 neuron_radius = 0.5
 number_of_neurons_in_widest_layer = 4
 from datetime import datetime
+import cv2
 
 max_weight = 0
 class Neuron():
@@ -16,7 +17,7 @@ class Neuron():
 
     def draw(self, text=""):
         circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False)
-        _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=10)
+        _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
         pyplot.gca()._add_text(_text)
         pyplot.gca().add_patch(circle)
 
@@ -93,16 +94,19 @@ class NeuralNetwork():
             layer.draw()
         pyplot.axis('scaled')
         pyplot.show()
-    def draw(self, path):
+    def draw(self, path, acc=-1):
         for layer in self.layers:
             layer.draw()
+        pyplot.title("acc:{}".format(acc))
         pyplot.axis('scaled')
-        pyplot.savefig(path+"{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture"))
-        print("saved to -> {}".format(path+"{}{}_{}".format(r"\test", r"{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")))
+        path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")
+        pyplot.savefig(path)
+        print("saved to -> {}".format(path))
         # pyplot.show()
         pyplot.close()
+        return cv2.imread(path + ".pmg")
 
-def mydraw(_weights):
+def mydraw(_weights, acc):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
@@ -140,7 +144,7 @@ def mydraw(_weights):
     network.add_layer(nodes[-1])
     # print("weights:\n{}".format(weights))
     path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\ネットワークアーキテクチャ"
-    network.draw(path)
+    return network.draw(path=path, acc=acc)
 
 if __name__ == "__main__":
     vertical_distance_between_layers = 6

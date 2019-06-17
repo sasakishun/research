@@ -390,7 +390,7 @@ class Main_test():
         for i in range(len(weights)):
             print(np.shape(weights[i]))
         classify.summary()
-        mydraw(weights)
+        mydraw(weights, test_val_loss[1])
 
     def _test(self):
         ## Load network model
