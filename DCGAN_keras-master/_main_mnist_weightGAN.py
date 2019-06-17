@@ -16,6 +16,7 @@ K.set_session(sess)
 import argparse
 import cv2
 import numpy as np
+
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=2000)
 import glob
@@ -24,7 +25,7 @@ import sys
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
-from visualization import visualize
+from visualization import visualize, hconcat_resize_min
 from _model_weightGAN import weightGAN_Model
 # import config_mnist as cf
 
@@ -34,6 +35,7 @@ import keras.callbacks
 import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
 from draw_architecture import *
+
 old_session = KTF.get_session()
 
 session = tf.Session('')
@@ -49,9 +51,10 @@ Height, Width = 28, 28
 Channel = 1
 output_size = 10
 input_size = Height * Width * Channel
-irisflag=False
+irisflag = False
 krkoptflag = False
 wSize = 20
+
 
 def krkopt_data():
     _train = [[], []]
@@ -129,7 +132,7 @@ def krkopt_data():
 
 
 def iris_data():
-    X_train, X_test, y_train, y_test =\
+    X_train, X_test, y_train, y_test = \
         train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
     y_train = np_utils.to_categorical(y_train, 3)
     y_test = np_utils.to_categorical(y_test, 3)
@@ -140,6 +143,7 @@ def iris_data():
     print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
 
 def mnist_data():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -158,6 +162,7 @@ def mnist_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -174,6 +179,7 @@ def my_tqdm(ite):
     ### 学習進行状況表示
     return con
 
+
 class Main_train():
     def __init__(self):
         pass
@@ -182,7 +188,8 @@ class Main_train():
         print("irisflag:{}".format(irisflag))
         # 性能評価用パラメータ
         max_score = 0.
-        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
+        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
+                                            use_mbd=use_mbd)
         ## Prepare Training data　前処理
         if irisflag:
             fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
@@ -210,7 +217,7 @@ class Main_train():
         for ite in range(cf.Iteration):
             ite += 1
             train_ind = ite % train_num_per_step
-            if ite % (train_num_per_step+1) == 0:
+            if ite % (train_num_per_step + 1) == 0:
                 np.random.shuffle(data_inds)
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
 
@@ -264,10 +271,11 @@ class Main_train():
                 test_val_loss = classify.evaluate(X_test, y_test)
                 train_val_loss = classify.evaluate(X_train, y_train)
                 max_score = max(max_score, 1. - test_val_loss[1])
-                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
+                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                    ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
                 print("real_weight\n{}".format(real_weight))
                 print("real_labels\n{}".format(real_labels))
-                print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2))) # 訓練データ時
+                print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
                 if ite % cf.Save_train_step == 0:
                     if irisflag:
                         print("labels:{}".format(np.argmax(y_train, axis=1)))
@@ -280,11 +288,12 @@ class Main_train():
                     else:
                         show_result(input=X_train[:100], onehot_labels=y_train[:100],
                                     layer1_out=np.round(g.predict(X_train[:100], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict(X_train[:100], verbose=0)[0], decimals=2), testflag=False)
+                                    classify=np.round(g.predict(X_train[:100], verbose=0)[0], decimals=2),
+                                    testflag=False)
                         show_result(input=X_test[:100], onehot_labels=y_test[:100],
                                     layer1_out=np.round(g.predict(X_test[:100], verbose=0)[1], decimals=2), ite=ite,
                                     classify=np.round(g.predict(X_test[:100], verbose=0)[0], decimals=2), testflag=True)
-                    # for i in [1]:
+                        # for i in [1]:
                         # weights 結果をplot
                         # w1 = classify.layers[i].get_weights()[0]
                         # print("w1\n{}".format(w1))
@@ -325,15 +334,17 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
+
+
 def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
     # print("labels:{}".format(labels_scalar))
     layer1_outs = [[[], [], []] for _ in range(output_size)]
     for i in range(len(labels_scalar)):
-        layer1_outs[labels_scalar[i]][0].append(input[i]) # 入力
-        layer1_outs[labels_scalar[i]][1].append(layer1_out[i]) # 中間層出力
-        layer1_outs[labels_scalar[i]][2].append(classify[i]) # 分類層出力
+        layer1_outs[labels_scalar[i]][0].append(input[i])  # 入力
+        layer1_outs[labels_scalar[i]][1].append(layer1_out[i])  # 中間層出力
+        layer1_outs[labels_scalar[i]][2].append(classify[i])  # 分類層出力
     # print("layer1_outs:{}".format(layer1_outs))
     for i in range(len(layer1_outs)):
         print("\nlabel:{}".format(i))
@@ -348,16 +359,20 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
                 print("-> {} -> {} :{}".format(np.array(layer1_outs[i][1][j]),
                                                np.array(layer1_outs[i][2][j]),
                                                "" if np.argmax(layer1_outs[i][2][j]) == i else "x"))
-        # print("\nlabel:{} input / {}\n{}".format(i, len(layer1_outs[i][0]), np.array(layer1_outs[i][0])))
-        # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
-        # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
-    visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite, testflag, showflag=showflag)
-    # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite, testflag, showflag=False)
+                # print("\nlabel:{} input / {}\n{}".format(i, len(layer1_outs[i][0]), np.array(layer1_outs[i][0])))
+                # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
+                # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
+    return visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
+                     testflag,
+                     showflag=showflag)
+    # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
+    # testflag, showflag=False)
 
 
 class Main_test():
     def __init__(self):
         pass
+
     def test(self):
         ite = 0
         if irisflag:
@@ -365,7 +380,8 @@ class Main_test():
         else:
             X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
 
-        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
+        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
+                                            use_mbd=use_mbd)
         g.load_weights(cf.Save_g_path)
         d.load_weights(cf.Save_d_path)
         c.load_weights(cf.Save_c_path)
@@ -377,20 +393,26 @@ class Main_test():
         train_val_loss = classify.evaluate(X_train, y_train)
         # test_val_loss =  g.evaluate([X_train, y_train], [y_train, t]) # c.evaluate(X_test, y_test)
         # train_val_loss = g.evaluate(X_train, y_train)
-        show_result(input=X_train, onehot_labels=y_train,
-                    layer1_out=g.predict(X_train, verbose=0)[1],
-                    ite=0, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False, showflag=True)
-        show_result(input=X_test, onehot_labels=y_test,
-                    layer1_out=g.predict(X_test, verbose=0)[1],
-                    ite=0, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True)
+        im_train = show_result(input=X_train, onehot_labels=y_train,
+                               layer1_out=g.predict(X_train, verbose=0)[1],
+                               ite=0, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
+                               showflag=True)
+        im_test = show_result(input=X_test, onehot_labels=y_test,
+                              layer1_out=g.predict(X_test, verbose=0)[1],
+                              ite=0, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True)
         print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
-              .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0],test_val_loss[1]))
+              .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
         weights = classify.get_weights()
         print(weights)
         for i in range(len(weights)):
             print(np.shape(weights[i]))
         classify.summary()
-        mydraw(weights, test_val_loss[1])
+        im_architecture = mydraw(weights, test_val_loss[1])
+
+        im_h_resize = hconcat_resize_min([im_train, im_test, im_architecture])
+        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\ネットワークアーキテクチャ"
+        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
+        cv2.imwrite('data/dst/opencv_hconcat_resize.jpg', im_h_resize)
 
     def _test(self):
         ## Load network model
@@ -469,11 +491,11 @@ def arg_parse():
 
 if __name__ == '__main__':
     args = arg_parse()
-    use_mbd=False
+    use_mbd = False
     if args.wSize:
         wSize = args.wSize
     if args.use_mbd:
-        use_mbd=True
+        use_mbd = True
     if args.mnist:
         Height = 28
         Width = 28
@@ -504,6 +526,7 @@ if __name__ == '__main__':
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         from sklearn.datasets import load_iris
+
         iris = load_iris()
         irisflag = True
     elif args.krkopt:
@@ -514,6 +537,7 @@ if __name__ == '__main__':
         output_size = 17
         import config_mnist as cf
         from _model_iris import *
+
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         # iris = load_iris()

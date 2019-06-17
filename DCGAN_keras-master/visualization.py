@@ -1,13 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.ticker as tick # 目盛り操作に必要なライブラリを読み込みます
+import matplotlib.ticker as tick  # 目盛り操作に必要なライブラリを読み込みます
 import pylab
 from datetime import datetime
 import config_mnist as cf
 import cv2
 
+
 def visualize(x, y, labels, ite, testflag, showflag=False):
-    plt.figure(figsize=(10, len(x[0][0])//2 + 5), dpi=100)
+    plt.figure(figsize=(10, len(x[0][0]) // 2 + 5), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
@@ -24,14 +25,16 @@ def visualize(x, y, labels, ite, testflag, showflag=False):
     for i in range(len(x)):
         for j in range(len(x[i][0])):
             if j == 0:
-                plt.scatter([j+0.025*i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:,j], color=colors[i], s=5, label=i)
+                plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
+                            s=5, label=i)
                 plt.legend(loc='uppper right',
                            bbox_to_anchor=(0.75, 0.5, 0.5, .100),
                            # borderaxespad=0.,
-                           facecolor = "white")# colors[i])
+                           facecolor="white")  # colors[i])
                 # plt.legend(loc='lower right', facecolor=colors[i])
             else:
-                plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i], s=5)
+                plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
+                            s=5)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("hidden node")
     plt.ylabel("output")
@@ -46,9 +49,10 @@ def visualize(x, y, labels, ite, testflag, showflag=False):
 
     # save as png
     path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris"
-    print("saved to -> " + path +"\{}{}".format("test" if testflag else "train", ite))
+    print("saved to -> " + path + "\{}{}".format("test" if testflag else "train", ite))
     if ite % cf.Iteration == 0:
-        plt.savefig(path+"{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite, datetime.now().strftime("%Y%m%d%H%M%S")))
+        plt.savefig(path + "{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite,
+                                            datetime.now().strftime("%Y%m%d%H%M%S")))
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     if showflag:
@@ -60,4 +64,13 @@ def visualize(x, y, labels, ite, testflag, showflag=False):
         plt.savefig(path)
         # plt.show()
     plt.close()
-    return cv2.imread(path+".pmg")
+    return cv2.imread(path + ".pmg")
+
+
+def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    h_min = min(im.shape[0] for im in im_list)
+    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+                      for im in im_list]
+    return cv2.hconcat(im_list_resize)
+
+

@@ -94,6 +94,7 @@ class NeuralNetwork():
             layer.draw()
         pyplot.axis('scaled')
         pyplot.show()
+
     def draw(self, path, acc=-1):
         for layer in self.layers:
             layer.draw()
