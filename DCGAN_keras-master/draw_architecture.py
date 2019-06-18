@@ -99,7 +99,7 @@ class NeuralNetwork():
     def draw(self, path, acc=-1):
         for layer in self.layers:
             layer.draw()
-        pyplot.title("acc:{:.6f}".format(acc))
+        pyplot.title("acc:{:.4f}".format(acc))
         pyplot.axis('scaled')
         pyplot.tick_params(labelbottom=False,
                         labelleft=False,

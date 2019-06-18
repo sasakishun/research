@@ -7,7 +7,7 @@ import config_mnist as cf
 import cv2
 
 
-def visualize(x, y, labels, ite, testflag, showflag=False):
+def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
     plt.figure(figsize=(10, len(x[0][0]) // 2 + 5), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -36,7 +36,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False):
                 plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
                             s=5)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
-    plt.xlabel("hidden node")
+    plt.xlabel("{} node".format(comment))
     if not testflag:
         plt.ylabel("output")
     plt.xticks(range(len(x[i][0])))
@@ -80,7 +80,7 @@ def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     return cv2.hconcat(im_list_resize)
 
 def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
-    w_min = min(im.shape[1] for im in im_list)
+    w_min = max(im.shape[1] for im in im_list)
     im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
                       for im in im_list]
     return cv2.vconcat(im_list_resize)

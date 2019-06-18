@@ -188,8 +188,8 @@ class Main_train():
         print("irisflag:{}".format(irisflag))
         # 性能評価用パラメータ
         max_score = 0.
-        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
-                                            use_mbd=use_mbd)
+        g, d, c, classify, hidden_layers\
+            = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         ## Prepare Training data　前処理
         if irisflag:
             fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
@@ -329,6 +329,8 @@ class Main_train():
         g.save_weights(cf.Save_g_path)
         c.save_weights(cf.Save_c_path)
         classify.save_weights(cf.Save_classify_path)
+        for i in range(len(hidden_layers)):
+            hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
         print('Model saved -> ', cf.Save_d_path, cf.Save_g_path, cf.Save_classify_path)
         print("maxAcc:{}".format(max_score * 100))
         ### add for TensorBoard
@@ -336,7 +338,7 @@ class Main_train():
         ###
 
 
-def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False):
+def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False, comment=""):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
     # print("labels:{}".format(labels_scalar))
@@ -363,7 +365,7 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
                 # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
                 # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
     return visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
-                     testflag, showflag=showflag)
+                     testflag, showflag=showflag, comment=comment)
     # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
     # testflag, showflag=False)
 
@@ -372,19 +374,22 @@ class Main_test():
     def __init__(self):
         pass
 
-    def test(self):
+    def test(self, loadflag=True):
         ite = 0
         if irisflag:
             X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = iris_data()
         else:
             X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
 
-        g, d, c, classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
+        g, d, c, classify, hidden_layers = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
-        g.load_weights(cf.Save_g_path)
-        d.load_weights(cf.Save_d_path)
-        c.load_weights(cf.Save_c_path)
-        classify.load_weights(cf.Save_classify_path)
+        if loadflag:
+            g.load_weights(cf.Save_g_path)
+            d.load_weights(cf.Save_d_path)
+            c.load_weights(cf.Save_c_path)
+            classify.load_weights(cf.Save_classify_path)
+            for i in range(len(hidden_layers)):
+                hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
 
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
@@ -392,13 +397,34 @@ class Main_test():
         train_val_loss = classify.evaluate(X_train, y_train)
         # test_val_loss =  g.evaluate([X_train, y_train], [y_train, t]) # c.evaluate(X_test, y_test)
         # train_val_loss = g.evaluate(X_train, y_train)
+        """
         im_train = show_result(input=X_train, onehot_labels=y_train,
                                layer1_out=g.predict(X_train, verbose=0)[1],
                                ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
-                               showflag=True)
+                               showflag=True, comment="dense1")
         im_test = show_result(input=X_test, onehot_labels=y_test,
                               layer1_out=g.predict(X_test, verbose=0)[1],
-                              ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True)
+                              ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True, comment="dense1")
+        """
+        im_input_train = show_result(input=X_train, onehot_labels=y_train,
+                                     layer1_out=X_train,
+                                     ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
+                                     showflag=True, comment="input")
+        im_input_test = show_result(input=X_test, onehot_labels=y_test,
+                                     layer1_out=X_test,
+                                     ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]),
+                                     testflag=True, showflag=True, comment="input")
+        im_g_dense = [[] for _ in range(len(hidden_layers))]
+        print("im_g_dense:{}".format(im_g_dense))
+        for i in range(len(hidden_layers)):
+            im_g_dense[i].append(show_result(input=X_train, onehot_labels=y_train,
+                                             layer1_out=hidden_layers[i].predict(X_train, verbose=0),
+                                             ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
+                                             showflag=True, comment="dense{}".format(i)))
+            im_g_dense[i].append(show_result(input=X_test, onehot_labels=y_test,
+                                             layer1_out=hidden_layers[i].predict(X_test, verbose=0),
+                                             ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True,
+                                             showflag=True, comment="dense{}".format(i)))
         print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
               .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
         weights = classify.get_weights()
@@ -406,9 +432,13 @@ class Main_test():
         for i in range(len(weights)):
             print(np.shape(weights[i]))
         classify.summary()
+        # ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1])
 
-        im_h_resize = hconcat_resize_min([np.array(im_train), np.array(im_test)])
+        im_h_resize = hconcat_resize_min([im_input_train, im_input_test])
+        for im in im_g_dense:
+            # im_h_resize = vconcat_resize_min([hconcat_resize_min([np.array(im_train), np.array(im_test)]), im_h_resize])
+            im_h_resize = vconcat_resize_min([hconcat_resize_min(im), im_h_resize])
         im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
@@ -479,6 +509,7 @@ def arg_parse():
     parser = argparse.ArgumentParser(description='CNN implemented with Keras')
     parser.add_argument('--train', dest='train', action='store_true')
     parser.add_argument('--test', dest='test', action='store_true')
+    parser.add_argument('--test_non_trained', dest='test_non_trained', action='store_true')
     parser.add_argument('--mnist', dest='mnist', action='store_true')
     parser.add_argument('--cifar10', dest='cifar10', action='store_true')
     parser.add_argument('--iris', dest='iris', action='store_true')
@@ -547,7 +578,11 @@ if __name__ == '__main__':
         main.train(use_mbd=use_mbd)
     if args.test:
         main = Main_test()
+        # main.test(loadflag=False)
         main.test()
+    if args.test_non_trained:
+        main = Main_test()
+        main.test(loadflag=False)
 
     if not (args.train or args.test):
         print("please select train or test flag")

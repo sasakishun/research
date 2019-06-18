@@ -4,7 +4,7 @@ import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras import backend as K
-from keras import metrics
+from keras import metrics, regularizers
 from keras.layers.core import Lambda
 from keras.models import Model
 from keras.layers import Input, Dense, Reshape
@@ -53,8 +53,9 @@ def minibatch_discrimination(d_out):
 
 def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     ### 生成器定義
-    _g_dense1 = Dense(wSize, activation='sigmoid', name='g_dense1')
-    _g_dense2 = Dense(output_size, activation='softmax', name='x_out')
+    _g_dense1 = Dense(wSize*2, activation='sigmoid', kernel_regularizer=regularizers.l1(0.), name='g_dense1_')
+    _g_dense2 = Dense(wSize, activation='sigmoid', kernel_regularizer=regularizers.l1(0.), name='g_dense2_')
+    _g_dense_output = Dense(output_size, activation='softmax', name='x_out')
     ### 生成器定義
 
     ### 識別機定義
@@ -65,7 +66,8 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     ### 生成器の順伝播　[入力:inputs_z(入力画像) 出力:x(クラス分類結果)]
     inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
     g_dense1 = _g_dense1(inputs_z)
-    x = _g_dense2(g_dense1)
+    g_dense2 = _g_dense2(g_dense1)
+    x = _g_dense_output(g_dense2)
     ### 生成器の順伝播　
 
     ### 識別器の順伝播
@@ -104,6 +106,13 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
         layer.trainable = True
     d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
     d.compile(optimizer=d_opt, loss='mean_squared_error')
+    G_dense1 = Model(inputs=[inputs_z], outputs=[g_dense1], name='g_dense1')
+    G_dense1.compile(optimizer=d_opt, loss='mean_squared_error')
+    G_dense2 = Model(inputs=[inputs_z], outputs=[g_dense2], name='g_dense2')
+    G_dense2.compile(optimizer=d_opt, loss='mean_squared_error')
+    G_output = Model(inputs=[inputs_z], outputs=[x], name='g_dense1')
+    G_output.compile(optimizer=d_opt, loss='mean_squared_error')
+
     ### モデル定義
 
     ### モデル構造を出力
@@ -113,4 +122,4 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     classify.summary()
     ### モデル構造を出力
 
-    return g, d, c, classify
+    return g, d, c, classify, [G_dense1, G_dense2, G_output]
