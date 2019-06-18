@@ -51,10 +51,8 @@ Height, Width = 28, 28
 Channel = 1
 output_size = 10
 input_size = Height * Width * Channel
-irisflag = False
-krkoptflag = False
 wSize = 20
-
+dataset = ""
 
 def krkopt_data():
     _train = [[], []]
@@ -144,6 +142,62 @@ def iris_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+def stringToList(_string, split=" "):
+    str_list = []
+    temp = ''
+    for x in _string:
+        if x == split:  # 区切り文字
+            str_list.append(temp)
+            temp = ''
+        else:
+            temp += x
+    if temp != '':  # 最後に残った文字列を末尾要素としてリストに追加
+        str_list.append(temp)
+    return str_list
+
+def wine_data():
+    ### .dataファイルを読み込む
+    _data = open(r"C:\Users\papap\Documents\research\DCGAN_keras-master\wine.data", "r")
+    lines = _data.readlines()
+    ### .dataファイルを読み込む
+
+    ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
+    _train = []
+    _target = []
+    for line in lines:
+        line = stringToList(line, ",")
+        _target.append(int(line[0])-1) #今回はリストの先頭がクラスラベル(1 or 2 or 3)
+        _train.append([float(i) for i in line[1:]]) #それ以外は訓練データ
+    ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
+
+    X_train, X_test, y_train, y_test = \
+        train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    y_train = np_utils.to_categorical(y_train, 3)
+    y_test = np_utils.to_categorical(y_test, 3)
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
+def digits_data():
+    X_train, X_test, y_train, y_test = \
+        train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    print("X_train:{}".format(digits.data.shape))
+    print("X_train:{}".format(X_train.shape))
+    print("y_train:{}".format(digits.target.shape))
+    print("y_train:{}".format(y_train.shape))
+    y_train = np_utils.to_categorical(y_train, 10)
+    y_test = np_utils.to_categorical(y_test, 10)
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def mnist_data():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -179,27 +233,36 @@ def my_tqdm(ite):
     ### 学習進行状況表示
     return con
 
+def getdata(dataset):
+    if dataset == "iris":
+        return iris_data()
+    elif  dataset == "mnist":
+        return mnist_data()
+    elif dataset == "digits":
+        return digits_data()
+    elif dataset == "wine":
+        return wine_data()
 
 class Main_train():
     def __init__(self):
         pass
 
     def train(self, use_mbd=False):
-        print("irisflag:{}".format(irisflag))
         # 性能評価用パラメータ
         max_score = 0.
         g, d, c, classify, hidden_layers\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         ## Prepare Training data　前処理
-        if irisflag:
+        if dataset == "iris":
             fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = iris_data()
-        elif krkoptflag:
+        elif dataset == "digits":
+            fname = os.path.join(cf.Save_dir, 'loss_digits.txt')
+        elif dataset == "krkoptflag":
             fname = os.path.join(cf.Save_dir, 'loss_krkopt.txt')
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = krkopt_data()
         else:
             fname = os.path.join(cf.Save_dir, 'loss.txt')
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
+
 
         """
         ## Start Train
@@ -277,7 +340,7 @@ class Main_train():
                 print("real_labels\n{}".format(real_labels))
                 print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
                 if ite % cf.Save_train_step == 0:
-                    if irisflag:
+                    if dataset == "iris":
                         print("labels:{}".format(np.argmax(y_train, axis=1)))
                         show_result(input=X_train, onehot_labels=y_train,
                                     layer1_out=np.round(g.predict(X_train, verbose=0)[1], decimals=2), ite=ite,
@@ -352,7 +415,7 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
         print("\nlabel:{}".format(i))
         for j in range(len(layer1_outs[i][0])):
             # print("{}".format(np.argmax(layer1_outs[i][2][j])))
-            if irisflag:
+            if dataset == "iris":
                 print("{} -> {} -> {} :{}".format(np.array(layer1_outs[i][0][j]),
                                                   np.array(layer1_outs[i][1][j]),
                                                   np.array(layer1_outs[i][2][j]),
@@ -376,11 +439,7 @@ class Main_test():
 
     def test(self, loadflag=True):
         ite = 0
-        if irisflag:
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = iris_data()
-        else:
-            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = mnist_data()
-
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
         g, d, c, classify, hidden_layers = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
         if loadflag:
@@ -513,6 +572,8 @@ def arg_parse():
     parser.add_argument('--mnist', dest='mnist', action='store_true')
     parser.add_argument('--cifar10', dest='cifar10', action='store_true')
     parser.add_argument('--iris', dest='iris', action='store_true')
+    parser.add_argument('--wine', dest='wine', action='store_true')
+    parser.add_argument('--digits', dest='digits', action='store_true')
     parser.add_argument('--krkopt', dest='krkopt', action='store_true')
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
     parser.add_argument('--wSize', type=int)
@@ -537,6 +598,7 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_mnist import *
         # np.random.seed(cf.Random_seed)
+        dataset = "mnist"
     elif args.cifar10:
         Height = 32
         Width = 32
@@ -547,6 +609,7 @@ if __name__ == '__main__':
         from keras.datasets import cifar10 as mnist
         from _model_cifar10 import *
         # np.random.seed(cf.Random_seed)
+        dataset = "cifar10"
     elif args.iris:
         Height = 1
         Width = 4
@@ -557,9 +620,21 @@ if __name__ == '__main__':
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         from sklearn.datasets import load_iris
-
         iris = load_iris()
-        irisflag = True
+        dataset = "iris"
+    elif args.digits:
+        Height = 1
+        Width = 64
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 10
+        import config_mnist as cf
+        from _model_iris import *
+        # np.random.seed(cf.Random_seed)
+        # from sklearn.datasets import load_iris
+        from sklearn.datasets import load_digits
+        digits = load_digits(n_class=10)
+        dataset = "digits"
     elif args.krkopt:
         Height = 1
         Width = 6
@@ -568,11 +643,19 @@ if __name__ == '__main__':
         output_size = 17
         import config_mnist as cf
         from _model_iris import *
-
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         # iris = load_iris()
-        krkoptflag = True
+        dataset = "krkoptflag"
+    elif args.wine:
+        Height = 1
+        Width = 13
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 3
+        import config_mnist as cf
+        from _model_iris import *
+        dataset = "wine"
     if args.train:
         main = Main_train()
         main.train(use_mbd=use_mbd)

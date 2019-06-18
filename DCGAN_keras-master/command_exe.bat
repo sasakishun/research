@@ -1,14 +1,4 @@
 for /l %%a in (0, 1, 9) do (
-    python _main_mnist_weightGAN.py --iris --train --wSize 2
-    echo %%a
-    python _main_mnist_weightGAN.py --iris --test --wSize 2
-)
-for /l %%a in (0, 1, 9) do (
-    python _main_mnist_weightGAN.py --iris --train --wSize 3
-    echo %%a
-    python _main_mnist_weightGAN.py --iris --test --wSize 3
-)
-for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --iris --train --wSize 4
     echo %%a
     python _main_mnist_weightGAN.py --iris --test --wSize 4
@@ -67,6 +57,17 @@ for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --iris --train --wSize 100
     echo %%a
     python _main_mnist_weightGAN.py --iris --test --wSize 100
+)
+
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --iris --train --wSize 2
+    echo %%a
+    python _main_mnist_weightGAN.py --iris --test --wSize 2
+)
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --iris --train --wSize 3
+    echo %%a
+    python _main_mnist_weightGAN.py --iris --test --wSize 3
 )
 
 python _main_mnist_weightGAN.py --mnist --train --wSize 2
