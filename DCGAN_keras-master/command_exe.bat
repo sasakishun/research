@@ -1,4 +1,30 @@
 for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --wine --train --wSize 4
+    echo %%a
+    python _main_mnist_weightGAN.py --wine --test --wSize 4
+)
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --wine --train --wSize 6
+    echo %%a
+    python _main_mnist_weightGAN.py --wine --test --wSize 6
+)
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --wine --train --wSize 10
+    echo %%a
+    python _main_mnist_weightGAN.py --wine --test --wSize 10
+)
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --wine --train --wSize 20
+    echo %%a
+    python _main_mnist_weightGAN.py --wine --test --wSize 20
+)
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --wine --train --wSize 30
+    echo %%a
+    python _main_mnist_weightGAN.py --wine --test --wSize 30
+)
+
+for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --iris --train --wSize 4
     echo %%a
     python _main_mnist_weightGAN.py --iris --test --wSize 4

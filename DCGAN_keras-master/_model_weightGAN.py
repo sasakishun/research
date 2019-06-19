@@ -54,7 +54,7 @@ def minibatch_discrimination(d_out):
 def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     ### 生成器定義
     _g_dense1 = Dense(wSize, activation='sigmoid', kernel_regularizer=regularizers.l1(0.01), name='g_dense1_')
-    _g_dense2 = Dense(wSize//2, activation='sigmoid', kernel_regularizer=regularizers.l1(0.), name='g_dense2_')
+    _g_dense2 = Dense(wSize//2, activation='sigmoid', kernel_regularizer=regularizers.l1(0.01), name='g_dense2_')
     _g_dense_output = Dense(output_size, activation='softmax', name='x_out')
     ### 生成器定義
 

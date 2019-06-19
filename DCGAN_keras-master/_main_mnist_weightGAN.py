@@ -154,6 +154,21 @@ def stringToList(_string, split=" "):
     if temp != '':  # 最後に残った文字列を末尾要素としてリストに追加
         str_list.append(temp)
     return str_list
+def normalize(X_train, X_test):
+    # 正規化
+    from sklearn.preprocessing import MinMaxScaler
+    mmsc = MinMaxScaler()
+    X_train = mmsc.fit_transform(X_train)
+    X_test = mmsc.transform(X_test)
+    return X_train, X_test
+
+def standardize(X_train, X_test):
+    # 標準化
+    from sklearn.preprocessing import StandardScaler
+    stdsc = StandardScaler()
+    X_train = stdsc.fit_transform(X_train)
+    X_test = stdsc.transform(X_test)
+    return X_train, X_test
 
 def wine_data():
     ### .dataファイルを読み込む
@@ -172,6 +187,12 @@ def wine_data():
 
     X_train, X_test, y_train, y_test = \
         train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+
+    ### 各列で正規化
+    # X_train, X_test = normalize(X_train, X_test)
+    X_train, X_test = standardize(X_train, X_test)
+    ### 各列で正規化
+
     y_train = np_utils.to_categorical(y_train, 3)
     y_test = np_utils.to_categorical(y_test, 3)
     train_num = X_train.shape[0]
@@ -179,7 +200,12 @@ def wine_data():
     data_inds = np.arange(train_num)
     max_ite = cf.Minibatch * train_num_per_step
     print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("X_train:\n{} \nX_test:\n{}".format(X_train, X_test))
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    print("-> X_max in train :{}".format(np.amax(X_train, axis=0)))
+    print("-> X_max in test  : {}".format(np.amax(X_test, axis=0)))
+    # print("X_train:\n{}".format(X_train))
+    # exit()
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def digits_data():
