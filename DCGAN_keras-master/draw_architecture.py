@@ -161,10 +161,10 @@ if __name__ == "__main__":
     network = NeuralNetwork()
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
 
-    nodes = [4, 2, 3]
+    nodes = [13, 10, 7, 3]
     weights = []
     for i in range(len(nodes)-1):
-        weights.append(np.ones((nodes[i+1], nodes[i])))
+        weights.append(np.ones((nodes[i], nodes[i+1])))
     print(weights)
     weights[0][0:2, :6] = -0.4
     weights[0][2:, ] = 0.5
@@ -181,4 +181,4 @@ if __name__ == "__main__":
     print("nodes:{}".format(nodes))
     print("weights:{}".format(np.shape(weights)))
     # print("weights:\n{}".format(weights))
-    network.draw()
+    mydraw(weights, 0)

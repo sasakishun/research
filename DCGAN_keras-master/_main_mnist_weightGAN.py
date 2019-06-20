@@ -186,7 +186,7 @@ def wine_data():
     ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
 
     X_train, X_test, y_train, y_test = \
-        train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+        train_test_split(np.array(_train), np.array(_target), test_size=0.1, train_size=0.9, shuffle=True, random_state=1)
 
     ### 各列で正規化
     # X_train, X_test = normalize(X_train, X_test)
