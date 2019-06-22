@@ -214,23 +214,22 @@ def wine_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def digits_data():
+    usable = [0, 1, 2]# , 3, 4]
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
-    _X_train, _X_test, _y_train, _y_test = \
-        train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8)
-    X_train, X_test, y_train, y_test = [], [], [], []
+    _X_train, _y_train = digits.data, digits.target
+    X_train, y_train = [], []
     for data, target in zip(_X_train, _y_train):
-        if target == 0 or target == 1:
-            X_train.append(data)
-            y_train.append(target)
-    for data, target in zip(_X_test, _y_test):
-        if target == 0 or target == 1:
-            X_test.append(data)
-            y_test.append(target)
+        for _usable in usable:
+            if target == _usable:
+                X_train.append(data)
+                y_train.append(target)
+                break
     X_train = np.array(X_train)
-    X_test = np.array(X_test)
     y_train = np.array(y_train)
-    y_test = np.array(y_test)
+    X_train, X_test, y_train, y_test = \
+        train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+
     print("X_train:{}".format(digits.data.shape))
     print("X_train:{}".format(X_train.shape))
     print("y_train:{}".format(digits.target.shape))
