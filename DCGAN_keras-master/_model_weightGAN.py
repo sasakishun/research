@@ -56,6 +56,8 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     activation = "relu"
     _g_dense1 = Dense(wSize, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_')
     _g_dense2 = Dense(wSize//2, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense2_')
+    _g_dense3 = Dense(wSize//4, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense3_')
+    _g_dense4 = Dense(wSize//8, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_')
     _g_dense_output = Dense(output_size, activation='softmax', name='x_out')
     ### 生成器定義
 
@@ -68,7 +70,9 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
     g_dense1 = _g_dense1(inputs_z)
     g_dense2 = _g_dense2(g_dense1)
-    x = _g_dense_output(g_dense2)
+    g_dense3 = _g_dense3(g_dense2)
+    g_dense4 = _g_dense4(g_dense3)
+    x = _g_dense_output(g_dense4)
     ### 生成器の順伝播　
 
     ### 識別器の順伝播
@@ -111,6 +115,10 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     G_dense1.compile(optimizer=d_opt, loss='mean_squared_error')
     G_dense2 = Model(inputs=[inputs_z], outputs=[g_dense2], name='g_dense2')
     G_dense2.compile(optimizer=d_opt, loss='mean_squared_error')
+    G_dense3 = Model(inputs=[inputs_z], outputs=[g_dense3], name='g_dense3')
+    G_dense3.compile(optimizer=d_opt, loss='mean_squared_error')
+    G_dense4 = Model(inputs=[inputs_z], outputs=[g_dense4], name='g_dense4')
+    G_dense4.compile(optimizer=d_opt, loss='mean_squared_error')
     G_output = Model(inputs=[inputs_z], outputs=[x], name='g_dense1')
     G_output.compile(optimizer=d_opt, loss='mean_squared_error')
 
@@ -123,4 +131,4 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     classify.summary()
     ### モデル構造を出力
 
-    return g, d, c, classify, [G_dense1, G_dense2, G_output]
+    return g, d, c, classify, [G_dense1, G_dense2, G_dense3, G_dense4, G_output]

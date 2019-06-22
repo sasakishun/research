@@ -34,7 +34,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
                 # plt.legend(loc='lower right', facecolor=colors[i])
             else:
                 plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
-                            s=5)
+                            s=5, alpha=j/len(x[i][0] + 0.1))
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("{} node".format(comment))
     if not testflag:

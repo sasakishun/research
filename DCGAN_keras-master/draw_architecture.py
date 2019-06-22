@@ -2,8 +2,8 @@ from matplotlib import pyplot
 from math import cos, sin, atan
 import numpy as np
 
-vertical_distance_between_layers = 6
-horizontal_distance_between_neurons = 2
+vertical_distance_between_layers = 60# 6
+horizontal_distance_between_neurons = 10 # 2
 neuron_radius = 0.5
 number_of_neurons_in_widest_layer = 4
 from datetime import datetime
@@ -17,8 +17,8 @@ class Neuron():
 
     def draw(self, text=""):
         circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False)
-        _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
-        pyplot.gca()._add_text(_text)
+        # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
+        # pyplot.gca()._add_text(_text)
         pyplot.gca().add_patch(circle)
 
 class Layer():
@@ -34,11 +34,13 @@ class Layer():
         for iteration in range(number_of_neurons):
             neuron = Neuron(x, self.y)
             neurons.append(neuron)
-            x += horizontal_distance_between_neurons
+            print("number of neurons:{}".format(number_of_neurons))
+            x += horizontal_distance_between_neurons*(64/number_of_neurons)
         return neurons
 
     def __calculate_left_margin_so_layer_is_centered(self, number_of_neurons):
-        return horizontal_distance_between_neurons * (number_of_neurons_in_widest_layer - number_of_neurons) / 2
+        return horizontal_distance_between_neurons*(16/number_of_neurons)\
+               * (number_of_neurons_in_widest_layer - number_of_neurons) / 2
 
     def __calculate_layer_y_position(self):
         if self.previous_layer:
@@ -107,7 +109,7 @@ class NeuralNetwork():
                         labeltop=False)
         pyplot.xlabel("input")
         path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")
-        pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0)
+        pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0, dpi=600)
         print("saved to -> {}".format(path))
         # pyplot.show()
         pyplot.close()

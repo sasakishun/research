@@ -374,6 +374,7 @@ class Main_train():
                         show_result(input=X_test, onehot_labels=y_test,
                                     layer1_out=np.round(g.predict(X_test, verbose=0)[1], decimals=2), ite=ite,
                                     classify=np.round(g.predict(X_test, verbose=0)[0], decimals=2), testflag=True)
+                    """
                     else:
                         show_result(input=X_train[:100], onehot_labels=y_train[:100],
                                     layer1_out=np.round(g.predict(X_train[:100], verbose=0)[1], decimals=2), ite=ite,
@@ -382,15 +383,7 @@ class Main_train():
                         show_result(input=X_test[:100], onehot_labels=y_test[:100],
                                     layer1_out=np.round(g.predict(X_test[:100], verbose=0)[1], decimals=2), ite=ite,
                                     classify=np.round(g.predict(X_test[:100], verbose=0)[0], decimals=2), testflag=True)
-                        # for i in [1]:
-                        # weights 結果をplot
-                        # w1 = classify.layers[i].get_weights()[0]
-                        # print("w1\n{}".format(w1))
-                        # plt.imshow(w1, cmap='coolwarm', interpolation='nearest')
-                        # plt.colorbar()
-                        # plt.figure()
-                        # plt.plot((w1 ** 2).mean(axis=1), 'o-')
-                        # plt.show()
+                    """
             else:
                 con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
             sys.stdout.write("\r" + con)
