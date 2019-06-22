@@ -1,7 +1,17 @@
 for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --digit --train --wSize 16
+    echo %%a
+    python _main_mnist_weightGAN.py --digit --test --wSize 16
+)
+for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --digit --train --wSize 32
     echo %%a
     python _main_mnist_weightGAN.py --digit --test --wSize 32
+)
+for /l %%a in (0, 1, 9) do (
+    python _main_mnist_weightGAN.py --digit --train --wSize 64
+    echo %%a
+    python _main_mnist_weightGAN.py --digit --test --wSize 64
 )
 for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --wine --train --wSize 4
