@@ -36,6 +36,11 @@ import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
 from draw_architecture import *
 
+### モデル量子化
+from keras.models import load_model
+from keras_compressor.compressor import compress
+### モデル量子化
+
 old_session = KTF.get_session()
 
 session = tf.Session('')
@@ -209,8 +214,23 @@ def wine_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def digits_data():
-    X_train, X_test, y_train, y_test = \
-        train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    # X_train, X_test, y_train, y_test = \
+    # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    _X_train, _X_test, _y_train, _y_test = \
+        train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8)
+    X_train, X_test, y_train, y_test = [], [], [], []
+    for data, target in zip(_X_train, _y_train):
+        if target == 0 or target == 1:
+            X_train.append(data)
+            y_train.append(target)
+    for data, target in zip(_X_test, _y_test):
+        if target == 0 or target == 1:
+            X_test.append(data)
+            y_test.append(target)
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
     print("X_train:{}".format(digits.data.shape))
     print("X_train:{}".format(X_train.shape))
     print("y_train:{}".format(digits.target.shape))
@@ -468,6 +488,12 @@ class Main_test():
             classify.load_weights(cf.Save_classify_path)
             for i in range(len(hidden_layers)):
                 hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
+            # g = compress(g, 7e-1)
+            # d = compress(d, 7e-1)
+            # c = compress(c, 7e-1)
+            # classify = compress(classify, 7e-1)
+            # for i in range(len(hidden_layers)):
+                # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
 
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
@@ -522,6 +548,7 @@ class Main_test():
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
         print("saved concated graph to -> {}".format(path))
+
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)

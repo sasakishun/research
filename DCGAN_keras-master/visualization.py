@@ -23,23 +23,25 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
               colors[9]]
     # プロット
     for i in range(len(x)):
-        for j in range(len(x[i][0])):
-            if j == 0:
-                plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
-                            s=5, label=i)
-                if testflag:
-                    plt.legend(loc='uppper right', bbox_to_anchor=(0.62, 0.5, 0.5, .100),
-                               # borderaxespad=0.,
-                               facecolor="white")  # colors[i])
-                # plt.legend(loc='lower right', facecolor=colors[i])
-            else:
-                plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
-                            s=5, alpha=j/len(x[i][0] + 0.1))
+        print("x[{}]:{}".format(i, np.shape(x[i])))
+        if x[i]:
+            for j in range(len(x[i][0])):
+                if j == 0:
+                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
+                                s=5, label=i)
+                    if testflag:
+                        plt.legend(loc='uppper right', bbox_to_anchor=(0.62, 0.5, 0.5, .100),
+                                   # borderaxespad=0.,
+                                   facecolor="white")  # colors[i])
+                    # plt.legend(loc='lower right', facecolor=colors[i])
+                else:
+                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
+                                s=5, alpha=j/len(x[i][0] + 0.1))
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("{} node".format(comment))
     if not testflag:
         plt.ylabel("output")
-    plt.xticks(range(len(x[i][0])))
+    plt.xticks(range(len(x[0][0])))
 
     # y軸に1刻みにで小目盛り(minor locator)表示
     plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(1))

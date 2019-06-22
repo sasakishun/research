@@ -26,7 +26,14 @@ KTF.set_learning_phase(1)
 ###
 
 from keras.utils import np_utils
-
+from tensorflow_model_optimization.sparsity import keras as sparsity
+pruning_params = {
+      'pruning_schedule': sparsity.PolynomialDecay(initial_sparsity=0.50,
+                                                   final_sparsity=0.90,
+                                                   begin_step=2000,
+                                                   end_step=10000,
+                                                   frequency=100)
+}
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
     abs_diffs = K.sum(K.abs(diffs), 2)
@@ -119,7 +126,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     G_dense3.compile(optimizer=d_opt, loss='mean_squared_error')
     G_dense4 = Model(inputs=[inputs_z], outputs=[g_dense4], name='g_dense4')
     G_dense4.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_output = Model(inputs=[inputs_z], outputs=[x], name='g_dense1')
+    G_output = Model(inputs=[inputs_z], outputs=[x], name='g_dense_out')
     G_output.compile(optimizer=d_opt, loss='mean_squared_error')
 
     ### モデル定義
