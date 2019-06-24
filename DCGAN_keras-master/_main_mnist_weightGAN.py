@@ -214,7 +214,7 @@ def wine_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def digits_data():
-    usable = [0, 1, 2]# , 3, 4]
+    usable = [0, 2, 1, 3, 4, 5, 6, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
     _X_train, _y_train = digits.data, digits.target
@@ -228,14 +228,17 @@ def digits_data():
     X_train = np.array(X_train)
     y_train = np.array(y_train)
     X_train, X_test, y_train, y_test = \
-        train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+        train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=2)
 
     print("X_train:{}".format(digits.data.shape))
     print("X_train:{}".format(X_train.shape))
     print("y_train:{}".format(digits.target.shape))
     print("y_train:{}".format(y_train.shape))
-    y_train = np_utils.to_categorical(y_train, 10)
-    y_test = np_utils.to_categorical(y_test, 10)
+    if output_size == 2:
+        X_train, X_test, y_train, y_test = digits_data_binary(usable, X_train, X_test, y_train, y_test)
+    else:
+        y_train = np_utils.to_categorical(y_train, 10)
+        y_test = np_utils.to_categorical(y_test, 10)
     train_num = X_train.shape[0]
     train_num_per_step = train_num // cf.Minibatch
     data_inds = np.arange(train_num)
@@ -243,6 +246,21 @@ def digits_data():
     print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
+def digits_data_binary(usable, X_train, X_test, y_train, y_test):
+    for i in range(len(y_train)):
+        if y_train[i] == usable[0]:
+            y_train[i] = 1
+        else:
+            y_train[i] = 0
+    for i in range(len(y_test)):
+        if y_test[i] == usable[0]:
+            y_test[i] = 1
+        else:
+            y_test[i] = 0
+    y_train = np_utils.to_categorical(y_train, 2)
+    y_test = np_utils.to_categorical(y_test, 2)
+    return X_train, X_test, y_train, y_test
 
 def mnist_data():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -295,7 +313,7 @@ class Main_train():
     def train(self, use_mbd=False):
         # 性能評価用パラメータ
         max_score = 0.
-        g, d, c, classify, hidden_layers\
+        g, d, c, classify, hidden_layers, binary_classify\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         ## Prepare Training data　前処理
         if dataset == "iris":
@@ -363,24 +381,35 @@ class Main_train():
             ### GAN用のfake画像、分類ラベル生成
 
             t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
-            concated_weight = np.concatenate((fake_weight, real_weight))
-            concated_labels = np.concatenate((fake_labels, real_labels))
+            # concated_weight = np.concatenate((fake_weight, real_weight))
+            # concated_labels = np.concatenate((fake_labels, real_labels))
 
-            if ite % 100 == 0:
-                d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
-            else:
-                d_loss = 0
+            # if ite % 100 == 0:
+                # d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
+            # else:
+            d_loss = 0
 
             t = np.array([0] * cf.Minibatch)
-            g_loss = c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
-
+            # g_loss = 0 # c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
+            if output_size == 2:
+                g_loss = binary_classify.train_on_batch([X_train[_inds]], y_train[_inds])  # 生成器を学習
+            else:
+                g_loss = c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
-                test_val_loss = classify.evaluate(X_test, y_test)
-                train_val_loss = classify.evaluate(X_train, y_train)
+                if output_size == 2:
+                    test_val_loss = binary_classify.evaluate(X_test, y_test)
+                    train_val_loss = binary_classify.evaluate(X_train, y_train)
+                else:
+                    test_val_loss = classify.evaluate(X_test, y_test)
+                    train_val_loss = classify.evaluate(X_train, y_train)
                 max_score = max(max_score, 1. - test_val_loss[1])
-                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
-                    ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
+                if output_size == 2:
+                    con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                        ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
+                else:
+                    con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                        ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
                 print("real_weight\n{}".format(real_weight))
                 print("real_labels\n{}".format(real_labels))
                 print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
@@ -404,7 +433,11 @@ class Main_train():
                                     classify=np.round(g.predict(X_test[:100], verbose=0)[0], decimals=2), testflag=True)
                     """
             else:
-                con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
+                if output_size == 2:
+                    con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
+                else:
+                    con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
+
             sys.stdout.write("\r" + con)
 
             if ite % cf.Save_train_step == 0 or ite == 1:
@@ -430,6 +463,7 @@ class Main_train():
         g.save_weights(cf.Save_g_path)
         c.save_weights(cf.Save_c_path)
         classify.save_weights(cf.Save_classify_path)
+        binary_classify.save_weights(cf.Save_binary_classify_path)
         for i in range(len(hidden_layers)):
             hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
         print('Model saved -> ', cf.Save_d_path, cf.Save_g_path, cf.Save_classify_path)
@@ -478,13 +512,14 @@ class Main_test():
     def test(self, loadflag=True):
         ite = 0
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
-        g, d, c, classify, hidden_layers = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
+        g, d, c, classify, hidden_layers, binary_classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
         if loadflag:
             g.load_weights(cf.Save_g_path)
             d.load_weights(cf.Save_d_path)
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
+            binary_classify.load_weights(cf.Save_binary_classify_path)
             for i in range(len(hidden_layers)):
                 hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
             # g = compress(g, 7e-1)
@@ -496,53 +531,52 @@ class Main_test():
 
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
-        test_val_loss = classify.evaluate(X_test, y_test)
-        train_val_loss = classify.evaluate(X_train, y_train)
-        # test_val_loss =  g.evaluate([X_train, y_train], [y_train, t]) # c.evaluate(X_test, y_test)
-        # train_val_loss = g.evaluate(X_train, y_train)
-        """
-        im_train = show_result(input=X_train, onehot_labels=y_train,
-                               layer1_out=g.predict(X_train, verbose=0)[1],
-                               ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
-                               showflag=True, comment="dense1")
-        im_test = show_result(input=X_test, onehot_labels=y_test,
-                              layer1_out=g.predict(X_test, verbose=0)[1],
-                              ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True, showflag=True, comment="dense1")
-        """
-        im_input_train = show_result(input=X_train, onehot_labels=y_train,
-                                     layer1_out=X_train,
-                                     ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
-                                     showflag=True, comment="input")
-        im_input_test = show_result(input=X_test, onehot_labels=y_test,
-                                     layer1_out=X_test,
-                                     ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]),
-                                     testflag=True, showflag=True, comment="input")
-        im_g_dense = [[] for _ in range(len(hidden_layers))]
-        print("im_g_dense:{}".format(im_g_dense))
-        for i in range(len(hidden_layers)):
-            im_g_dense[i].append(show_result(input=X_train, onehot_labels=y_train,
-                                             layer1_out=hidden_layers[i].predict(X_train, verbose=0),
-                                             ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
-                                             showflag=True, comment="dense{}".format(i)))
-            im_g_dense[i].append(show_result(input=X_test, onehot_labels=y_test,
-                                             layer1_out=hidden_layers[i].predict(X_test, verbose=0),
-                                             ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True,
-                                             showflag=True, comment="dense{}".format(i)))
-        print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
-              .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
-        weights = classify.get_weights()
+        if output_size == 2:
+            test_val_loss = binary_classify.evaluate(X_test, y_test) # [0.026, 1.0]
+            train_val_loss = binary_classify.evaluate(X_train, y_train)
+        else:
+            test_val_loss = classify.evaluate(X_test, y_test)
+            train_val_loss = classify.evaluate(X_train, y_train)
+        if not output_size == 2:
+            im_input_train = show_result(input=X_train, onehot_labels=y_train,
+                                         layer1_out=X_train,
+                                         ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
+                                         showflag=True, comment="input")
+            im_input_test = show_result(input=X_test, onehot_labels=y_test,
+                                         layer1_out=X_test,
+                                         ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]),
+                                         testflag=True, showflag=True, comment="input")
+            im_g_dense = [[] for _ in range(len(hidden_layers))]
+            print("im_g_dense:{}".format(im_g_dense))
+            for i in range(len(hidden_layers)):
+                im_g_dense[i].append(show_result(input=X_train, onehot_labels=y_train,
+                                                 layer1_out=hidden_layers[i].predict(X_train, verbose=0),
+                                                 ite=cf.Iteration, classify=np.round(g.predict(X_train, verbose=0)[0]), testflag=False,
+                                                 showflag=True, comment="dense{}".format(i)))
+                im_g_dense[i].append(show_result(input=X_test, onehot_labels=y_test,
+                                                 layer1_out=hidden_layers[i].predict(X_test, verbose=0),
+                                                 ite=cf.Iteration, classify=np.round(g.predict(X_test, verbose=0)[0]), testflag=True,
+                                                 showflag=True, comment="dense{}".format(i)))
+            print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
+                  .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
+        if output_size == 2:
+            weights = binary_classify.get_weights()# classify.get_weights()
+        else:
+            weights = classify.get_weights()
         print(weights)
         for i in range(len(weights)):
             print(np.shape(weights[i]))
         classify.summary()
         # ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1])
-
-        im_h_resize = hconcat_resize_min([im_input_train, im_input_test])
-        for im in im_g_dense:
-            # im_h_resize = vconcat_resize_min([hconcat_resize_min([np.array(im_train), np.array(im_test)]), im_h_resize])
-            im_h_resize = vconcat_resize_min([hconcat_resize_min(im), im_h_resize])
-        im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
+        if output_size == 2:
+            im_h_resize = im_architecture
+        else:
+            im_h_resize = hconcat_resize_min([im_input_train, im_input_test])
+            for im in im_g_dense:
+                # im_h_resize = vconcat_resize_min([hconcat_resize_min([np.array(im_train), np.array(im_test)]), im_h_resize])
+                im_h_resize = vconcat_resize_min([hconcat_resize_min(im), im_h_resize])
+            im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
@@ -621,6 +655,7 @@ def arg_parse():
     parser.add_argument('--digits', dest='digits', action='store_true')
     parser.add_argument('--krkopt', dest='krkopt', action='store_true')
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
+    parser.add_argument('--binary', dest='binary', action='store_true')
     parser.add_argument('--wSize', type=int)
     args = parser.parse_args()
     return args
@@ -701,6 +736,8 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_iris import *
         dataset = "wine"
+    if args.binary:
+        output_size = 2
     if args.train:
         main = Main_train()
         main.train(use_mbd=use_mbd)

@@ -82,6 +82,11 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     x = _g_dense_output(g_dense4)
     ### 生成器の順伝播　
 
+    ### 1 vs その他クラス分類
+    _g_dense_binary_class_output = Dense(2, activation='softmax', name='binary_class_out')
+    binary_class_output = _g_dense_binary_class_output(g_dense4)
+    ### 1 vs その他クラス分類
+
     ### 識別器の順伝播
     inputs_labels = Input(shape=(output_size,), name='label')  # 入力を取得
     # 識別器の順伝播（真入力）　[入力:[inputs_label, inputs_w] 出力:d_out_true]　# true画像の入力の時(Gの出力を外部に吐き出し、それを入力すると勾配計算がされない)
@@ -116,6 +121,12 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
               loss_weights={'x_out': 1., 'd_out': 0.})
     for layer in d.layers:
         layer.trainable = True
+
+    binary_classify = Model(inputs=[inputs_z], outputs=[binary_class_output], name='binary_classify')
+    binary_classify.compile(loss='categorical_crossentropy',
+                     optimizer="adam",
+                     metrics=[metrics.categorical_accuracy])
+
     d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
     d.compile(optimizer=d_opt, loss='mean_squared_error')
     G_dense1 = Model(inputs=[inputs_z], outputs=[g_dense1], name='g_dense1')
@@ -138,4 +149,4 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     classify.summary()
     ### モデル構造を出力
 
-    return g, d, c, classify, [G_dense1, G_dense2, G_dense3, G_dense4, G_output]
+    return g, d, c, classify, [G_dense1, G_dense2, G_dense3, G_dense4, G_output], binary_classify

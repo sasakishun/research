@@ -8,7 +8,14 @@ import cv2
 
 
 def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
-    plt.figure(figsize=(10, len(x[0][0]) // 2 + 5), dpi=100)
+    _max_list_size = 0
+    xtick_flag = False
+    for i in range(len(x)):
+        _max_list_size = max(_max_list_size, len(x[0]))
+        if (not xtick_flag) and _max_list_size > 0:
+            plt.xticks(range(len(x[i][0])))
+            xtick_flag = True
+    plt.figure(figsize=(10, _max_list_size // 2 + 5), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
@@ -41,7 +48,6 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
     plt.xlabel("{} node".format(comment))
     if not testflag:
         plt.ylabel("output")
-    plt.xticks(range(len(x[0][0])))
 
     # y軸に1刻みにで小目盛り(minor locator)表示
     plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(1))

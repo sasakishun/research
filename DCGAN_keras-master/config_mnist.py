@@ -24,7 +24,7 @@ Input_type = 'channels_last'
 File_extensions = ['.jpg', '.png']
 
 ## Training config
-Iteration = 1000000
+Iteration = 100000# 0
 Minibatch = 32# 64
 
 ## Test config
@@ -48,10 +48,12 @@ Save_d_name = 'D.h5'
 Save_g_name = 'G.h5'
 Save_c_name = 'C.h5'
 Save_classify_name = 'Classify.h5'
+Save_binary_classify_name = 'Binary_classify.h5'
 Save_d_path = os.path.join(Save_dir, Save_d_name)
 Save_g_path = os.path.join(Save_dir, Save_g_name)
 Save_c_path = os.path.join(Save_dir, Save_c_name)
 Save_classify_path = os.path.join(Save_dir, Save_classify_name)
+Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
 Save_hidden_layers_path = []
 for i in range(5):
     Save_hidden_layers_path.append(os.path.join(Save_dir, 'hidden_layers{}.h5'.format(i)))

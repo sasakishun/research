@@ -32,10 +32,18 @@ class Layer():
         neurons = []
         x = self.__calculate_left_margin_so_layer_is_centered(number_of_neurons)
         for iteration in range(number_of_neurons):
-            neuron = Neuron(x, self.y)
-            neurons.append(neuron)
-            print("number of neurons:{}".format(number_of_neurons))
-            x += horizontal_distance_between_neurons*(64/number_of_neurons)
+            if number_of_neurons == 64:
+                if iteration % 8 == 0:
+                    x = self.__calculate_left_margin_so_layer_is_centered(number_of_neurons//8)
+                neuron = Neuron(x, self.y - 64 * (iteration // 8) - 40)
+                neurons.append(neuron)
+                # print("number of neurons:{}".format(number_of_neurons))
+                x += horizontal_distance_between_neurons*(8 * 64/number_of_neurons)
+            else:
+                neuron = Neuron(x, self.y)
+                neurons.append(neuron)
+                # print("number of neurons:{}".format(number_of_neurons))
+                x += horizontal_distance_between_neurons*(64/number_of_neurons)
         return neurons
 
     def __calculate_left_margin_so_layer_is_centered(self, number_of_neurons):
@@ -74,7 +82,7 @@ class Layer():
                     previous_layer_neuron = self.previous_layer.neurons[previous_layer_neuron_index]
                     weight = self.previous_layer.weights[this_layer_neuron_index, previous_layer_neuron_index]
                     # print("weight:{}".format(weight))
-                    print("alpha:{}".format(weight / np.max(abs(self.previous_layer.weights))))
+                    # print("alpha:{}".format(weight / np.max(abs(self.previous_layer.weights))))
                     # print("weight:{}".format(self.previous_layer.weights))
                     # print("max_weight:{}".format(np.max(abs(self.previous_layer.weights))))
                     self.__line_between_two_neurons(neuron, previous_layer_neuron, linewidth=weight/np.max(abs(self.previous_layer.weights)))
