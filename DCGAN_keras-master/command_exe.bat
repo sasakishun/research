@@ -1,3 +1,8 @@
+python _main_mnist_weightGAN.py --digit --train --wSize 60 --binary
+python _main_mnist_weightGAN.py --digit --test --wSize 60 --binary
+python _main_mnist_weightGAN.py --digit --train --wSize 60 --binary --load_model --pruning
+python _main_mnist_weightGAN.py --digit --test --wSize 60 --binary
+
 for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --digit --train --wSize 16 --binary
     echo %%a

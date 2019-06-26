@@ -59,7 +59,7 @@ input_size = Height * Width * Channel
 wSize = 20
 dataset = ""
 binary_flag = False
-
+pruning_flag=False
 
 def krkopt_data():
     _train = [[], []]
@@ -216,7 +216,7 @@ def wine_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def digits_data():
-    usable = [0, 2, 1, 3, 4, 5, 6, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
+    usable = [6, 0, 1, 2, 3, 4, 5, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
     _X_train, _y_train = digits.data, digits.target
@@ -231,7 +231,7 @@ def digits_data():
     y_train = np.array(y_train)
     X_train, X_test, y_train, y_test = \
         train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=2)
-
+    X_train, X_test = normalize(X_train, X_test)
     print("X_train:{}".format(digits.data.shape))
     print("X_train:{}".format(X_train.shape))
     print("y_train:{}".format(digits.target.shape))
@@ -249,17 +249,37 @@ def digits_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-def digits_data_binary(usable, X_train, X_test, y_train, y_test):
-    for i in range(len(y_train)):
-        if y_train[i] == usable[0]:
-            y_train[i] = 1
+def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
+    X_train = []
+    y_train = []
+    X_test = []
+    y_test = []
+
+    for i in range(len(_y_train)):
+        if _y_train[i] == usable[0]:
+            # _y_train[i] = 1
+            for j in range(9):
+                y_train.append([1])
+                X_train.append(_X_train[i])
         else:
-            y_train[i] = 0
-    for i in range(len(y_test)):
-        if y_test[i] == usable[0]:
-            y_test[i] = 1
+            # _y_train[i] = 0
+            y_train.append([0])
+            X_train.append(_X_train[i])
+    for i in range(len(_y_test)):
+        if _y_test[i] == usable[0]:
+            # _y_test[i] = 1
+            for j in range(9):
+                y_test.append([1])
+                X_test.append(_X_test[i])
         else:
-            y_test[i] = 0
+            # _y_test[i] = 0
+            y_test.append([0])
+            X_test.append(_X_test[i])
+
+    X_train = np.array(X_train)
+    y_train = np.array(y_train)
+    X_test = np.array(X_test)
+    y_test = np.array(y_test)
     y_train = np_utils.to_categorical(y_train, 2)
     y_test = np_utils.to_categorical(y_test, 2)
     return X_train, X_test, y_train, y_test
@@ -308,6 +328,9 @@ def getdata(dataset):
     elif dataset == "wine":
         return wine_data()
 
+def mask(_mask, batch_size):
+    return np.array([_mask for _ in range(batch_size)])
+
 class Main_train():
     def __init__(self):
         pass
@@ -315,7 +338,8 @@ class Main_train():
     def train(self, load_model=False, use_mbd=False):
         # 性能評価用パラメータ
         max_score = 0.
-        g_mask_1 = np.ones((wSize, cf.Minibatch))
+        g_mask_1 = np.ones(wSize)
+        g_mask_1[14] = 0
         print("wSize:{}".format(wSize))
         g, d, c, classify, hidden_layers, binary_classify\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
@@ -331,6 +355,7 @@ class Main_train():
                 print("hiddden_layers[{}].summary()".format(i))
                 hidden_layers[i].summary()
                 hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
+
         ## Prepare Training data　前処理
         if dataset == "iris":
             fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
@@ -392,7 +417,7 @@ class Main_train():
             ### GAN用のreal画像、分類ラベル生成
 
             ### GAN用のfake画像、分類ラベル生成
-            fake_weight = g.predict([X_train[_inds], g_mask_1], verbose=0)[1]
+            fake_weight = g.predict([X_train[_inds], mask(g_mask_1, cf.Minibatch)], verbose=0)[1]
             fake_labels = y_train[_inds]
             ### GAN用のfake画像、分類ラベル生成
 
@@ -408,17 +433,17 @@ class Main_train():
             t = np.array([0] * cf.Minibatch)
             # g_loss = 0 # c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
             if binary_flag:
-                g_loss = binary_classify.train_on_batch([X_train[_inds], g_mask_1], y_train[_inds])  # 生成器を学習
+                g_loss = binary_classify.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])  # 生成器を学習
             else:
-                g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], g_mask_1], [y_train[_inds], t])  # 生成器を学習
+                g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], mask(g_mask_1, cf.Minibatch)], [y_train[_inds], t])  # 生成器を学習
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
                 if binary_flag:
-                    test_val_loss = binary_classify.evaluate([X_test, g_mask_1], y_test)
-                    train_val_loss = binary_classify.evaluate([X_train, g_mask_1], y_train)
+                    test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                    train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 else:
-                    test_val_loss = classify.evaluate([X_test, g_mask_1], y_test)
-                    train_val_loss = classify.evaluate([X_train, g_mask_1], y_train)
+                    test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                    train_val_loss = classify.evaluate([X_train,mask(g_mask_1 ,len(X_train))], y_train)
                 max_score = max(max_score, 1. - test_val_loss[1])
                 if binary_flag:
                     con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
@@ -433,11 +458,11 @@ class Main_train():
                     if dataset == "iris":
                         print("labels:{}".format(np.argmax(y_train, axis=1)))
                         show_result(input=X_train, onehot_labels=y_train,
-                                    layer1_out=np.round(g.predict([X_train, g_mask_1], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict([X_train, g_mask_1], verbose=0)[0], decimals=2), testflag=False)
+                                    layer1_out=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[1], decimals=2), ite=ite,
+                                    classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0], decimals=2), testflag=False)
                         show_result(input=X_test, onehot_labels=y_test,
-                                    layer1_out=np.round(g.predict([X_test, g_mask_1], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict([X_test, g_mask_1], verbose=0)[0], decimals=2), testflag=True)
+                                    layer1_out=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[1], decimals=2), ite=ite,
+                                    classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0], decimals=2), testflag=True)
                     """
                     else:
                         show_result(input=X_train[:100], onehot_labels=y_train[:100],
@@ -467,7 +492,7 @@ class Main_train():
                 binary_classify.save_weights(cf.Save_binary_classify_path)
                 for i in range(len(hidden_layers)):
                     hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
-
+                np.save(cf.Save_layer_mask_path, g_mask_1)
                 """
                 gerated = g.predict([z], verbose=0)
                 # save some samples
@@ -533,6 +558,7 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
         g, d, c, classify, hidden_layers, binary_classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
+        g_mask_1 = np.load(cf.Save_layer_mask_path)
         if loadflag:
             g.load_weights(cf.Save_g_path)
             d.load_weights(cf.Save_d_path)
@@ -547,34 +573,61 @@ class Main_test():
             # classify = compress(classify, 7e-1)
             # for i in range(len(hidden_layers)):
                 # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
+            _weights = binary_classify.get_weights()
+            print("_weights\n{}".format(_weights))
+            if pruning_flag:
+                for i in range(np.shape(_weights)[0]):
+                    if _weights[i].ndim == 2:
+                        print("np.shape(_weights[{}]):{}".format(i, np.shape(_weights[i])))
+                        for j in range(np.shape(_weights[i])[0]):
+                            for k in range(np.shape(_weights[i])[1]):
+                                if abs(_weights[i][j][k]) < 0.1:
+                                    _weights[i][j][k] = 0.
+                        print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[i] > 0)))
+                binary_classify.set_weights(_weights)
+                _weights = binary_classify.get_weights()
+                # print("\n\n\n\n\n_weights\n{}".format(_weights))
+                # d.save_weights(cf.Save_d_path)
+                # g.save_weights(cf.Save_g_path)
+                # c.save_weights(cf.Save_c_path)
+                # classify.save_weights(cf.Save_classify_path)
+                # binary_classify.save_weights(cf.Save_binary_classify_path)
+                # for i in range(len(hidden_layers)):
+                    # hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
+                # np.save(cf.Save_layer_mask_path, g_mask_1)
+                # exit()
+                print("pruning is done")
+        if (not load_model) and pruning_flag:
+            print("\nErrroe : Please load Model to do pruning")
+            exit()
 
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
         if binary_flag:
-            test_val_loss = binary_classify.evaluate([X_test, g_mask_1], y_test) # [0.026, 1.0]
-            train_val_loss = binary_classify.evaluate([X_train, g_mask_1], y_train)
+            test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test) # [0.026, 1.0]
+            train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
         else:
-            test_val_loss = classify.evaluate([X_test, g_mask_1], y_test)
-            train_val_loss = classify.evaluate([X_train, g_mask_1], y_train)
+            test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+            train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
         if not binary_flag:
             im_input_train = show_result(input=X_train, onehot_labels=y_train,
                                          layer1_out=X_train,
-                                         ite=cf.Iteration, classify=np.round(g.predict([X_train, g_mask_1], verbose=0)[0]), testflag=False,
+                                         ite=cf.Iteration, classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0]), testflag=False,
                                          showflag=True, comment="input")
             im_input_test = show_result(input=X_test, onehot_labels=y_test,
                                          layer1_out=X_test,
-                                         ite=cf.Iteration, classify=np.round(g.predict([X_train, g_mask_1], verbose=0)[0]),
+                                         ite=cf.Iteration, classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0]),
                                          testflag=True, showflag=True, comment="input")
             im_g_dense = [[] for _ in range(len(hidden_layers))]
             print("im_g_dense:{}".format(im_g_dense))
             for i in range(len(hidden_layers)):
                 im_g_dense[i].append(show_result(input=X_train, onehot_labels=y_train,
-                                                 layer1_out=hidden_layers[i].predict([X_train, g_mask_1], verbose=0),
-                                                 ite=cf.Iteration, classify=np.round(g.predict([X_train, g_mask_1], verbose=0)[0]), testflag=False,
+                                                 layer1_out=hidden_layers[i].predict([X_train, mask(g_mask_1, len(X_train))], verbose=0),
+                                                 ite=cf.Iteration, classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0]), testflag=False,
                                                  showflag=True, comment="dense{}".format(i)))
                 im_g_dense[i].append(show_result(input=X_test, onehot_labels=y_test,
-                                                 layer1_out=hidden_layers[i].predict([X_test, g_mask_1], verbose=0),
-                                                 ite=cf.Iteration, classify=np.round(g.predict([X_test, g_mask_1], verbose=0)[0]), testflag=True,
+                                                 layer1_out=hidden_layers[i].predict([X_test, mask(g_mask_1, len(X_test))], verbose=0),
+                                                 ite=cf.Iteration, classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0]), testflag=True,
                                                  showflag=True, comment="dense{}".format(i)))
             print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
                   .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
@@ -582,12 +635,14 @@ class Main_test():
             weights = binary_classify.get_weights()# classify.get_weights()
         else:
             weights = classify.get_weights()
-        print(weights)
+        print("weights:{}".format(weights))
         for i in range(len(weights)):
             print(np.shape(weights[i]))
         classify.summary()
-        # ネットワーク構造を描画
+
+        ### ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1])
+        ### ネットワーク構造を描画
         if binary_flag:
             im_h_resize = im_architecture
         else:
@@ -676,6 +731,7 @@ def arg_parse():
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
     parser.add_argument('--binary', dest='binary', action='store_true')
     parser.add_argument('--load_model', dest='load_model', action='store_true')
+    parser.add_argument('--pruning', dest='pruning', action='store_true')
     parser.add_argument('--wSize', type=int)
     args = parser.parse_args()
     return args
@@ -688,6 +744,8 @@ if __name__ == '__main__':
         wSize = args.wSize
     if args.use_mbd:
         use_mbd = True
+    if args.pruning:
+        pruning_flag=True
     if args.mnist:
         Height = 28
         Width = 28
