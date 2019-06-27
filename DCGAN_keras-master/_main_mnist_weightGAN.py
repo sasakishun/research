@@ -339,7 +339,7 @@ class Main_train():
         # 性能評価用パラメータ
         max_score = 0.
         g_mask_1 = np.ones(wSize)
-        g_mask_1[14] = 0
+        # g_mask_1[14] = 0
         print("wSize:{}".format(wSize))
         g, d, c, classify, hidden_layers, binary_classify\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
@@ -581,11 +581,11 @@ class Main_test():
                         print("np.shape(_weights[{}]):{}".format(i, np.shape(_weights[i])))
                         for j in range(np.shape(_weights[i])[0]):
                             for k in range(np.shape(_weights[i])[1]):
-                                if abs(_weights[i][j][k]) < 0.1:
+                                if abs(_weights[i][j][k]) < 0.01:
                                     _weights[i][j][k] = 0.
                         print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[i] > 0)))
                 binary_classify.set_weights(_weights)
-                _weights = binary_classify.get_weights()
+                # _weights = binary_classify.get_weights()
                 # print("\n\n\n\n\n_weights\n{}".format(_weights))
                 # d.save_weights(cf.Save_d_path)
                 # g.save_weights(cf.Save_g_path)
@@ -609,6 +609,7 @@ class Main_test():
         else:
             test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
             train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+        """
         if not binary_flag:
             im_input_train = show_result(input=X_train, onehot_labels=y_train,
                                          layer1_out=X_train,
@@ -631,6 +632,7 @@ class Main_test():
                                                  showflag=True, comment="dense{}".format(i)))
             print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
                   .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
+        """
         if binary_flag:
             weights = binary_classify.get_weights()# classify.get_weights()
         else:
@@ -643,14 +645,15 @@ class Main_test():
         ### ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1])
         ### ネットワーク構造を描画
-        if binary_flag:
-            im_h_resize = im_architecture
-        else:
+        im_h_resize = im_architecture
+        """
+        if not binary_flag:
             im_h_resize = hconcat_resize_min([im_input_train, im_input_test])
             for im in im_g_dense:
                 # im_h_resize = vconcat_resize_min([hconcat_resize_min([np.array(im_train), np.array(im_test)]), im_h_resize])
                 im_h_resize = vconcat_resize_min([hconcat_resize_min(im), im_h_resize])
             im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
+        """
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
