@@ -106,10 +106,10 @@ class NeuralNetwork():
         pyplot.axis('scaled')
         pyplot.show()
     """
-    def draw(self, path, acc=-1):
+    def draw(self, path, acc=-1, comment=""):
         for layer in self.layers:
             layer.draw()
-        pyplot.title("acc:{:.4f}".format(acc))
+        pyplot.title("{} acc:{:.4f}".format(comment, acc))
         pyplot.axis('scaled')
         pyplot.tick_params(labelbottom=False,
                         labelleft=False,
@@ -123,7 +123,7 @@ class NeuralNetwork():
         pyplot.close()
         return cv2.imread(path + ".png")
 
-def mydraw(_weights, acc):
+def mydraw(_weights, acc, comment=""):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
@@ -161,7 +161,7 @@ def mydraw(_weights, acc):
     network.add_layer(nodes[-1])
     # print("weights:\n{}".format(weights))
     path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
-    return network.draw(path=path, acc=acc)
+    return network.draw(path=path, acc=acc, comment=comment)
 
 if __name__ == "__main__":
     vertical_distance_between_layers = 6

@@ -59,6 +59,7 @@ input_size = Height * Width * Channel
 wSize = 20
 dataset = ""
 binary_flag = False
+binary_target = 0
 pruning_flag=False
 
 def krkopt_data():
@@ -216,7 +217,7 @@ def wine_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def digits_data():
-    usable = [6, 0, 1, 2, 3, 4, 5, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
+    usable = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
     _X_train, _y_train = digits.data, digits.target
@@ -256,7 +257,7 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     y_test = []
 
     for i in range(len(_y_train)):
-        if _y_train[i] == usable[0]:
+        if _y_train[i] == usable[binary_target]:
             # _y_train[i] = 1
             for j in range(9):
                 y_train.append([1])
@@ -266,7 +267,7 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
             y_train.append([0])
             X_train.append(_X_train[i])
     for i in range(len(_y_test)):
-        if _y_test[i] == usable[0]:
+        if _y_test[i] == usable[binary_target]:
             # _y_test[i] = 1
             for j in range(9):
                 y_test.append([1])
@@ -558,7 +559,8 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
         g, d, c, classify, hidden_layers, binary_classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
-        g_mask_1 = np.load(cf.Save_layer_mask_path)
+        # g_mask_1 = np.load(cf.Save_layer_mask_path)
+        g_mask_1 = np.ones(wSize)
         if loadflag:
             g.load_weights(cf.Save_g_path)
             d.load_weights(cf.Save_d_path)
@@ -643,7 +645,8 @@ class Main_test():
         classify.summary()
 
         ### ネットワーク構造を描画
-        im_architecture = mydraw(weights, test_val_loss[1])
+        im_architecture = mydraw(weights, test_val_loss[1],
+                                 comment="{} vs other".format(binary_target) if binary_flag else "")
         ### ネットワーク構造を描画
         im_h_resize = im_architecture
         """
@@ -736,6 +739,7 @@ def arg_parse():
     parser.add_argument('--load_model', dest='load_model', action='store_true')
     parser.add_argument('--pruning', dest='pruning', action='store_true')
     parser.add_argument('--wSize', type=int)
+    parser.add_argument('--binary_target', type=int)
     args = parser.parse_args()
     return args
 
@@ -749,6 +753,10 @@ if __name__ == '__main__':
         use_mbd = True
     if args.pruning:
         pruning_flag=True
+    if args.binary or args.binary_target:
+        binary_flag = True
+    if args.binary_target:
+        binary_target = args.binary_target
     if args.mnist:
         Height = 28
         Width = 28
@@ -817,8 +825,6 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_iris import *
         dataset = "wine"
-    if args.binary:
-        binary_flag = True
     if args.train:
         main = Main_train()
         main.train(use_mbd=use_mbd, load_model=args.load_model)
