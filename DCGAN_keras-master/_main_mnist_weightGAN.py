@@ -16,6 +16,7 @@ K.set_session(sess)
 import argparse
 import cv2
 import numpy as np
+import copy
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=2000)
@@ -60,7 +61,7 @@ wSize = 20
 dataset = ""
 binary_flag = False
 binary_target = 0
-pruning_flag=False
+pruning_rate=-1
 
 def krkopt_data():
     _train = [[], []]
@@ -577,30 +578,50 @@ class Main_test():
                 # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
             _weights = binary_classify.get_weights()
             print("_weights\n{}".format(_weights))
-            if pruning_flag:
-                for i in range(np.shape(_weights)[0]):
-                    if _weights[i].ndim == 2:
-                        print("np.shape(_weights[{}]):{}".format(i, np.shape(_weights[i])))
-                        for j in range(np.shape(_weights[i])[0]):
-                            for k in range(np.shape(_weights[i])[1]):
-                                if abs(_weights[i][j][k]) < 0.01:
-                                    _weights[i][j][k] = 0.
-                        print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[i] > 0)))
-                binary_classify.set_weights(_weights)
-                # _weights = binary_classify.get_weights()
-                # print("\n\n\n\n\n_weights\n{}".format(_weights))
-                # d.save_weights(cf.Save_d_path)
-                # g.save_weights(cf.Save_g_path)
-                # c.save_weights(cf.Save_c_path)
-                # classify.save_weights(cf.Save_classify_path)
-                # binary_classify.save_weights(cf.Save_binary_classify_path)
-                # for i in range(len(hidden_layers)):
-                    # hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
-                # np.save(cf.Save_layer_mask_path, g_mask_1)
-                # exit()
-                print("pruning is done")
-        if (not load_model) and pruning_flag:
-            print("\nErrroe : Please load Model to do pruning")
+            if binary_flag:
+                test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
+                # train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                pruned_test_val_loss = copy.deepcopy(test_val_loss)
+                # pruned_train_val_loss = copy.deepcopy(train_val_loss)
+            else:
+                test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                pruned_test_val_loss = copy.deepcopy(test_val_loss)
+                # pruned_train_val_loss = copy.deepcopy(train_val_loss)
+            global pruning_rate
+            print("pruning_rate:{}".format(pruning_rate))
+            if pruning_rate >= 0:
+                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 1:
+                    binary_classify.set_weights(_weights)
+                    pruning_rate += 0.02
+                    if binary_flag:
+                        pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))],
+                                                                 y_test)  # [0.026, 1.0]
+                    else:
+                        pruned_test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                    for i in range(np.shape(_weights)[0]):
+                        if _weights[i].ndim == 2:
+                            print("np.shape(_weights[{}]):{}".format(i, np.shape(_weights[i])))
+                            for j in range(np.shape(_weights[i])[0]):
+                                for k in range(np.shape(_weights[i])[1]):
+                                    if abs(_weights[i][j][k]) < pruning_rate:
+                                        _weights[i][j][k] = 0.
+                            print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[i] > 0)))
+                    # binary_classify.set_weights(_weights)
+                    # _weights = binary_classify.get_weights()
+                    # print("\n\n\n\n\n_weights\n{}".format(_weights))
+                    # d.save_weights(cf.Save_d_path)
+                    # g.save_weights(cf.Save_g_path)
+                    # c.save_weights(cf.Save_c_path)
+                    # classify.save_weights(cf.Save_classify_path)
+                    # binary_classify.save_weights(cf.Save_binary_classify_path)
+                    # for i in range(len(hidden_layers)):
+                        # hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
+                    # np.save(cf.Save_layer_mask_path, g_mask_1)
+                    # exit()
+                    print("pruning is done")
+        if (not load_model) and (pruning_rate >= 0):
+            print("\nError : Please load Model to do pruning")
             exit()
 
         # t = np.array([0] * len(X_train))
@@ -646,7 +667,8 @@ class Main_test():
 
         ### ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1],
-                                 comment="{} vs other".format(binary_target) if binary_flag else "")
+                                 comment=("[{} vs other]".format(binary_target) if binary_flag else "")
+                                         + " pruned <{}\n".format(pruning_rate))
         ### ネットワーク構造を描画
         im_h_resize = im_architecture
         """
@@ -661,7 +683,7 @@ class Main_test():
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
         print("saved concated graph to -> {}".format(path))
-
+        print("test Acc:{}".format(test_val_loss[1]))
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
@@ -737,7 +759,8 @@ def arg_parse():
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
     parser.add_argument('--binary', dest='binary', action='store_true')
     parser.add_argument('--load_model', dest='load_model', action='store_true')
-    parser.add_argument('--pruning', dest='pruning', action='store_true')
+    # parser.add_argument('--pruning', dest='pruning', action='store_true')
+    parser.add_argument('--pruning_rate', type=float, default=-1)
     parser.add_argument('--wSize', type=int)
     parser.add_argument('--binary_target', type=int)
     args = parser.parse_args()
@@ -751,8 +774,9 @@ if __name__ == '__main__':
         wSize = args.wSize
     if args.use_mbd:
         use_mbd = True
-    if args.pruning:
-        pruning_flag=True
+    if args.pruning_rate >= 0:
+        print("args.pruning_rate:{}".format(args.pruning_rate))
+        pruning_rate = args.pruning_rate
     if args.binary or args.binary_target:
         binary_flag = True
     if args.binary_target:
