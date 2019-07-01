@@ -133,7 +133,7 @@ def mydraw(_weights, acc, comment=""):
 
     weights = []
     nodes = []
-    print("_weights:{}\n{}".format([np.shape(weight) for weight in _weights], _weights))
+    # print("_weights:{}\n{}".format([np.shape(weight) for weight in _weights], _weights))
     for i in range(np.shape(_weights)[0]):
         # print("\n_weights[{}]:{}\n{}".format(i, np.shape(_weights[i]), _weights[i]))
         if _weights[i].ndim == 2:
@@ -149,7 +149,7 @@ def mydraw(_weights, acc, comment=""):
     print("max_weight:{}".format(max_weight))
 
     nodes.append(np.shape(_weights[-1])[0])
-    print("weights:{}\n{}".format([np.shape(weight) for weight in weights], weights))
+    # print("weights:{}\n{}".format([np.shape(weight) for weight in weights], weights))
     # for i in range(len(nodes)-1):
         # weights.append(np.ones((nodes[i+1], nodes[i])))
 

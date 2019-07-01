@@ -568,6 +568,8 @@ class Main_test():
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
             binary_classify.load_weights(cf.Save_binary_classify_path)
+            print("load:{}".format(cf.Save_binary_classify_path))
+            # exit()
             for i in range(len(hidden_layers)):
                 hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
             # g = compress(g, 7e-1)
@@ -578,6 +580,7 @@ class Main_test():
                 # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
             _weights = binary_classify.get_weights()
             print("_weights\n{}".format(_weights))
+            exit()
             if binary_flag:
                 test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
                 # train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
@@ -591,12 +594,14 @@ class Main_test():
             global pruning_rate
             print("pruning_rate:{}".format(pruning_rate))
             if pruning_rate >= 0:
-                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 1:
+                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.98) and pruning_rate < 1:
                     binary_classify.set_weights(_weights)
-                    pruning_rate += 0.02
+                    # print("save:{}".format(cf.Save_binary_classify_path))
+                    # exit()
+                    binary_classify.save_weights(cf.Save_binary_classify_path)
+                    pruning_rate += 0.01
                     if binary_flag:
-                        pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))],
-                                                                 y_test)  # [0.026, 1.0]
+                        pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))],                                                                 y_test)  # [0.026, 1.0]
                     else:
                         pruned_test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                     for i in range(np.shape(_weights)[0]):
@@ -616,22 +621,27 @@ class Main_test():
                     # classify.save_weights(cf.Save_classify_path)
                     # binary_classify.save_weights(cf.Save_binary_classify_path)
                     # for i in range(len(hidden_layers)):
-                        # hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
+                    # hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
                     # np.save(cf.Save_layer_mask_path, g_mask_1)
                     # exit()
                     print("pruning is done")
+                # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
+                binary_classify.save_weights(cf.Save_binary_classify_path)
+                # exit()
         if (not load_model) and (pruning_rate >= 0):
             print("\nError : Please load Model to do pruning")
             exit()
-
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
         if binary_flag:
             test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test) # [0.026, 1.0]
             train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+            # binary_classify.load_weights(cf.Save_binary_classify_path)
+            weights = binary_classify.get_weights()# classify.get_weights()
         else:
             test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
             train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+            weights = classify.get_weights()
         """
         if not binary_flag:
             im_input_train = show_result(input=X_train, onehot_labels=y_train,
@@ -656,11 +666,7 @@ class Main_test():
             print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
                   .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
         """
-        if binary_flag:
-            weights = binary_classify.get_weights()# classify.get_weights()
-        else:
-            weights = classify.get_weights()
-        print("weights:{}".format(weights))
+
         for i in range(len(weights)):
             print(np.shape(weights[i]))
         classify.summary()
@@ -684,6 +690,8 @@ class Main_test():
         cv2.imwrite(path, im_h_resize)
         print("saved concated graph to -> {}".format(path))
         print("test Acc:{}".format(test_val_loss[1]))
+        print("_weights:\n{}".format(_weights))
+        print("\n\n\n\n\n\nweights:\n{}".format(weights))
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
@@ -779,8 +787,6 @@ if __name__ == '__main__':
         pruning_rate = args.pruning_rate
     if args.binary or args.binary_target:
         binary_flag = True
-    if args.binary_target:
-        binary_target = args.binary_target
     if args.mnist:
         Height = 28
         Width = 28
@@ -849,17 +855,24 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_iris import *
         dataset = "wine"
+
+    if args.binary_target:
+        binary_flag = True
+        binary_target = args.binary_target
+        cf.Save_binary_classify_path = cf.Save_binary_classify_path[:-3]\
+                                       +str(binary_target)+\
+                                       cf.Save_binary_classify_path[-3:]
+        for _path in cf.Save_hidden_layers_path:
+            _path = _path[:-3] + _path + _path[-3]
     if args.train:
         main = Main_train()
         main.train(use_mbd=use_mbd, load_model=args.load_model)
     if args.test:
         main = Main_test()
-        # main.test(loadflag=False)
         main.test()
     if args.test_non_trained:
         main = Main_test()
         main.test(loadflag=False)
-
     if not (args.train or args.test):
         print("please select train or test flag")
         print("train: python main.py --train")
