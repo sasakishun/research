@@ -159,3 +159,4 @@
       - プルーニングの実装
         - https://github.com/BenWhetton/keras-surgeon
       - 量子化の実装
+      - 条件ごとに重み保存、一括読み込み
