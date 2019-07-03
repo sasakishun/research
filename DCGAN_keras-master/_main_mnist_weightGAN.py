@@ -600,7 +600,7 @@ class Main_test():
             global pruning_rate
             print("pruning_rate:{}".format(pruning_rate))
             if pruning_rate >= 0:
-                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.98) and pruning_rate < 1:
+                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 1:
                     ### 精度98%以上となる重みを_weights[0]に確保
                     _weights[0] = copy.deepcopy(_weights[1])
                     ### 精度98%以上となる重みを_weights[0]に確保
@@ -630,17 +630,21 @@ class Main_test():
 
             ### 第1中間層ノードプルーニング
             # 1ノードに絞る
+            pruned_test_val_acc = \
+                binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]
             if binary_flag:
-                acc_list = []
+                active_nodes = []
                 for i in range(wSize):
-                    g_mask_1 = np.zeros(wSize)
-                    g_mask_1[i] = 1
-                    pruned_test_val_loss = \
-                        binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
-                    acc_list.append([pruned_test_val_loss[1], i])
-                acc_list.sort()
+                    g_mask_1 = np.ones(wSize)
+                    g_mask_1[i] = 0
+                    _acc = \
+                        binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]  # [0.026, 1.0]
+                    if _acc < pruned_test_val_acc * 0.9:
+                        active_nodes.append(i)
+
                 g_mask_1 = np.load(cf.Save_layer_mask_path)
-                g_mask_1[acc_list[-1][1]] = 1
+                for i in active_nodes:
+                    g_mask_1[i] = 1
                 np.save(cf.Save_layer_mask_path, g_mask_1)
             ### 第1中間層ノードプルーニング
 
@@ -690,8 +694,8 @@ class Main_test():
         ### ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1],
                                  comment=("[{} vs other]".format(binary_target) if binary_flag else "")
-                                         + " pruned <{:.6f}\n".format(pruning_rate)
-                                         + "active_node:{}".format(acc_list[-1][1] if acc_list else "None"))
+                                         + " pruned <{:.4f}\n".format(pruning_rate)
+                                         + "active_node:{}".format(active_nodes if active_nodes else "None"))
         ### ネットワーク構造を描画
         im_h_resize = im_architecture
         """
@@ -709,6 +713,7 @@ class Main_test():
         print("test Acc:{}".format(test_val_loss[1]))
         # print("_weights:\n{}".format(_weights))
         # print("\n\n\n\n\n\nweights:\n{}".format(weights))
+        print("g_mask_1:{}".format(g_mask_1))
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)

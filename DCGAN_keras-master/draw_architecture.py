@@ -70,6 +70,9 @@ class Layer():
         line_y_data = (neuron1.y - y_adjustment, neuron2.y + y_adjustment)
         # line = pyplot.Line2D(line_x_data, line_y_data, linewidth=linewidth)
         color = "red" if linewidth > 0 else "blue"
+        linewidth = abs(linewidth)
+        if linewidth > 0:
+            linewidth = max(0.2, linewidth)
         line = pyplot.Line2D(line_x_data, line_y_data, linewidth=abs(linewidth), color=color, alpha=abs(linewidth))
         pyplot.gca().add_line(line)
 
