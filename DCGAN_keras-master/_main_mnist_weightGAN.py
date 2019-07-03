@@ -375,6 +375,7 @@ class Main_train():
                 print("classify.get_weights()[3:]:{}".format(type(classify.get_weights()[3:])))
                 classify.set_weights(syncro_weights+(classify.get_weights()[2:]))
                 classify.save_weights(cf.Save_classify_path)
+                classify.load_weights(cf.Save_classify_path)
                 im_architecture = mydraw(classify.get_weights(),
                                          -1,
                                          comment="syncro graph")
@@ -665,7 +666,7 @@ class Main_test():
                     g_mask_1[i] = 0
                     _acc = \
                         binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]  # [0.026, 1.0]
-                    if _acc < pruned_test_val_acc * 0.95:
+                    if _acc < pruned_test_val_acc * 0.98:
                         active_nodes.append(i)
                     g_mask_1[i] = 1
                 g_mask_1 = np.load(cf.Save_layer_mask_path)
