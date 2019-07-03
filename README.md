@@ -160,3 +160,5 @@
         - https://github.com/BenWhetton/keras-surgeon
       - 量子化の実装
       - 条件ごとに重み保存、一括読み込み
+        - Model.save(パス)はパスで指定したファイルに重みを保存するだけ
+            - つまり重みを共有していても、Model.load(パス)するまで、共有重みは更新されない

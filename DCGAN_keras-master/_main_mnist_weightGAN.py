@@ -137,7 +137,6 @@ def krkopt_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-
 def iris_data():
     X_train, X_test, y_train, y_test = \
         train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
@@ -163,6 +162,7 @@ def stringToList(_string, split=" "):
     if temp != '':  # 最後に残った文字列を末尾要素としてリストに追加
         str_list.append(temp)
     return str_list
+
 def normalize(X_train, X_test):
     # 正規化
     from sklearn.preprocessing import MinMaxScaler
@@ -303,7 +303,6 @@ def mnist_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -353,15 +352,40 @@ class Main_train():
             d.load_weights(cf.Save_d_path)
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
-            binary_classify.load_weights(cf.Save_binary_classify_path)
+            print("classify.summary()")
+            classify.summary()
             print("binary_classify.summary()")
             binary_classify.summary()
-            for i in range(len(hidden_layers)):
-                print("hiddden_layers[{}].summary()".format(i))
-                hidden_layers[i].summary()
-                hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
+            binary_classify.load_weights(cf.Save_binary_classify_path)
+            if binary_flag:
+                for i in range(len(hidden_layers)):
+                    print("hiddden_layers[{}].summary()".format(i))
+                    hidden_layers[i].summary()
+                    hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
+            else:
+                syncro_weights = [np.zeros((input_size, wSize)), np.zeros((60, ))]
+                for i in range(10):
+                    binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
+                    syncro_weights[0] = np.add(syncro_weights[0], binary_classify.get_weights()[0])
+                    syncro_weights[1] = np.add(syncro_weights[1], binary_classify.get_weights()[1])
+                print("hiddden_layers[{}].summary()".format(0))
+                # hidden_layers[0].set_weights(syncro_weights)
+                # hidden_layers[0].save_weights(cf.Save_hidden_layers_path[0])
+                print("syncro_weights:{}".format(type(syncro_weights)))
+                print("classify.get_weights()[3:]:{}".format(type(classify.get_weights()[3:])))
+                classify.set_weights(syncro_weights+(classify.get_weights()[2:]))
+                classify.save_weights(cf.Save_classify_path)
+                im_architecture = mydraw(classify.get_weights(),
+                                         -1,
+                                         comment="syncro graph")
+                ### ネットワーク構造を描画
+                im_h_resize = im_architecture
+                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
+                       + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+                cv2.imwrite(path, im_h_resize)
+                exit()
 
-        ## Prepare Training data　前処理
+        ### Prepare Training data　前処理
         if dataset == "iris":
             fname = os.path.join(cf.Save_dir, 'loss_iris.txt')
         elif dataset == "digits":
@@ -371,8 +395,6 @@ class Main_train():
         else:
             fname = os.path.join(cf.Save_dir, 'loss.txt')
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
-
-
         """
         ## Start Train
         print('-- Training Start!!')
@@ -385,6 +407,7 @@ class Main_train():
         """
         f = open(fname, 'w')
         f.write("Iteration,G_loss,D_loss{}".format(os.linesep))
+        ### Prepare Training data　前処理
 
         for ite in range(cf.Iteration):
             ite += 1
@@ -626,26 +649,35 @@ class Main_test():
                 # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
                 binary_classify.set_weights(_weights[0])
                 binary_classify.save_weights(cf.Save_binary_classify_path)
+                classify.save_weights(cf.Save_classify_path)
+                for i in range(len(hidden_layers)):
+                    hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
             ### 重みプルーニング
 
             ### 第1中間層ノードプルーニング
-            # 1ノードに絞る
-            pruned_test_val_acc = \
-                binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]
+            active_nodes = []
             if binary_flag:
-                active_nodes = []
+                # 欠落させると精度が落ちるノードを検出
+                pruned_test_val_acc = \
+                    binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]
                 for i in range(wSize):
-                    g_mask_1 = np.ones(wSize)
+                    # g_mask_1 = np.ones(wSize)
                     g_mask_1[i] = 0
                     _acc = \
                         binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]  # [0.026, 1.0]
-                    if _acc < pruned_test_val_acc * 0.9:
+                    if _acc < pruned_test_val_acc * 0.95:
                         active_nodes.append(i)
-
+                    g_mask_1[i] = 1
                 g_mask_1 = np.load(cf.Save_layer_mask_path)
                 for i in active_nodes:
-                    g_mask_1[i] = 1
+                    g_mask_1[i] = 0 # active_nodeは使用中フラグを立てる
                 np.save(cf.Save_layer_mask_path, g_mask_1)
+                # g_mask_1の内、占有ノードのみ使用できるようにする
+                print("g_mask_1:{}".format(g_mask_1))
+                for i in range(len(g_mask_1)):
+                    g_mask_1[i] = (g_mask_1[i] + 1) % 2
+                # g_mask_1 = list(np.bitwise_not(np.array(g_mask_1)))
+                print("active_nodes:{}".format(active_nodes))
             ### 第1中間層ノードプルーニング
 
         if (not load_model) and (pruning_rate >= 0):
