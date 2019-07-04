@@ -24,7 +24,7 @@ Input_type = 'channels_last'
 File_extensions = ['.jpg', '.png']
 
 ## Training config
-Iteration = 1000000
+Iteration = 10000# 0# 0
 Minibatch = 32# 64
 
 ## Test config
@@ -48,6 +48,7 @@ Save_d_name = 'D.h5'
 Save_g_name = 'G.h5'
 Save_c_name = 'C.h5'
 Save_classify_name = 'Classify.h5'
+Save_freezed_classify_1_name = 'Freezed_Classify_1.h5'
 Save_binary_classify_name = 'Binary_classify.h5'
 Save_syncro_name = 'Syncro_layer.h5'
 Save_layer_mask_name = 'layer_mask.npy'
@@ -55,6 +56,7 @@ Save_d_path = os.path.join(Save_dir, Save_d_name)
 Save_g_path = os.path.join(Save_dir, Save_g_name)
 Save_c_path = os.path.join(Save_dir, Save_c_name)
 Save_classify_path = os.path.join(Save_dir, Save_classify_name)
+Save_freezed_classify_1_path = os.path.join(Save_dir, Save_freezed_classify_1_name)
 Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
 Save_hidden_layers_path = []
 for i in range(5):

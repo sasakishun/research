@@ -60,7 +60,7 @@ input_size = Height * Width * Channel
 wSize = 20
 dataset = ""
 binary_flag = False
-binary_target = 0
+binary_target = -1
 pruning_rate=-1
 
 def krkopt_data():
@@ -332,6 +332,12 @@ def getdata(dataset):
 def mask(_mask, batch_size):
     return np.array([_mask for _ in range(batch_size)])
 
+def shoe_weight(weights):
+    for i in range(len(weights)):
+        print("\n{}\n".format(np.shape(weights[i])))
+        print(weights[i])
+
+
 class Main_train():
     def __init__(self):
         pass
@@ -341,13 +347,18 @@ class Main_train():
         max_score = 0.
         if binary_target == 0:
             g_mask_1 = np.ones(wSize)
+        elif binary_flag:
+            g_mask_1 = np.load(cf.Save_layer_mask_path)
         else:
             g_mask_1 = np.load(cf.Save_layer_mask_path)
+            for i in range(len(g_mask_1)):
+                g_mask_1[i] = (g_mask_1[i] + 1) % 2
         # g_mask_1[14] = 0
         print("wSize:{}".format(wSize))
-        g, d, c, classify, hidden_layers, binary_classify\
+        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         if load_model:
+            freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
             g.load_weights(cf.Save_g_path)
             d.load_weights(cf.Save_d_path)
             c.load_weights(cf.Save_c_path)
@@ -363,6 +374,7 @@ class Main_train():
                     hidden_layers[i].summary()
                     hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
             else:
+                ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
                 syncro_weights = [np.zeros((input_size, wSize)), np.zeros((60, ))]
                 for i in range(10):
                     binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
@@ -371,20 +383,20 @@ class Main_train():
                 print("hiddden_layers[{}].summary()".format(0))
                 # hidden_layers[0].set_weights(syncro_weights)
                 # hidden_layers[0].save_weights(cf.Save_hidden_layers_path[0])
-                print("syncro_weights:{}".format(type(syncro_weights)))
-                print("classify.get_weights()[3:]:{}".format(type(classify.get_weights()[3:])))
-                classify.set_weights(syncro_weights+(classify.get_weights()[2:]))
-                classify.save_weights(cf.Save_classify_path)
-                classify.load_weights(cf.Save_classify_path)
-                im_architecture = mydraw(classify.get_weights(),
+                freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
+                freezed_classify_1.set_weights(syncro_weights+(freezed_classify_1.get_weights()[2:]))
+                freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
+                freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
+                # shoe_weight(freezed_classify_1.get_weights())
+                im_architecture = mydraw(freezed_classify_1.get_weights(),
                                          -1,
-                                         comment="syncro graph")
+                                         comment="using all classes\nsyncro graph\n{}".format(g_mask_1))
                 ### ネットワーク構造を描画
                 im_h_resize = im_architecture
                 path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
                        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
                 cv2.imwrite(path, im_h_resize)
-                exit()
+                ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
 
         ### Prepare Training data　前処理
         if dataset == "iris":
@@ -464,7 +476,8 @@ class Main_train():
             if binary_flag:
                 g_loss = binary_classify.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])  # 生成器を学習
             else:
-                g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], mask(g_mask_1, cf.Minibatch)], [y_train[_inds], t])  # 生成器を学習
+                g_loss = freezed_classify_1.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])
+                # g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], mask(g_mask_1, cf.Minibatch)], [y_train[_inds], t])  # 生成器を学習
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
                 if binary_flag:
@@ -474,18 +487,18 @@ class Main_train():
                     test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                     train_val_loss = classify.evaluate([X_train,mask(g_mask_1 ,len(X_train))], y_train)
                 max_score = max(max_score, 1. - test_val_loss[1])
-                if binary_flag:
-                    con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
-                        ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
-                else:
-                    con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
-                        ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
-                print("real_weight\n{}".format(real_weight))
-                print("real_labels\n{}".format(real_labels))
-                print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
+                # if binary_flag:
+                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                    ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
+                # else:
+                    # con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                        # ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
+                # print("real_weight\n{}".format(real_weight))
+                # print("real_labels\n{}".format(real_labels))
+                # print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
                 if ite % cf.Save_train_step == 0:
                     if dataset == "iris":
-                        print("labels:{}".format(np.argmax(y_train, axis=1)))
+                        # print("labels:{}".format(np.argmax(y_train, axis=1)))
                         show_result(input=X_train, onehot_labels=y_train,
                                     layer1_out=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[1], decimals=2), ite=ite,
                                     classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0], decimals=2), testflag=False)
@@ -503,10 +516,10 @@ class Main_train():
                                     classify=np.round(g.predict(X_test[:100], verbose=0)[0], decimals=2), testflag=True)
                     """
             else:
-                if binary_flag:
-                    con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
-                else:
-                    con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
+                # if binary_flag:
+                con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
+                # else:
+                    # con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
 
             sys.stdout.write("\r" + con)
 
@@ -522,6 +535,7 @@ class Main_train():
                 for i in range(len(hidden_layers)):
                     hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
                 np.save(cf.Save_layer_mask_path, g_mask_1)
+                freezed_classify_1.save(cf.Save_freezed_classify_1_path)
                 """
                 gerated = g.predict([z], verbose=0)
                 # save some samples
@@ -539,6 +553,7 @@ class Main_train():
         binary_classify.save_weights(cf.Save_binary_classify_path)
         for i in range(len(hidden_layers)):
             hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
+        freezed_classify_1.save(cf.Save_freezed_classify_1_path)
         print('Model saved -> ', cf.Save_d_path, cf.Save_g_path, cf.Save_classify_path)
         print("maxAcc:{}".format(max_score * 100))
         ### add for TensorBoard
@@ -585,9 +600,11 @@ class Main_test():
     def test(self, loadflag=True):
         ite = 0
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
-        g, d, c, classify, hidden_layers, binary_classify = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
+        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
         g_mask_1 = np.load(cf.Save_layer_mask_path)
+        for i in range(len(g_mask_1)):
+            g_mask_1[i] = (g_mask_1[i] + 1) % 2
         # g_mask_1 = np.ones(wSize)
         if loadflag:
             g.load_weights(cf.Save_g_path)
@@ -595,6 +612,7 @@ class Main_test():
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
             binary_classify.load_weights(cf.Save_binary_classify_path)
+            freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
             print("load:{}".format(cf.Save_binary_classify_path))
             # exit()
             for i in range(len(hidden_layers)):
@@ -608,7 +626,7 @@ class Main_test():
             _weights = [binary_classify.get_weights(), binary_classify.get_weights()]
             # _weights[高精度確定重み, プルーニング重み]
 
-            print("_weights\n{}".format(_weights))
+            # print("_weights\n{}".format(_weights))
             if binary_flag:
                 test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
                 # train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
@@ -619,7 +637,8 @@ class Main_test():
                 # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
-
+            print("test_val_loss:{}".format(test_val_loss))
+            exit()
             ### 重みプルーニング
             global pruning_rate
             print("pruning_rate:{}".format(pruning_rate))
@@ -666,7 +685,7 @@ class Main_test():
                     g_mask_1[i] = 0
                     _acc = \
                         binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]  # [0.026, 1.0]
-                    if _acc < pruned_test_val_acc * 0.98:
+                    if _acc < pruned_test_val_acc * 0.999:
                         active_nodes.append(i)
                     g_mask_1[i] = 1
                 g_mask_1 = np.load(cf.Save_layer_mask_path)
@@ -692,9 +711,11 @@ class Main_test():
             # binary_classify.load_weights(cf.Save_binary_classify_path)
             weights = binary_classify.get_weights()# classify.get_weights()
         else:
-            test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-            train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
-            weights = classify.get_weights()
+            # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+            # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+            # weights = classify.get_weights()
+            test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+            weights = freezed_classify_1.get_weights()
         """
         if not binary_flag:
             im_input_train = show_result(input=X_train, onehot_labels=y_train,

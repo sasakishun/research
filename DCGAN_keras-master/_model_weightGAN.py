@@ -143,6 +143,14 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     G_output = Model(inputs=[inputs_z, g_mask_1], outputs=[x], name='g_dense_out')
     G_output.compile(optimizer=d_opt, loss='mean_squared_error')
 
+    for layer in G_dense1.layers:
+        print(layer.name)
+        # layer.trainable = False
+    # exit()
+    freezed_classify_1 = Model(inputs=[inputs_z, g_mask_1], outputs=[x], name='freezed_classify_1')
+    freezed_classify_1.compile(loss='categorical_crossentropy',
+                     optimizer="adam",
+                     metrics=[metrics.categorical_accuracy])
     ### モデル定義
 
     ### モデル構造を出力
@@ -158,5 +166,5 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     for i in range(len(hidden_layers)):
         print("hiddden_layers[{}].summary()".format(i))
         hidden_layers[i].summary()
-
-    return g, d, c, classify, hidden_layers, binary_classify
+    freezed_classify_1.summary()
+    return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
