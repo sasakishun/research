@@ -332,7 +332,7 @@ def getdata(dataset):
 def mask(_mask, batch_size):
     return np.array([_mask for _ in range(batch_size)])
 
-def shoe_weight(weights):
+def show_weight(weights):
     for i in range(len(weights)):
         print("\n{}\n".format(np.shape(weights[i])))
         print(weights[i])
@@ -345,15 +345,15 @@ class Main_train():
     def train(self, load_model=False, use_mbd=False):
         # 性能評価用パラメータ
         max_score = 0.
-        if binary_target == 0:
-            g_mask_1 = np.ones(wSize)
-        elif binary_flag:
-            g_mask_1 = np.load(cf.Save_layer_mask_path)
+        if binary_flag:
+            if binary_target == 0:
+                g_mask_1 = np.ones(wSize)
+            else:
+                g_mask_1 = np.load(cf.Save_layer_mask_path)
         else:
             g_mask_1 = np.load(cf.Save_layer_mask_path)
             for i in range(len(g_mask_1)):
                 g_mask_1[i] = (g_mask_1[i] + 1) % 2
-        # g_mask_1[14] = 0
         print("wSize:{}".format(wSize))
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
@@ -387,9 +387,8 @@ class Main_train():
                 freezed_classify_1.set_weights(syncro_weights+(freezed_classify_1.get_weights()[2:]))
                 freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
-                # shoe_weight(freezed_classify_1.get_weights())
-                im_architecture = mydraw(freezed_classify_1.get_weights(),
-                                         -1,
+                show_weight(freezed_classify_1.get_weights())
+                im_architecture = mydraw(freezed_classify_1.get_weights(), -1,
                                          comment="using all classes\nsyncro graph\n{}".format(g_mask_1))
                 ### ネットワーク構造を描画
                 im_h_resize = im_architecture
@@ -484,9 +483,11 @@ class Main_train():
                     test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                     train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 else:
-                    test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                    train_val_loss = classify.evaluate([X_train,mask(g_mask_1 ,len(X_train))], y_train)
-                max_score = max(max_score, 1. - test_val_loss[1])
+                    # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                    # train_val_loss = classify.evaluate([X_train,mask(g_mask_1 ,len(X_train))], y_train)
+                    test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                    train_val_loss = freezed_classify_1.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                max_score = max(max_score, test_val_loss[1])
                 # if binary_flag:
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
                     ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
@@ -603,16 +604,20 @@ class Main_test():
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size,
                                             use_mbd=use_mbd)
         g_mask_1 = np.load(cf.Save_layer_mask_path)
-        for i in range(len(g_mask_1)):
-            g_mask_1[i] = (g_mask_1[i] + 1) % 2
-        # g_mask_1 = np.ones(wSize)
+
         if loadflag:
+            freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
+            initialized_weights = freezed_classify_1.get_weights()
             g.load_weights(cf.Save_g_path)
             d.load_weights(cf.Save_d_path)
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
             binary_classify.load_weights(cf.Save_binary_classify_path)
             freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
+            freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
+
+            freezed_classify_1.set_weights(initialized_weights)
+
             print("load:{}".format(cf.Save_binary_classify_path))
             # exit()
             for i in range(len(hidden_layers)):
@@ -633,45 +638,46 @@ class Main_test():
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             else:
-                test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
-            print("test_val_loss:{}".format(test_val_loss))
-            exit()
+
             ### 重みプルーニング
-            global pruning_rate
-            print("pruning_rate:{}".format(pruning_rate))
-            if pruning_rate >= 0:
-                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 1:
-                    ### 精度98%以上となる重みを_weights[0]に確保
-                    _weights[0] = copy.deepcopy(_weights[1])
-                    ### 精度98%以上となる重みを_weights[0]に確保
+            if binary_flag:
+                global pruning_rate
+                print("pruning_rate:{}".format(pruning_rate))
+                if pruning_rate >= 0:
+                    while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 1:
+                        ### 精度98%以上となる重みを_weights[0]に確保
+                        _weights[0] = copy.deepcopy(_weights[1])
+                        ### 精度98%以上となる重みを_weights[0]に確保
 
-                    ### プルーニング率を微上昇させ性能検証
-                    pruning_rate += 0.01
-                    for i in range(np.shape(_weights[1])[0]):
-                        if _weights[1][i].ndim == 2:
-                            print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
-                            for j in range(np.shape(_weights[1][i])[0]):
-                                for k in range(np.shape(_weights[1][i])[1]):
-                                    if abs(_weights[1][i][j][k]) < pruning_rate:
-                                        _weights[1][i][j][k] = 0.
-                            print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
-                    binary_classify.set_weights(_weights[1])
-                    if binary_flag:
-                        pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
-                    else:
-                        pruned_test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                    print("pruning is done")
-                    ### プルーニング率を美上昇させ性能検証
+                        ### プルーニング率を微上昇させ性能検証
+                        pruning_rate += 0.01
+                        for i in range(np.shape(_weights[1])[0]):
+                            if _weights[1][i].ndim == 2:
+                                print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
+                                for j in range(np.shape(_weights[1][i])[0]):
+                                    for k in range(np.shape(_weights[1][i])[1]):
+                                        if abs(_weights[1][i][j][k]) < pruning_rate:
+                                            _weights[1][i][j][k] = 0.
+                                print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
+                        binary_classify.set_weights(_weights[1])
+                        if binary_flag:
+                            pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
+                        else:
+                            pruned_test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                        print("pruning is done")
+                        ### プルーニング率を微上昇させ性能検証
 
-                # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
-                binary_classify.set_weights(_weights[0])
-                binary_classify.save_weights(cf.Save_binary_classify_path)
-                classify.save_weights(cf.Save_classify_path)
-                for i in range(len(hidden_layers)):
-                    hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
+                    # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
+                    binary_classify.set_weights(_weights[0])
+                    binary_classify.save_weights(cf.Save_binary_classify_path)
+                    classify.save_weights(cf.Save_classify_path)
+                    for i in range(len(hidden_layers)):
+                        hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
             ### 重みプルーニング
 
             ### 第1中間層ノードプルーニング
