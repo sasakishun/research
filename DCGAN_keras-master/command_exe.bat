@@ -5,7 +5,11 @@ for /l %%a in (0, 1, 9) do (
 python _main_mnist_weightGAN.py --digit --train --wSize 60 --load_model
 python _main_mnist_weightGAN.py --digit --test --wSize 60 --pruning_rate 0.
 
+
 goto end
+python _main_mnist_weightGAN.py --digit --train --wSize 60 --binary_target 0
+python _main_mnist_weightGAN.py --digit --test --wSize 60 --binary_target 0 --pruning_rate 0.
+
 python _main_mnist_weightGAN.py --digit --train --wSize 60 --binary_target 8
 python _main_mnist_weightGAN.py --digit --test --wSize 60 --binary_target 8 --pruning_rate 0.
 

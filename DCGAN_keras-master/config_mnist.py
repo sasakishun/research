@@ -24,7 +24,7 @@ Input_type = 'channels_last'
 File_extensions = ['.jpg', '.png']
 
 ## Training config
-Iteration = 1000000#
+Iteration = 100000# 0#
 Minibatch = 32# 64
 
 ## Test config
@@ -51,7 +51,6 @@ Save_classify_name = 'Classify.h5'
 Save_freezed_classify_1_name = 'Freezed_Classify_1.h5'
 Save_binary_classify_name = 'Binary_classify.h5'
 Save_syncro_name = 'Syncro_layer.h5'
-Save_layer_mask_name = 'layer_mask.npy'
 Save_d_path = os.path.join(Save_dir, Save_d_name)
 Save_g_path = os.path.join(Save_dir, Save_g_name)
 Save_c_path = os.path.join(Save_dir, Save_c_name)
@@ -61,8 +60,10 @@ Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
 Save_hidden_layers_path = []
 for i in range(5):
     Save_hidden_layers_path.append(os.path.join(Save_dir, 'hidden_layers{}.h5'.format(i)))
+Save_layer_mask_path = []# 'layer_mask.npy'
+for i in range(10):
+    Save_layer_mask_path.append(os.path.join(Save_dir, 'layer_mask{}.npy'.format(i)))
 Save_syncro_path = os.path.join(Save_dir, Save_syncro_name)
-Save_layer_mask_path = os.path.join(Save_dir, Save_layer_mask_name)
 Save_train_img_dir = 'train_images_mnist'
 Save_img_num = 5
 

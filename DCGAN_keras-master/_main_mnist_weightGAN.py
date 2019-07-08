@@ -337,6 +337,21 @@ def show_weight(weights):
         print("\n{}\n".format(np.shape(weights[i])))
         print(weights[i])
 
+def load_concate_masks(active_true=False):
+    ### 保存されているmaskにおける、and集合を返す
+    g_mask = np.zeros(wSize)
+    for i in range(10):
+        _g_mask = np.load(cf.Save_layer_mask_path[i])
+        # print("g_mask:{}\n{}".format(g_mask.shape, g_mask))
+        # print("_g_mask:{}\n{}".format(_g_mask.shape, _g_mask))
+        for j in range(g_mask.shape[0]):
+            if g_mask[j] == 1 or _g_mask[j] == 1:
+                g_mask[j] = 1
+    if not active_true:
+        for i in range(len(g_mask)):
+            g_mask[i] = (g_mask[i] + 1) % 2
+    return g_mask
+
 
 class Main_train():
     def __init__(self):
@@ -347,14 +362,17 @@ class Main_train():
         max_score = 0.
         if binary_flag:
             if binary_target == 0:
-                g_mask_1 = np.ones(wSize)
+                # active nodesなしで初期化
+                g_mask_1 = np.zeros(wSize)
+                ### layer_maskファイルを全初期化
+                for i in range(10):
+                    np.save(cf.Save_layer_mask_path[i], g_mask_1)
+                g_mask_1 = load_concate_masks(active_true=False)# [1,1,1,1,...1]
             else:
-                g_mask_1 = np.load(cf.Save_layer_mask_path)
+                g_mask_1 = load_concate_masks(active_true=False)
         else:
-            g_mask_1 = np.load(cf.Save_layer_mask_path)
-            for i in range(len(g_mask_1)):
-                g_mask_1[i] = (g_mask_1[i] + 1) % 2
-            g_mask_1 = np.ones(wSize)
+            g_mask_1 = load_concate_masks(active_true=True)# np.load(cf.Save_layer_mask_path)
+            # g_mask_1 = np.ones(wSize)
         print("wSize:{}".format(wSize))
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
@@ -537,7 +555,7 @@ class Main_train():
                     binary_classify.save_weights(cf.Save_binary_classify_path)
                     for i in range(len(hidden_layers)):
                         hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
-                    np.save(cf.Save_layer_mask_path, g_mask_1)
+                    # np.save(cf.Save_layer_mask_path[binary_target], g_mask_1)
                 else:
                     freezed_classify_1.save(cf.Save_freezed_classify_1_path)
                 """
@@ -608,12 +626,14 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
-        g_mask_1 = np.load(cf.Save_layer_mask_path)
+        g_mask_1 = load_concate_masks(active_true=(not binary_flag))# np.load(cf.Save_layer_mask_path)
+        print("g_mask:{}".format(g_mask_1))
+        """
         if not binary_flag:
             for i in range(len(g_mask_1)):
                 g_mask_1[i] = (g_mask_1[i] + 1) % 2
             g_mask_1 = np.ones(wSize)
-
+        """
         if loadflag:
             if binary_flag:
                 g.load_weights(cf.Save_g_path)
@@ -649,7 +669,8 @@ class Main_test():
                 test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
-
+            print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
+            # exit()
             ### 重みプルーニング
             global pruning_rate
             print("pruning_rate:{}".format(pruning_rate))
@@ -693,7 +714,8 @@ class Main_test():
             active_nodes = []
             acc_list = []
             if binary_flag:
-                # 欠落させると精度が落ちるノードを検出
+                g_mask_1 = load_concate_masks(False) # activeでないノード=1
+                ### 欠落させると精度が落ちるノードを検出
                 pruned_test_val_acc = \
                     binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]
                 for i in range(wSize):
@@ -705,17 +727,21 @@ class Main_test():
                     if _acc < pruned_test_val_acc * 0.999:
                         active_nodes.append(i)
                     g_mask_1[i] = 1
-                g_mask_1 = np.load(cf.Save_layer_mask_path)
-                for i in active_nodes:
-                    g_mask_1[i] = 0 # active_nodeは使用中フラグを立てる
+                # g_mask_1 = load_concate_masks(active_true=True) # np.load(cf.Save_layer_mask_path)
+                # for i in active_nodes:
+                    # g_mask_1[i] = 0 # active_nodeは使用中フラグを立てる
                 if len(active_nodes)==0:
                     active_nodes.append(sorted(acc_list)[-1][1])
-                    g_mask_1[sorted(acc_list)[-1][1]] = 0
-                np.save(cf.Save_layer_mask_path, g_mask_1)
+                    # g_mask_1[sorted(acc_list)[-1][1]] = 0
+                concated_active = np.zeros(wSize)
+                for i in active_nodes:
+                    concated_active[i] = 1
+                np.save(cf.Save_layer_mask_path[binary_target], concated_active)# g_mask_1)
                 # g_mask_1の内、占有ノードのみ使用できるようにする
-                print("g_mask_1:{}".format(g_mask_1))
-                for i in range(len(g_mask_1)):
-                    g_mask_1[i] = (g_mask_1[i] + 1) % 2
+                # [0, 1, ...binary_target]でactiveとなったノードの集合
+                g_mask_1 = concated_active# load_concate_masks(active_true=True)
+                # for i in range(len(g_mask_1)):
+                    # g_mask_1[i] = (g_mask_1[i] + 1) % 2
                 # g_mask_1 = list(np.bitwise_not(np.array(g_mask_1)))
                 print("active_nodes:{}".format(active_nodes))
             ### 第1中間層ノードプルーニング
@@ -767,6 +793,11 @@ class Main_test():
             print(np.shape(weights[i]))
         classify.summary()
 
+        print("\ntest Acc:{}".format(test_val_loss[1]))
+        print("g_mask_1\n{}".format(g_mask_1))
+        if binary_flag:
+            print("g_mask_in_binary\n{}".format(load_concate_masks(active_true=True)))
+
         ### ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1],
                                  comment=("[{} vs other]".format(binary_target) if binary_flag else "")
@@ -786,10 +817,6 @@ class Main_test():
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
         print("saved concated graph to -> {}".format(path))
-        print("test Acc:{}".format(test_val_loss[1]))
-        # print("_weights:\n{}".format(_weights))
-        # print("\n\n\n\n\n\nweights:\n{}".format(weights))
-        print("g_mask_1:{}".format(g_mask_1))
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
