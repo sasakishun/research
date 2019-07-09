@@ -61,11 +61,16 @@ def minibatch_discrimination(d_out):
 def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     ### 生成器定義
     activation = "relu"
-    _g_dense1 = Dense(wSize, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_')
-    _g_dense2 = Dense(wSize//2, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense2_')
-    _g_dense3 = Dense(wSize//4, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense3_')
-    _g_dense4 = Dense(wSize//8, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_')
-    _g_dense_output = Dense(output_size, activation='softmax', name='x_out')
+    _g_dense1 = Dense(wSize, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+    _g_dense2 = Dense(wSize//2, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense2_',
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+    _g_dense3 = Dense(wSize//4, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense3_',
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+    _g_dense4 = Dense(wSize//8, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_',
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+    _g_dense_output = Dense(output_size, activation='softmax', name='x_out',
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=10, seed=None))
     ### 生成器定義
 
     ### 識別機定義
@@ -144,8 +149,8 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     G_output.compile(optimizer=d_opt, loss='mean_squared_error')
 
     for layer in G_dense1.layers:
-        print(layer.name)
-        # layer.trainable = False
+        # print(layer.name)
+        layer.trainable = False
     # exit()
     freezed_classify_1 = Model(inputs=[inputs_z, g_mask_1], outputs=[x], name='freezed_classify_1')
     freezed_classify_1.compile(loss='categorical_crossentropy',

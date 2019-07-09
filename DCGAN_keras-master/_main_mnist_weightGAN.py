@@ -62,6 +62,7 @@ dataset = ""
 binary_flag = False
 binary_target = -1
 pruning_rate=-1
+dataset_category = 10
 
 def krkopt_data():
     _train = [[], []]
@@ -217,7 +218,58 @@ def wine_data():
     # exit()
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-def digits_data():
+def balance_data():
+    ### .dataファイルを読み込む
+    _data = open(r"C:\Users\papap\Documents\research\DCGAN_keras-master\balance-scale.data", "r")
+    lines = _data.readlines()
+    ### .dataファイルを読み込む
+
+    ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
+    _train = []
+    _target = []
+    for line in lines:
+        line = stringToList(line, ",")
+        # 今回はリストの先頭がクラスラベル(L or B or R)
+        if line[0] == "L":
+            _target.append(0)
+        elif line[0] == "B":
+            _target.append(1)
+        elif line[0] == "R":
+            _target.append(2)
+        else:
+            print("Dataset Error")
+            exit()
+        _train.append([float(i) for i in line[1:]]) #それ以外は訓練データ
+    ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
+    normalize_array = np.full((len(_train), 4), 1/5)
+    _train *= normalize_array
+    X_train, X_test, y_train, y_test = \
+        train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    usable = [0, 1, 2]
+    if binary_flag:
+        X_train, X_test, y_train, y_test = digits_data_binary(usable, X_train, X_test, y_train, y_test)
+    else:
+        y_train = np_utils.to_categorical(y_train, 3)
+        y_test = np_utils.to_categorical(y_test, 3)
+    ### 各列で正規化
+    # X_train, X_test = normalize(X_train, X_test)
+    # X_train, X_test = standardize(X_train, X_test)
+    ### 各列で正規化
+
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("X_train:\n{} \nX_test:\n{}".format(X_train, X_test))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    print("-> X_max in train :{}".format(np.amax(X_train, axis=0)))
+    print("-> X_max in test  : {}".format(np.amax(X_test, axis=0)))
+    # print("X_train:\n{}".format(X_train))
+    # exit()
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
+def digits_data(binary_flag=False):
     usable = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
@@ -256,11 +308,10 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     y_train = []
     X_test = []
     y_test = []
-
     for i in range(len(_y_train)):
         if _y_train[i] == usable[binary_target]:
             # _y_train[i] = 1
-            for j in range(9):
+            for j in range(len(usable)-1):# データ数をそろえる処理
                 y_train.append([1])
                 X_train.append(_X_train[i])
         else:
@@ -270,14 +321,13 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     for i in range(len(_y_test)):
         if _y_test[i] == usable[binary_target]:
             # _y_test[i] = 1
-            for j in range(9):
+            for j in range(len(usable)-1):
                 y_test.append([1])
                 X_test.append(_X_test[i])
         else:
             # _y_test[i] = 0
             y_test.append([0])
             X_test.append(_X_test[i])
-
     X_train = np.array(X_train)
     y_train = np.array(y_train)
     X_test = np.array(X_test)
@@ -319,15 +369,18 @@ def my_tqdm(ite):
     ### 学習進行状況表示
     return con
 
-def getdata(dataset):
+def getdata(dataset, binary_flag):
     if dataset == "iris":
         return iris_data()
     elif  dataset == "mnist":
         return mnist_data()
     elif dataset == "digits":
-        return digits_data()
+        return digits_data(binary_flag=binary_flag)
     elif dataset == "wine":
         return wine_data()
+    elif dataset == "balance":
+        return balance_data()
+
 
 def mask(_mask, batch_size):
     return np.array([_mask for _ in range(batch_size)])
@@ -340,8 +393,11 @@ def show_weight(weights):
 def load_concate_masks(active_true=False):
     ### 保存されているmaskにおける、and集合を返す
     g_mask = np.zeros(wSize)
-    for i in range(10):
+    for i in range(dataset_category):
         _g_mask = np.load(cf.Save_layer_mask_path[i])
+        if g_mask.shape != _g_mask.shape:
+            np.save(cf.Save_layer_mask_path[i], g_mask)
+            _g_mask = g_mask
         # print("g_mask:{}\n{}".format(g_mask.shape, g_mask))
         # print("_g_mask:{}\n{}".format(_g_mask.shape, _g_mask))
         for j in range(g_mask.shape[0]):
@@ -365,7 +421,7 @@ class Main_train():
                 # active nodesなしで初期化
                 g_mask_1 = np.zeros(wSize)
                 ### layer_maskファイルを全初期化
-                for i in range(10):
+                for i in range(dataset_category):
                     np.save(cf.Save_layer_mask_path[i], g_mask_1)
                 g_mask_1 = load_concate_masks(active_true=False)# [1,1,1,1,...1]
             else:
@@ -395,11 +451,14 @@ class Main_train():
             else:
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
                 syncro_weights = [np.zeros((input_size, wSize)), np.zeros((wSize, ))]
-                for i in range(10):
+                for i in range(dataset_category):
                     binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
                     syncro_weights[0] = np.add(syncro_weights[0], binary_classify.get_weights()[0])
-                    syncro_weights[1] = np.add(syncro_weights[1], binary_classify.get_weights()[1])
-                print("hiddden_layers[{}].summary()".format(0))
+                    syncro_weights[1] = np.add(syncro_weights[1], (binary_classify.get_weights()[1])*np.load(cf.Save_layer_mask_path[i]))
+                    # syncro_weights[1] = np.add(syncro_weights[1], binary_classify.get_weights()[1])
+                    print("bias\n{}\n".format(binary_classify.get_weights()[1]))
+                # exit()
+                # print("hiddden_layers[{}].summary()".format(0))
                 # hidden_layers[0].set_weights(syncro_weights)
                 # hidden_layers[0].save_weights(cf.Save_hidden_layers_path[0])
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
@@ -408,7 +467,7 @@ class Main_train():
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 show_weight(freezed_classify_1.get_weights())
                 im_architecture = mydraw(freezed_classify_1.get_weights(), -1,
-                                         comment="using all classes\nsyncro graph\n{}".format(g_mask_1))
+                                         comment="using all classes syncro graph\n{}".format(list(np.nonzero(g_mask_1))))
                 ### ネットワーク構造を描画
                 im_h_resize = im_architecture
                 path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
@@ -425,20 +484,14 @@ class Main_train():
             fname = os.path.join(cf.Save_dir, 'loss_krkopt.txt')
         else:
             fname = os.path.join(cf.Save_dir, 'loss.txt')
-        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
-        """
-        ## Start Train
-        print('-- Training Start!!')
-        if cf.Save_train_combine is None:
-            print("generated image will not be stored")
-        elif cf.Save_train_combine is True:
-            print("generated image write combined >>", cf.Save_train_img_dir)
-        elif cf.Save_train_combine is False:
-            print("generated image write separately >>", cf.Save_train_img_dir)
-        """
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset, binary_flag=binary_flag)
+        if binary_flag:
+            ### 10クラス分類用のデータ
+            ten_X_train, ten_X_test, ten_y_train, ten_y_test, ten_train_num_per_step, ten_data_inds, ten_max_ite = getdata(dataset, binary_flag=False)
+            ###
+
         f = open(fname, 'w')
         f.write("Iteration,G_loss,D_loss{}".format(os.linesep))
-        ### Prepare Training data　前処理
 
         for ite in range(cf.Iteration):
             ite += 1
@@ -492,6 +545,13 @@ class Main_train():
             t = np.array([0] * cf.Minibatch)
             # g_loss = 0 # c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
             if binary_flag:
+                ### 10クラス分類用NNも学習（1クラス前のlayer_maskのみ対象）
+                # ten_train_ind = ite % ten_train_num_per_step
+                # if ite % (ten_train_num_per_step + 1) == 0:
+                    # np.random.shuffle(ten_data_inds)
+                # ten_inds = ten_data_inds[ten_train_ind * cf.Minibatch: (ten_train_ind + 1) * cf.Minibatch]
+                # freezed_loss = freezed_classify_1.train_on_batch([ten_X_train[ten_inds], mask(load_concate_masks(active_true=True), cf.Minibatch)], ten_y_train[ten_inds])
+                ###
                 g_loss = binary_classify.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])  # 生成器を学習
             else:
                 g_loss = freezed_classify_1.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])
@@ -508,8 +568,10 @@ class Main_train():
                     train_val_loss = freezed_classify_1.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 max_score = max(max_score, test_val_loss[1])
                 # if binary_flag:
-                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.2f}, d: {:.2f}, test_val: loss:{:.6f} acc:{:.6f}".format(
                     ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
+                # if binary_flag:
+                    # con += " 10cate_acc{:.4f}".format(freezed_loss[1])
                 # else:
                     # con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
                         # ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
@@ -623,11 +685,12 @@ class Main_test():
 
     def test(self, loadflag=True):
         ite = 0
-        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset)
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset, binary_flag=binary_flag)
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
             = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
         g_mask_1 = load_concate_masks(active_true=(not binary_flag))# np.load(cf.Save_layer_mask_path)
-        print("g_mask:{}".format(g_mask_1))
+        # g_mask_1 = np.ones(wSize)
+        print("g_mask(usable):{}".format(g_mask_1))
         """
         if not binary_flag:
             for i in range(len(g_mask_1)):
@@ -670,12 +733,25 @@ class Main_test():
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
-            # exit()
+
+            ### プルーニングなしのネットワーク構造を描画
+            if not binary_flag:
+                im_architecture = mydraw(_weights[0], test_val_loss[1],
+                                         comment=("[{} vs other]".format(binary_target) if binary_flag else "")
+                                                 + " pruned <{:.4f}\n".format(0.)
+                                                 + "active_node:{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
+                im_h_resize = im_architecture
+                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
+                       + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+                cv2.imwrite(path, im_h_resize)
+                print("saved concated graph to -> {}".format(path))
+            ### プルーニングなしのネットワーク構造を描画
+
             ### 重みプルーニング
             global pruning_rate
             print("pruning_rate:{}".format(pruning_rate))
             if pruning_rate >= 0:
-                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 1:
+                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 10:
                     ### 精度98%以上となる重みを_weights[0]に確保
                     _weights[0] = copy.deepcopy(_weights[1])
                     ### 精度98%以上となる重みを_weights[0]に確保
@@ -683,13 +759,17 @@ class Main_test():
                     ### プルーニング率を微上昇させ性能検証
                     pruning_rate += 0.01
                     for i in range(np.shape(_weights[1])[0]):
-                        if _weights[1][i].ndim == 2:
+                        if _weights[1][i].ndim == 2: # 重みプルーニング
                             print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
                             for j in range(np.shape(_weights[1][i])[0]):
                                 for k in range(np.shape(_weights[1][i])[1]):
                                     if abs(_weights[1][i][j][k]) < pruning_rate:
                                         _weights[1][i][j][k] = 0.
                             print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
+                        else:# バイアスプルーニング
+                            for j in range(np.shape(_weights[1][i])[0]):
+                                if abs(_weights[1][i][j]) < pruning_rate:
+                                    _weights[1][i][j] = 0.
                     if binary_flag:
                         binary_classify.set_weights(_weights[1])
                         pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
@@ -731,7 +811,11 @@ class Main_test():
                 # for i in active_nodes:
                     # g_mask_1[i] = 0 # active_nodeは使用中フラグを立てる
                 if len(active_nodes)==0:
-                    active_nodes.append(sorted(acc_list)[-1][1])
+                    for i in range(wSize):
+                        _acc_list = sorted(acc_list)
+                        if g_mask_1[_acc_list[-i-1][1]] == 1:
+                            active_nodes.append(_acc_list[-1][1])
+                            break
                     # g_mask_1[sorted(acc_list)[-1][1]] = 0
                 concated_active = np.zeros(wSize)
                 for i in active_nodes:
@@ -794,15 +878,15 @@ class Main_test():
         classify.summary()
 
         print("\ntest Acc:{}".format(test_val_loss[1]))
-        print("g_mask_1\n{}".format(g_mask_1))
+        print("g_mask_1\n{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
         if binary_flag:
-            print("g_mask_in_binary\n{}".format(load_concate_masks(active_true=True)))
+            print("g_mask_in_binary\n{}".format(np.array(np.nonzero(load_concate_masks(active_true=True))).tolist()[0]))
 
         ### ネットワーク構造を描画
         im_architecture = mydraw(weights, test_val_loss[1],
                                  comment=("[{} vs other]".format(binary_target) if binary_flag else "")
                                          + " pruned <{:.4f}\n".format(pruning_rate)
-                                         + "active_node:{}".format(active_nodes if len(active_nodes)>0 else "None"))
+                                         + "active_node:{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0] if len(active_nodes)>0 else "None"))
         ### ネットワーク構造を描画
         im_h_resize = im_architecture
         """
@@ -817,6 +901,25 @@ class Main_test():
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
         print("saved concated graph to -> {}".format(path))
+        if not binary_flag:
+            _X_test=[[] for _ in range(dataset_category)]
+            _y_test=[[] for _ in range(dataset_category)]
+            class_acc = [[] for _ in range(dataset_category)]
+            for data, target in zip(X_test, y_test):
+                _X_test[np.argmax(target)].append(data)
+                _y_test[np.argmax(target)].append(target)
+            _X_test = np.array(_X_test)
+            _y_test = np.array(_y_test)
+            # for i in range(len(y_test)):
+                # print("calicurate_class[{}]_acc".format(i))
+                # _X_test[np.argmax(y_test[i])].append(X_test[i])
+                # _y_test[np.argmax(y_test[i])].append(y_test[i])
+            for i in range(len(class_acc)):
+                class_acc[i] = freezed_classify_1.evaluate(
+                    [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
+            for i in range(len(class_acc)):
+                    print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
+            # print(class_acc)
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
@@ -887,6 +990,7 @@ def arg_parse():
     parser.add_argument('--cifar10', dest='cifar10', action='store_true')
     parser.add_argument('--iris', dest='iris', action='store_true')
     parser.add_argument('--wine', dest='wine', action='store_true')
+    parser.add_argument('--balance', dest='balance', action='store_true')
     parser.add_argument('--digits', dest='digits', action='store_true')
     parser.add_argument('--krkopt', dest='krkopt', action='store_true')
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
@@ -940,6 +1044,7 @@ if __name__ == '__main__':
         Channel = 1
         input_size = Height * Width * Channel
         output_size = 3
+        dataset_category = 3
         import config_mnist as cf
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
@@ -957,7 +1062,8 @@ if __name__ == '__main__':
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         from sklearn.datasets import load_digits
-        digits = load_digits(n_class=10)
+        dataset_category = 10
+        digits = load_digits(n_class=dataset_category)
         dataset = "digits"
     elif args.krkopt:
         Height = 1
@@ -977,9 +1083,20 @@ if __name__ == '__main__':
         Channel = 1
         input_size = Height * Width * Channel
         output_size = 3
+        dataset_category = 3
         import config_mnist as cf
         from _model_iris import *
         dataset = "wine"
+    elif args.balance:
+        Height = 1
+        Width = 4
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 3
+        dataset_category = 3
+        import config_mnist as cf
+        from _model_iris import *
+        dataset = "balance"
 
     if args.binary_target >= 0:
         binary_flag = True
