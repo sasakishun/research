@@ -156,7 +156,7 @@ def mydraw(_weights, acc, comment=""):
     # for i in range(len(nodes)-1):
         # weights.append(np.ones((nodes[i+1], nodes[i])))
 
-    print("nodes:{}".format(nodes))
+    print("nodes of each layer:{}".format(nodes))
     print("weights:{}".format(np.shape(weights)))
 
     for i in range(len(nodes)-1):

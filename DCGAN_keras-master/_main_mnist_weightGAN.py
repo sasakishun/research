@@ -63,7 +63,7 @@ binary_flag = False
 binary_target = -1
 pruning_rate=-1
 dataset_category = 10
-
+no_mask = False
 def krkopt_data():
     _train = [[], []]
     file_data = open("krkopt.data", "r")
@@ -406,7 +406,10 @@ def load_concate_masks(active_true=False):
     if not active_true:
         for i in range(len(g_mask)):
             g_mask[i] = (g_mask[i] + 1) % 2
-    return g_mask
+    if no_mask:
+        return np.ones(wSize)
+    else:
+        return g_mask
 
 
 class Main_train():
@@ -440,10 +443,10 @@ class Main_train():
             classify.load_weights(cf.Save_classify_path)
             print("classify.summary()")
             classify.summary()
-            print("binary_classify.summary()")
-            binary_classify.summary()
-            binary_classify.load_weights(cf.Save_binary_classify_path)
             if binary_flag:
+                print("binary_classify.summary()")
+                binary_classify.summary()
+                binary_classify.load_weights(cf.Save_binary_classify_path)
                 for i in range(len(hidden_layers)):
                     print("hiddden_layers[{}].summary()".format(i))
                     hidden_layers[i].summary()
@@ -995,6 +998,7 @@ def arg_parse():
     parser.add_argument('--krkopt', dest='krkopt', action='store_true')
     parser.add_argument('--use_mbd', dest='use_mbd', action='store_true')
     parser.add_argument('--binary', dest='binary', action='store_true')
+    parser.add_argument('--no_mask', dest='no_mask', action='store_true')
     parser.add_argument('--load_model', dest='load_model', action='store_true')
     # parser.add_argument('--pruning', dest='pruning', action='store_true')
     parser.add_argument('--pruning_rate', type=float, default=-1)
@@ -1009,12 +1013,14 @@ if __name__ == '__main__':
     use_mbd = False
     if args.wSize:
         wSize = args.wSize
+    if args.no_mask:
+        no_mask = True
     if args.use_mbd:
         use_mbd = True
     if args.pruning_rate >= 0:
         print("args.pruning_rate:{}".format(args.pruning_rate))
         pruning_rate = args.pruning_rate
-    if args.binary or (args.binary_target >= 0):
+    if args.binary:
         binary_flag = True
     if args.mnist:
         Height = 28
@@ -1097,7 +1103,6 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_iris import *
         dataset = "balance"
-
     if args.binary_target >= 0:
         binary_flag = True
         binary_target = args.binary_target
