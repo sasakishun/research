@@ -8,7 +8,7 @@ from keras import metrics, regularizers
 from keras.layers.core import Lambda
 from keras.models import Model
 from keras.layers import Input, Dense, Reshape, multiply
-
+from keras.layers.normalization import BatchNormalization
 import numpy as np
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=2000)
@@ -83,10 +83,14 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
     g_mask_1 = Input(shape=(wSize,), name='g_mask_1')
 
     g_dense1 = _g_dense1(inputs_z)
+    # g_dense1 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense1)
     g_dense1 = multiply([g_dense1, g_mask_1])
     g_dense2 = _g_dense2(g_dense1)
+    # g_dense2 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense2)
     g_dense3 = _g_dense3(g_dense2)
+    # g_dense3 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense3)
     g_dense4 = _g_dense4(g_dense3)
+    # g_dense4 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense4)
     x = _g_dense_output(g_dense4)
     ### 生成器の順伝播　
 

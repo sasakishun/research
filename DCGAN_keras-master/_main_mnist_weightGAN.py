@@ -218,6 +218,37 @@ def wine_data():
     # exit()
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+def augumentaton(train, target):
+    samples = [[[], []] for _ in range(dataset_category)]
+    for i in range(len(train)):
+        samples[target[i]][0].append(train[i])
+        samples[target[i]][1].append(target[i])
+    _max = 0
+    for i in range(len(samples)):
+        print("{}: {} samples".format(i, len(samples[i][0])))
+        _max = max(_max, len(samples[i][0]))
+    for i in range(len(samples)):
+        if len(samples[i][0]) < _max:
+            scale = _max // len(samples[i][0]) - 1
+            origin = copy.deepcopy(samples[i])
+            print("i:{} scale:{}".format(i, scale))
+            for j in range(scale):
+                # print(samples[i][0])
+                samples[i][0]+=origin[0]
+                samples[i][1]+=origin[1]
+            samples[i][0] += origin[0][:_max - len(samples[i][0])]
+            samples[i][1] += origin[1][:_max - len(samples[i][1])]
+    print("augumentated")
+    for i in range(len(samples)):
+        print("{}: {} samples".format(i, len(samples[i][0])))
+    train = []
+    target = []
+    for i in range(len(samples)):
+        for j in range(len(samples[i][0])):
+            train.append(samples[i][0][j])
+            target.append(samples[i][1][j])
+    return np.array(train), np.array(target)
+
 def balance_data():
     ### .dataファイルを読み込む
     _data = open(r"C:\Users\papap\Documents\research\DCGAN_keras-master\balance-scale.data", "r")
@@ -241,10 +272,12 @@ def balance_data():
             exit()
         _train.append([float(i) for i in line[1:]]) #それ以外は訓練データ
     ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
+
     normalize_array = np.full((len(_train), 4), 1/5)
     _train *= normalize_array
     X_train, X_test, y_train, y_test = \
         train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    X_train, y_train = augumentaton(X_train, y_train)
     usable = [0, 1, 2]
     if binary_flag:
         X_train, X_test, y_train, y_test = digits_data_binary(usable, X_train, X_test, y_train, y_test)
@@ -285,10 +318,15 @@ def digits_data(binary_flag=False):
     y_train = np.array(y_train)
     X_train, X_test, y_train, y_test = \
         train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=2)
+    ### データ数偏り補正
+    X_train, y_train = augumentaton(X_train, y_train)
+    X_test, y_test = augumentaton(X_test, y_test)
+    ### データ数偏り補正
+
     X_train, X_test = normalize(X_train, X_test)
-    print("X_train:{}".format(digits.data.shape))
+    print("digit.data:{}".format(digits.data.shape))
     print("X_train:{}".format(X_train.shape))
-    print("y_train:{}".format(digits.target.shape))
+    print("digit.target:{}".format(digits.target.shape))
     print("y_train:{}".format(y_train.shape))
     if binary_flag:
         X_train, X_test, y_train, y_test = digits_data_binary(usable, X_train, X_test, y_train, y_test)
@@ -681,6 +719,52 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
     # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
     # testflag, showflag=False)
 
+def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss):
+    ### 重みプルーニング
+    global pruning_rate
+    print("pruning_rate:{}".format(pruning_rate))
+    if pruning_rate >= 0:
+        while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 10:
+            ### 精度98%以上となる重みを_weights[0]に確保
+            _weights[0] = copy.deepcopy(_weights[1])
+            ### 精度98%以上となる重みを_weights[0]に確保
+
+            ### プルーニング率を微上昇させ性能検証
+            pruning_rate += 0.01
+            for i in range(np.shape(_weights[1])[0]):
+                if _weights[1][i].ndim == 2:  # 重みプルーニング
+                    print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
+                    for j in range(np.shape(_weights[1][i])[0]):
+                        for k in range(np.shape(_weights[1][i])[1]):
+                            if abs(_weights[1][i][j][k]) < pruning_rate:
+                                _weights[1][i][j][k] = 0.
+                    print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
+                else:  # バイアスプルーニング
+                    for j in range(np.shape(_weights[1][i])[0]):
+                        if abs(_weights[1][i][j]) < pruning_rate:
+                            _weights[1][i][j] = 0.
+            if binary_flag:
+                binary_classify.set_weights(_weights[1])
+                pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))],
+                                                                y_test)  # [0.026, 1.0]
+            else:
+                freezed_classify_1.set_weights(_weights[1])
+                pruned_test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+            print("pruning is done")
+            ### プルーニング率を微上昇させ性能検証
+        # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
+        if binary_flag:
+            binary_classify.set_weights(_weights[0])
+            binary_classify.save_weights(cf.Save_binary_classify_path)
+            classify.save_weights(cf.Save_classify_path)
+            for i in range(len(hidden_layers)):
+                hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
+        else:
+            freezed_classify_1.set_weights(_weights[0])
+            # freezed_classify_1.save(cf.Save_freezed_classify_1_path)
+    ### 重みプルーニング
+    return _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss
+
 
 class Main_test():
     def __init__(self):
@@ -750,48 +834,8 @@ class Main_test():
                 print("saved concated graph to -> {}".format(path))
             ### プルーニングなしのネットワーク構造を描画
 
-            ### 重みプルーニング
-            global pruning_rate
-            print("pruning_rate:{}".format(pruning_rate))
-            if pruning_rate >= 0:
-                while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 10:
-                    ### 精度98%以上となる重みを_weights[0]に確保
-                    _weights[0] = copy.deepcopy(_weights[1])
-                    ### 精度98%以上となる重みを_weights[0]に確保
-
-                    ### プルーニング率を微上昇させ性能検証
-                    pruning_rate += 0.01
-                    for i in range(np.shape(_weights[1])[0]):
-                        if _weights[1][i].ndim == 2: # 重みプルーニング
-                            print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
-                            for j in range(np.shape(_weights[1][i])[0]):
-                                for k in range(np.shape(_weights[1][i])[1]):
-                                    if abs(_weights[1][i][j][k]) < pruning_rate:
-                                        _weights[1][i][j][k] = 0.
-                            print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
-                        else:# バイアスプルーニング
-                            for j in range(np.shape(_weights[1][i])[0]):
-                                if abs(_weights[1][i][j]) < pruning_rate:
-                                    _weights[1][i][j] = 0.
-                    if binary_flag:
-                        binary_classify.set_weights(_weights[1])
-                        pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
-                    else:
-                        freezed_classify_1.set_weights(_weights[1])
-                        pruned_test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                    print("pruning is done")
-                    ### プルーニング率を微上昇させ性能検証
-                # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
-                if binary_flag:
-                    binary_classify.set_weights(_weights[0])
-                    binary_classify.save_weights(cf.Save_binary_classify_path)
-                    classify.save_weights(cf.Save_classify_path)
-                    for i in range(len(hidden_layers)):
-                        hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
-                else:
-                    freezed_classify_1.set_weights(_weights[0])
-                    # freezed_classify_1.save(cf.Save_freezed_classify_1_path)
-            ### 重みプルーニング
+            _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss\
+                = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
 
             ### 第1中間層ノードプルーニング
             active_nodes = []
@@ -904,7 +948,22 @@ class Main_test():
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
         print("saved concated graph to -> {}".format(path))
-        if not binary_flag:
+        if binary_flag:
+            _X_test=[[] for _ in range(2)]
+            _y_test=[[] for _ in range(2)]
+            class_acc = [[] for _ in range(2)]
+            for data, target in zip(X_test, y_test):
+                _X_test[np.argmax(target)].append(data)
+                _y_test[np.argmax(target)].append(target)
+            _X_test = np.array(_X_test)
+            _y_test = np.array(_y_test)
+            for i in range(len(class_acc)):
+                class_acc[i] = binary_classify.evaluate(
+                    [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
+            for i in range(len(class_acc)):
+                    print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target)+" " if i == 0 else "-1", class_acc[i][1]*100, len(_y_test[i])))
+        else:
+            global dataset_category
             _X_test=[[] for _ in range(dataset_category)]
             _y_test=[[] for _ in range(dataset_category)]
             class_acc = [[] for _ in range(dataset_category)]
@@ -913,16 +972,14 @@ class Main_test():
                 _y_test[np.argmax(target)].append(target)
             _X_test = np.array(_X_test)
             _y_test = np.array(_y_test)
-            # for i in range(len(y_test)):
-                # print("calicurate_class[{}]_acc".format(i))
-                # _X_test[np.argmax(y_test[i])].append(X_test[i])
-                # _y_test[np.argmax(y_test[i])].append(y_test[i])
             for i in range(len(class_acc)):
                 class_acc[i] = freezed_classify_1.evaluate(
                     [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
             for i in range(len(class_acc)):
                     print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
-            # print(class_acc)
+        for i in range(len(class_acc)):
+            print("{}: <- {}sample".format(i, len(_y_test[i])))
+
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
