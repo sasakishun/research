@@ -449,12 +449,45 @@ def load_concate_masks(active_true=False):
     else:
         return g_mask
 
+def generate_syncro_weights(binary_classify, size_only=False):
+    """
+    syncro_weights = [np.zeros((input_size, wSize)), np.zeros((wSize, ))]
+    for i in range(dataset_category):
+        binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
+        syncro_weights[0] = np.add(syncro_weights[0], binary_classify.get_weights()[0])
+        syncro_weights[1] = np.add(syncro_weights[1], (binary_classify.get_weights()[1])*np.load(cf.Save_layer_mask_path[i]))
+        # syncro_weights[1] = np.add(syncro_weights[1], binary_classify.get_weights()[1])
+        print("bias\n{}\n".format(binary_classify.get_weights()[1]))
+    """
+    if size_only:
+        return [np.ones((wSize, input_size)), np.ones(wSize)]
+    syncro_weights = [[], []]
+    for i in range(dataset_category):
+        binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
+        # _mask = np.zeros(10)
+        # _mask[i] = 1
+        # _mask[i+3] = 1
+        # _mask[i+6] = 1
+        _mask = np.load(cf.Save_layer_mask_path[i])
+        print("mask[{}]:{}".format(i, _mask))
+        for j in range(len(_mask)):
+            if _mask[j] == 1:
+                syncro_weights[0].append((binary_classify.get_weights()[0][:, j]).T)
+                syncro_weights[1].append(binary_classify.get_weights()[1][j])
+        if i == dataset_category - 1:
+            show_weight(binary_classify.get_weights())
+    syncro_weights = [np.array(syncro_weights[0]).T, np.array(syncro_weights[1])]
+    print("\n\n\n\nsyncro_weights:{}\n{}".format(syncro_weights[0].shape, syncro_weights[0]))
+    print("syncro_bias   :{}\n{}".format(syncro_weights[1].shape, syncro_weights[1]))
+    return syncro_weights
+
 
 class Main_train():
     def __init__(self):
         pass
 
     def train(self, load_model=False, use_mbd=False):
+        global wSize
         # 性能評価用パラメータ
         max_score = 0.
         if binary_flag:
@@ -480,7 +513,7 @@ class Main_train():
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
             print("classify.summary()")
-            classify.summary()
+            # classify.summary()
             if binary_flag:
                 print("binary_classify.summary()")
                 binary_classify.summary()
@@ -491,29 +524,25 @@ class Main_train():
                     hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
             else:
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
-                syncro_weights = [np.zeros((input_size, wSize)), np.zeros((wSize, ))]
-                for i in range(dataset_category):
-                    binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
-                    syncro_weights[0] = np.add(syncro_weights[0], binary_classify.get_weights()[0])
-                    syncro_weights[1] = np.add(syncro_weights[1], (binary_classify.get_weights()[1])*np.load(cf.Save_layer_mask_path[i]))
-                    # syncro_weights[1] = np.add(syncro_weights[1], binary_classify.get_weights()[1])
-                    print("bias\n{}\n".format(binary_classify.get_weights()[1]))
-                # exit()
-                # print("hiddden_layers[{}].summary()".format(0))
-                # hidden_layers[0].set_weights(syncro_weights)
-                # hidden_layers[0].save_weights(cf.Save_hidden_layers_path[0])
-                freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
+                syncro_weights = generate_syncro_weights(binary_classify)
+                wSize = len(syncro_weights[1])
+                g_mask_1 = np.ones(wSize)
+                g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
+                    = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
+
+                # freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 freezed_classify_1.set_weights(syncro_weights+(freezed_classify_1.get_weights()[2:]))
                 freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 show_weight(freezed_classify_1.get_weights())
                 im_architecture = mydraw(freezed_classify_1.get_weights(), -1,
-                                         comment="using all classes syncro graph\n{}".format(list(np.nonzero(g_mask_1))))
+                                         comment="using all classes syncro graph\n{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
                 ### ネットワーク構造を描画
                 im_h_resize = im_architecture
                 path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
                        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
                 cv2.imwrite(path, im_h_resize)
+                # exit()
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
 
         ### Prepare Training data　前処理
@@ -570,11 +599,11 @@ class Main_train():
             ### GAN用のreal画像、分類ラベル生成
 
             ### GAN用のfake画像、分類ラベル生成
-            fake_weight = g.predict([X_train[_inds], mask(g_mask_1, cf.Minibatch)], verbose=0)[1]
-            fake_labels = y_train[_inds]
+            # fake_weight = g.predict([X_train[_inds], mask(g_mask_1, cf.Minibatch)], verbose=0)[1]
+            # fake_labels = y_train[_inds]
             ### GAN用のfake画像、分類ラベル生成
 
-            t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
+            # t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
             # concated_weight = np.concatenate((fake_weight, real_weight))
             # concated_labels = np.concatenate((fake_labels, real_labels))
 
@@ -583,7 +612,7 @@ class Main_train():
             # else:
             d_loss = 0
 
-            t = np.array([0] * cf.Minibatch)
+            # t = np.array([0] * cf.Minibatch)
             # g_loss = 0 # c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
             if binary_flag:
                 ### 10クラス分類用NNも学習（1クラス前のlayer_maskのみ対象）
@@ -771,6 +800,7 @@ class Main_test():
         pass
 
     def test(self, loadflag=True):
+        global wSize
         ite = 0
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset, binary_flag=binary_flag)
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
@@ -802,23 +832,26 @@ class Main_test():
                 # for i in range(len(hidden_layers)):
                     # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
                 _weights = [binary_classify.get_weights(), binary_classify.get_weights()]
-            else:
-                freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
-                _weights = [freezed_classify_1.get_weights(), freezed_classify_1.get_weights()]
-            # _weights[高精度確定重み, プルーニング重み]
-
-            # print("_weights\n{}".format(_weights))
-            if binary_flag:
                 test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
                 # train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             else:
+                syncro_weights = generate_syncro_weights(binary_classify, size_only=True)
+                wSize = len(syncro_weights[1])
+                g_mask_1 = np.ones(wSize)
+                g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
+                    = weightGAN_Model(input_size=input_size, wSize=wSize, output_size=output_size, use_mbd=use_mbd)
+                freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
+                _weights = [freezed_classify_1.get_weights(), freezed_classify_1.get_weights()]
+                # _weights[高精度確定重み, プルーニング重み]
                 # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
+
+            # print("_weights\n{}".format(_weights))
             print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
 
             ### プルーニングなしのネットワーク構造を描画
@@ -961,7 +994,7 @@ class Main_test():
                 class_acc[i] = binary_classify.evaluate(
                     [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
             for i in range(len(class_acc)):
-                    print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target)+" " if i == 0 else "-1", class_acc[i][1]*100, len(_y_test[i])))
+                    print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target)+" " if i == 0 else "else", class_acc[i][1]*100, len(_y_test[i])))
         else:
             global dataset_category
             _X_test=[[] for _ in range(dataset_category)]
