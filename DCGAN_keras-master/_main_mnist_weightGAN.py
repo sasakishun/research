@@ -459,11 +459,14 @@ def generate_syncro_weights(binary_classify, size_only=False):
         # syncro_weights[1] = np.add(syncro_weights[1], binary_classify.get_weights()[1])
         print("bias\n{}\n".format(binary_classify.get_weights()[1]))
     """
-    if size_only:
-        return [np.ones((wSize, input_size)), np.ones(wSize)]
+    # if size_only:
+        # return [np.ones((wSize, input_size)), np.ones(wSize)]
     syncro_weights = [[], []]
     for i in range(dataset_category):
-        binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
+        try:
+            binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
+        except:
+            return [np.ones((wSize, input_size)), np.ones(wSize)]
         # _mask = np.zeros(10)
         # _mask[i] = 1
         # _mask[i+3] = 1
@@ -837,7 +840,7 @@ class Main_test():
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             else:
-                syncro_weights = generate_syncro_weights(binary_classify, size_only=True)
+                syncro_weights = generate_syncro_weights(binary_classify, size_only=(not loadflag))
                 wSize = len(syncro_weights[1])
                 g_mask_1 = np.ones(wSize)
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
@@ -851,8 +854,8 @@ class Main_test():
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
 
-            # print("_weights\n{}".format(_weights))
-            print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
+                # print("_weights\n{}".format(_weights))
+                print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
 
             ### プルーニングなしのネットワーク構造を描画
             if not binary_flag:
@@ -876,15 +879,15 @@ class Main_test():
             if binary_flag:
                 g_mask_1 = load_concate_masks(False) # activeでないノード=1
                 ### 欠落させると精度が落ちるノードを検出
-                pruned_test_val_acc = \
-                    binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]
+                pruned_train_val_acc = \
+                    binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)[1]
                 for i in range(wSize):
                     # g_mask_1 = np.ones(wSize)
                     g_mask_1[i] = 0
                     _acc = \
-                        binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)[1]  # [0.026, 1.0]
+                        binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)[1]  # [0.026, 1.0]
                     acc_list.append([_acc, i])
-                    if _acc < pruned_test_val_acc * 0.999:
+                    if _acc < pruned_train_val_acc * 0.999:
                         active_nodes.append(i)
                     g_mask_1[i] = 1
                 # g_mask_1 = load_concate_masks(active_true=True) # np.load(cf.Save_layer_mask_path)
@@ -912,7 +915,7 @@ class Main_test():
             else:
                 active_nodes = [-1]# g_mask_1
 
-        if (not load_model) and (pruning_rate >= 0):
+        if (not loadflag) and (pruning_rate >= 0):
             print("\nError : Please load Model to do pruning")
             exit()
         # t = np.array([0] * len(X_train))
@@ -1010,8 +1013,8 @@ class Main_test():
                     [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
             for i in range(len(class_acc)):
                     print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
-        for i in range(len(class_acc)):
-            print("{}: <- {}sample".format(i, len(_y_test[i])))
+        # for i in range(len(class_acc)):
+            # print("{}: <- {}sample".format(i, len(_y_test[i])))
 
     def _test(self):
         ## Load network model
