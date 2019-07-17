@@ -325,8 +325,8 @@ def digits_data(binary_flag=False):
 
     X_train, X_test = normalize(X_train, X_test)
     print("digit.data:{}".format(digits.data.shape))
-    print("X_train:{}".format(X_train.shape))
     print("digit.target:{}".format(digits.target.shape))
+    print("X_train:{}".format(X_train.shape))
     print("y_train:{}".format(y_train.shape))
     if binary_flag:
         X_train, X_test, y_train, y_test = digits_data_binary(usable, X_train, X_test, y_train, y_test)
@@ -462,6 +462,7 @@ def generate_syncro_weights(binary_classify, size_only=False):
     # if size_only:
         # return [np.ones((wSize, input_size)), np.ones(wSize)]
     syncro_weights = [[], []]
+    active_nodes_num = [0 for _ in range(output_size)]
     for i in range(dataset_category):
         try:
             binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
@@ -475,6 +476,7 @@ def generate_syncro_weights(binary_classify, size_only=False):
         print("mask[{}]:{}".format(i, _mask))
         for j in range(len(_mask)):
             if _mask[j] == 1:
+                active_nodes_num[i] += 1
                 syncro_weights[0].append((binary_classify.get_weights()[0][:, j]).T)
                 syncro_weights[1].append(binary_classify.get_weights()[1][j])
         if i == dataset_category - 1:
@@ -482,7 +484,7 @@ def generate_syncro_weights(binary_classify, size_only=False):
     syncro_weights = [np.array(syncro_weights[0]).T, np.array(syncro_weights[1])]
     print("\n\n\n\nsyncro_weights:{}\n{}".format(syncro_weights[0].shape, syncro_weights[0]))
     print("syncro_bias   :{}\n{}".format(syncro_weights[1].shape, syncro_weights[1]))
-    return syncro_weights
+    return syncro_weights, active_nodes_num
 
 
 class Main_train():
@@ -527,7 +529,7 @@ class Main_train():
                     hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
             else:
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
-                syncro_weights = generate_syncro_weights(binary_classify)
+                syncro_weights, _ = generate_syncro_weights(binary_classify)
                 wSize = len(syncro_weights[1])
                 g_mask_1 = np.ones(wSize)
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
@@ -763,6 +765,7 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
 
             ### プルーニング率を微上昇させ性能検証
             pruning_rate += 0.01
+            non_zero_num = 0
             for i in range(np.shape(_weights[1])[0]):
                 if _weights[1][i].ndim == 2:  # 重みプルーニング
                     print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
@@ -770,7 +773,10 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
                         for k in range(np.shape(_weights[1][i])[1]):
                             if abs(_weights[1][i][j][k]) < pruning_rate:
                                 _weights[1][i][j][k] = 0.
+                    non_zero_num += np.count_nonzero(_weights[1][i] > 0)
                     print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
+                    if non_zero_num == 0:
+                        break
                 else:  # バイアスプルーニング
                     for j in range(np.shape(_weights[1][i])[0]):
                         if abs(_weights[1][i][j]) < pruning_rate:
@@ -840,7 +846,7 @@ class Main_test():
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             else:
-                syncro_weights = generate_syncro_weights(binary_classify, size_only=(not loadflag))
+                syncro_weights, active_nodes_num = generate_syncro_weights(binary_classify, size_only=(not loadflag))
                 wSize = len(syncro_weights[1])
                 g_mask_1 = np.ones(wSize)
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
@@ -851,8 +857,9 @@ class Main_test():
                 # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                train_val_loss = freezed_classify_1.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
-                # pruned_train_val_loss = copy.deepcopy(train_val_loss)
+                pruned_train_val_loss = copy.deepcopy(train_val_loss)
 
                 # print("_weights\n{}".format(_weights))
                 print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
@@ -862,7 +869,7 @@ class Main_test():
                 im_architecture = mydraw(_weights[0], test_val_loss[1],
                                          comment=("[{} vs other]".format(binary_target) if binary_flag else "")
                                                  + " pruned <{:.4f}\n".format(0.)
-                                                 + "active_node:{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
+                                                 + "active_node:{}".format(active_nodes_num))# np.array(np.nonzero(g_mask_1)).tolist()[0]))
                 im_h_resize = im_architecture
                 path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
                        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
@@ -870,8 +877,10 @@ class Main_test():
                 print("saved concated graph to -> {}".format(path))
             ### プルーニングなしのネットワーク構造を描画
 
+            ### magnitude プルーニング
             _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss\
-                = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
+                = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
+            ### magnitude プルーニング
 
             ### 第1中間層ノードプルーニング
             active_nodes = []
@@ -969,7 +978,7 @@ class Main_test():
         im_architecture = mydraw(weights, test_val_loss[1],
                                  comment=("[{} vs other]".format(binary_target) if binary_flag else "")
                                          + " pruned <{:.4f}\n".format(pruning_rate)
-                                         + "active_node:{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0] if len(active_nodes)>0 else "None"))
+                                         + "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0] if len(active_nodes)>0 else "None")) if binary_flag else active_nodes_num)
         ### ネットワーク構造を描画
         im_h_resize = im_architecture
         """
