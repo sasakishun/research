@@ -1,17 +1,17 @@
-for /l %%a in (0, 1, 2) do (
-    python _main_mnist_weightGAN.py --balance --train --wSize 10 --binary_target %%a --no_mask
-    python _main_mnist_weightGAN.py --balance --test --wSize 10 --binary_target %%a --pruning_rate 0. --load_model
-)
-python _main_mnist_weightGAN.py --balance --train --wSize 10 --load_model
-python _main_mnist_weightGAN.py --balance --test --wSize 10 --pruning_rate 0. --load_model
-
 for /l %%a in (0, 1, 9) do (
-    python _main_mnist_weightGAN.py --digit --train --wSize 200 --binary_target %%a --no_mask
-    python _main_mnist_weightGAN.py --digit --test --wSize 200 --binary_target %%a --pruning_rate 0.
+    python _main_mnist_weightGAN.py --digit --train --binary_target %%a --no_mask
+    python _main_mnist_weightGAN.py --digit --test --binary_target %%a --pruning_rate 0.
 )
-python _main_mnist_weightGAN.py --digit --train --wSize 200 --load_model
-python _main_mnist_weightGAN.py --digit --test --wSize 200 --pruning_rate 0.
+python _main_mnist_weightGAN.py --digit --train --load_model
+python _main_mnist_weightGAN.py --digit --test --pruning_rate 0.
 
+
+for /l %%a in (0, 1, 2) do (
+    python _main_mnist_weightGAN.py --balance --train --wSize 100 --binary_target %%a --no_mask
+    python _main_mnist_weightGAN.py --balance --test --wSize 100 --binary_target %%a --pruning_rate 0. --load_model
+)
+python _main_mnist_weightGAN.py --balance --train --wSize 100 --load_model
+python _main_mnist_weightGAN.py --balance --test --wSize 100 --pruning_rate 0. --load_model
 
 goto end
 

@@ -58,19 +58,42 @@ def minibatch_discrimination(d_out):
     d_out = keras.layers.concatenate([d_out, x_mbd_true])
     return d_out
 
-def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False):
+def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_size=[]):
     ### 生成器定義
     activation = "relu"
-    _g_dense1 = Dense(wSize, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
+    """
+    if not binary_weights_setted:
+        _g_dense1 = Dense(wSize, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        _g_dense2 = Dense(max(wSize//2 ,2), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense2_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        _g_dense3 = Dense(max(wSize//4 ,2), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense3_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        _g_dense4 = Dense(max(wSize//8 ,2), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+    else:
+        _g_dense1 = Dense(wSize, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        _g_dense2 = Dense(max(wSize//2, 100), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense2_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        _g_dense3 = Dense(max(wSize//4, 50), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense3_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        _g_dense4 = Dense(max(wSize//8, 20), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_',
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+    """
+    _g_dense1 = Dense(dense_size[0], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-    _g_dense2 = Dense(wSize//2, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense2_',
+    _g_dense2 = Dense(dense_size[1], activation=activation, kernel_regularizer=regularizers.l1(0.01),
+                      name='g_dense2_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-    _g_dense3 = Dense(wSize//4, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense3_',
+    _g_dense3 = Dense(dense_size[2], activation=activation, kernel_regularizer=regularizers.l1(0.01),
+                      name='g_dense3_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-    _g_dense4 = Dense(wSize//8, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_',
+    _g_dense4 = Dense(dense_size[3], activation=activation, kernel_regularizer=regularizers.l1(0.01),
+                      name='g_dense4_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
     _g_dense_output = Dense(output_size, activation='softmax', name='x_out',
-                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=10, seed=None))
+                            kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=10, seed=None))
     ### 生成器定義
 
     ### 識別機定義
