@@ -834,15 +834,34 @@ def get_active_nodes(binary_classify, X_train, y_train):
     for i in active_nodes:
         concated_active[i] = 1
     np.save(cf.Save_layer_mask_path[binary_target], concated_active)  # g_mask_1)
-    # g_mask_1の内、占有ノードのみ使用できるようにする
-    # [0, 1, ...binary_target]でactiveとなったノードの集合
     g_mask_1 = concated_active  # load_concate_masks(active_true=True)
-    # for i in range(len(g_mask_1)):
-    # g_mask_1[i] = (g_mask_1[i] + 1) % 2
-    # g_mask_1 = list(np.bitwise_not(np.array(g_mask_1)))
     print("active_nodes:{}".format(active_nodes))
     ### 第1中間層ノードプルーニング
     return g_mask_1 # active_node箇所だけ1
+
+def shrink_nodes(model, target_layer):# int, np.array
+    # 入力 : 全クラス分類モデル、訓練データ、訓練ラベル
+    # 出力 : 不要ノードを削除したモデル
+    target_layer *= 2 # weigthsリストが[重み、バイアス....]となっているため
+    weigths = model.get_weights()
+    weights = [weigths, copy.deepcopy(weigths)] # [ソート前, ソート後]
+
+    # クラス別に訓練データを分割
+    # for i in range(クラス数):
+        # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
+        # activeノードの番号を保存 -> active_nodes[i].append(activeノード)
+    used_for_sort = [] # ソートに使用済みのノード番号リスト
+    # for i in range(クラス数):
+        # iクラスのactiveノードに繋がる重みで_weigths[target_layer]をソート（プルーニングなし）
+        # for j in range(len(active_nodes[i]):
+    # target_layer層のノード[len(used_for_sort):]部分を削除
+        # target層から出る重み削除
+        # target層に繋がる重み削除
+    
+    for i in range(np.shape(weights[target_layer])):
+        print()
+    return weightGAN_Model(input_size=input_size, wSize=dense_size[0], output_size=output_size, use_mbd=use_mbd,
+                          dense_size=dense_size)
 
 
 class Main_test():
@@ -1035,8 +1054,9 @@ class Main_test():
                     print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
             ### クラスごとのactiveネットワーク構造を描画
             for i in range(output_size):
+                print("\n\n\noutput_size:{}\nactive_nodes:{}".format(output_size, active_nodes_num))
                 print("generating_architecture.....")
-                im_architecture = active_route(copy.deepcopy(weights), acc=-1, comment="binary_target:{}".format(i), binary_target=i,
+                im_architecture = active_route(copy.deepcopy(weights), acc=class_acc[i][1], comment="binary_target:{}".format(i), binary_target=i,
                                                using_nodes=[sum(active_nodes_num[:i]), active_nodes_num[i]])
                 path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
                        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}.png".format(i))

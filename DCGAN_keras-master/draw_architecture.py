@@ -151,13 +151,14 @@ def mydraw(_weights, acc, comment=""):
         max_weight = max(max_weight, np.max(abs(weight)))
     print("max_weight:{}".format(max_weight))
 
-    nodes.append(np.shape(_weights[-1])[0])
+    nodes.append(np.shape(weights[-1])[1])
     # print("weights:{}\n{}".format([np.shape(weight) for weight in weights], weights))
     # for i in range(len(nodes)-1):
         # weights.append(np.ones((nodes[i+1], nodes[i])))
 
     print("nodes of each layer:{}".format(nodes))
-    print("weights:{}".format(np.shape(weights)))
+    print("weights:{}".format([np.shape(weights[i]) for i in range(len(weights))]))
+    print("_weights:{}".format([np.shape(_weights[i]) for i in range(len(_weights))]))
 
     for i in range(len(nodes)-1):
         network.add_layer(nodes[i], weights[i].T)
