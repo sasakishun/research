@@ -81,15 +81,15 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
         _g_dense4 = Dense(max(wSize//8, 20), activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense4_',
                           kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
     """
-    _g_dense1 = Dense(dense_size[0], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
+    _g_dense1 = Dense(dense_size[1], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='g_dense1_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-    _g_dense2 = Dense(dense_size[1], activation=activation, kernel_regularizer=regularizers.l1(0.01),
+    _g_dense2 = Dense(dense_size[2], activation=activation, kernel_regularizer=regularizers.l1(0.01),
                       name='g_dense2_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-    _g_dense3 = Dense(dense_size[2], activation=activation, kernel_regularizer=regularizers.l1(0.01),
+    _g_dense3 = Dense(dense_size[3], activation=activation, kernel_regularizer=regularizers.l1(0.01),
                       name='g_dense3_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-    _g_dense4 = Dense(dense_size[3], activation=activation, kernel_regularizer=regularizers.l1(0.01),
+    _g_dense4 = Dense(dense_size[4], activation=activation, kernel_regularizer=regularizers.l1(0.01),
                       name='g_dense4_',
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
     _g_dense_output = Dense(output_size, activation='softmax', name='x_out',
@@ -102,17 +102,26 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     ### 識別機定義
 
     ### 生成器の順伝播　[入力:inputs_z(入力画像) 出力:x(クラス分類結果)]
-    inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
-    g_mask_1 = Input(shape=(wSize,), name='g_mask_1')
+    g_mask_0 = Input(shape=(dense_size[0],), name='g_mask_0')
+    g_mask_1 = Input(shape=(dense_size[1],), name='g_mask_1')
+    g_mask_2 = Input(shape=(dense_size[2],), name='g_mask_2')
+    g_mask_3 = Input(shape=(dense_size[3],), name='g_mask_3')
+    g_mask_4 = Input(shape=(dense_size[4],), name='g_mask_4')
+    g_masks = [g_mask_0, g_mask_1, g_mask_2, g_mask_3, g_mask_4]
 
+    inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
+    # inputs_z = multiply([inputs_z, g_mask_0]) # inputの値を変更するのはエラー発生
     g_dense1 = _g_dense1(inputs_z)
-    # g_dense1 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense1)
     g_dense1 = multiply([g_dense1, g_mask_1])
+    # g_dense1 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense1)
     g_dense2 = _g_dense2(g_dense1)
+    g_dense2 = multiply([g_dense2, g_mask_2])
     # g_dense2 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense2)
     g_dense3 = _g_dense3(g_dense2)
+    g_dense3 = multiply([g_dense3, g_mask_3])
     # g_dense3 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense3)
     g_dense4 = _g_dense4(g_dense3)
+    g_dense4 = multiply([g_dense4, g_mask_4])
     # g_dense4 = BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001)(g_dense4)
     x = _g_dense_output(g_dense4)
     ### 生成器の順伝播　
@@ -141,10 +150,12 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     ### 識別器の順伝播
 
     ### モデル定義
-    g = Model(inputs=[inputs_z, g_mask_1], outputs=[x, g_dense1], name='G')
+    print("\n\n\n[inputs_z] + g_masks:{}\n\n\n".format([inputs_z] + g_masks))
+    exit()
+    g = Model(inputs=[inputs_z]+g_masks, outputs=[x, g_dense1], name='G')
     d = Model(inputs=[inputs_w, inputs_labels], outputs=[d_out_true], name='D')
-    c = Model(inputs=[inputs_z, inputs_labels, g_mask_1], outputs=[x, d_out_fake], name='C')  # end-to-end学習(g+d)
-    classify = Model(inputs=[inputs_z, g_mask_1], outputs=[x], name='classify')
+    c = Model(inputs=[inputs_z, inputs_labels]+g_masks, outputs=[x, d_out_fake], name='C')  # end-to-end学習(g+d)
+    classify = Model(inputs=[inputs_z]+g_masks, outputs=[x], name='classify')
     classify.compile(loss='categorical_crossentropy',
                      optimizer="adam",
                      metrics=[metrics.categorical_accuracy])
@@ -157,29 +168,29 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     for layer in d.layers:
         layer.trainable = True
 
-    binary_classify = Model(inputs=[inputs_z, g_mask_1], outputs=[binary_class_output], name='binary_classify')
+    binary_classify = Model(inputs=[inputs_z]+g_masks, outputs=[binary_class_output], name='binary_classify')
     binary_classify.compile(loss='categorical_crossentropy',
                      optimizer="adam",
                      metrics=[metrics.categorical_accuracy])
 
     d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
     d.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense1 = Model(inputs=[inputs_z, g_mask_1], outputs=[g_dense1], name='g_dense1')
+    G_dense1 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense1], name='g_dense1')
     G_dense1.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense2 = Model(inputs=[inputs_z, g_mask_1], outputs=[g_dense2], name='g_dense2')
+    G_dense2 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense2], name='g_dense2')
     G_dense2.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense3 = Model(inputs=[inputs_z, g_mask_1], outputs=[g_dense3], name='g_dense3')
+    G_dense3 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense3], name='g_dense3')
     G_dense3.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense4 = Model(inputs=[inputs_z, g_mask_1], outputs=[g_dense4], name='g_dense4')
+    G_dense4 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense4], name='g_dense4')
     G_dense4.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_output = Model(inputs=[inputs_z, g_mask_1], outputs=[x], name='g_dense_out')
+    G_output = Model(inputs=[inputs_z]+g_masks, outputs=[x], name='g_dense_out')
     G_output.compile(optimizer=d_opt, loss='mean_squared_error')
 
     for layer in G_dense1.layers:
         # print(layer.name)
         layer.trainable = False
     # exit()
-    freezed_classify_1 = Model(inputs=[inputs_z, g_mask_1], outputs=[x], name='freezed_classify_1')
+    freezed_classify_1 = Model(inputs=[inputs_z]+g_masks, outputs=[x], name='freezed_classify_1')
     freezed_classify_1.compile(loss='categorical_crossentropy',
                      optimizer="adam",
                      metrics=[metrics.categorical_accuracy])

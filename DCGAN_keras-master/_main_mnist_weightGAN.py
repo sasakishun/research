@@ -64,7 +64,7 @@ binary_target = -1
 pruning_rate=-1
 dataset_category = 10
 no_mask = False
-dense_size = [60, 32, 16, 10]
+dense_size = [64, 60, 32, 16, 10]
 
 def krkopt_data():
     _train = [[], []]
@@ -421,8 +421,15 @@ def getdata(dataset, binary_flag):
     elif dataset == "balance":
         return balance_data()
 
-def mask(_mask, batch_size):
-    return np.array([_mask for _ in range(batch_size)])
+def mask(mask, batch_size):
+    ### 1バッチ分のmask生成
+    _mask = np.array([np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))])
+    _mask[1] = np.array(mask)
+    ### 1バッチ分のmask生成
+
+    ###各maskをミニバッチサイズでそれぞれ複製
+    return [[_mask[i] for _ in range(batch_size)] for i in range(len(_mask))]
+    ###各maskをミニバッチサイズでそれぞれ複製
 
 def show_weight(weights):
     for i in range(len(weights)):
@@ -431,7 +438,7 @@ def show_weight(weights):
 
 def load_concate_masks(active_true=False):
     ### 保存されているmaskにおける、and集合を返す
-    g_mask = np.zeros(dense_size[0])
+    g_mask = np.zeros(dense_size[1])
     for i in range(dataset_category):
         _g_mask = np.load(cf.Save_layer_mask_path[i])
         if g_mask.shape != _g_mask.shape:
@@ -446,7 +453,7 @@ def load_concate_masks(active_true=False):
         for i in range(len(g_mask)):
             g_mask[i] = (g_mask[i] + 1) % 2
     if no_mask:
-        return np.ones(dense_size[0])
+        return np.ones(dense_size[1])
     else:
         return g_mask
 
@@ -468,7 +475,7 @@ def generate_syncro_weights(binary_classify, size_only=False):
         try:
             binary_classify.load_weights(cf.Save_binary_classify_path[:-3] + str(i) + cf.Save_binary_classify_path[-3:])
         except:
-            return [np.ones((dense_size[0], input_size)), np.ones(dense_size[0])]
+            return [np.ones((dense_size[1], input_size)), np.ones(dense_size[1])]
         _mask = np.load(cf.Save_layer_mask_path[i])
         print("mask[{}]:{}".format(i, _mask))
         for j in range(len(_mask)):
@@ -495,7 +502,7 @@ class Main_train():
         if binary_flag:
             if binary_target == 0:
                 # active nodesなしで初期化
-                g_mask_1 = np.zeros(dense_size[0])
+                g_mask_1 = np.zeros(dense_size[1])
                 ### layer_maskファイルを全初期化
                 for i in range(dataset_category):
                     np.save(cf.Save_layer_mask_path[i], g_mask_1)
@@ -504,10 +511,10 @@ class Main_train():
                 g_mask_1 = load_concate_masks(active_true=False)
         else:
             g_mask_1 = load_concate_masks(active_true=True)# np.load(cf.Save_layer_mask_path)
-            # g_mask_1 = np.ones(dense_size[0])
-        print("dense_size[0]:{}".format(dense_size[0]))
+            # g_mask_1 = np.ones(dense_size[1])
+        print("dense_size[1]:{}".format(dense_size[1]))
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
-            = weightGAN_Model(input_size=input_size, wSize=dense_size[0], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
+            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
         if load_model:
             freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
             g.load_weights(cf.Save_g_path)
@@ -527,10 +534,10 @@ class Main_train():
             else:
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
                 syncro_weights, _ = generate_syncro_weights(binary_classify)
-                dense_size[0] = len(syncro_weights[1])
-                g_mask_1 = np.ones(dense_size[0])
+                dense_size[1] = len(syncro_weights[1])
+                g_mask_1 = np.ones(dense_size[1])
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
-                    = weightGAN_Model(input_size=input_size, wSize=dense_size[0], output_size=output_size, use_mbd=use_mbd, dense_size = dense_size)
+                    = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size = dense_size)
 
                 # freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 freezed_classify_1.set_weights(syncro_weights+(freezed_classify_1.get_weights()[2:]))
@@ -573,7 +580,7 @@ class Main_train():
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
 
             ### GAN用の真画像(real_weight)、分類ラベル(real_labels)生成
-            real_weight = np.zeros((cf.Minibatch, dense_size[0]))
+            real_weight = np.zeros((cf.Minibatch, dense_size[1]))
             real_labels = np.zeros((cf.Minibatch, output_size))
             """
             for i in range(cf.Minibatch):
@@ -624,9 +631,20 @@ class Main_train():
                 # ten_inds = ten_data_inds[ten_train_ind * cf.Minibatch: (ten_train_ind + 1) * cf.Minibatch]
                 # freezed_loss = freezed_classify_1.train_on_batch([ten_X_train[ten_inds], mask(load_concate_masks(active_true=True), cf.Minibatch)], ten_y_train[ten_inds])
                 ###
-                g_loss = binary_classify.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])  # 生成器を学習
+                print("X_train[_inds]:{}".format(np.shape(X_train[_inds])))
+                print("mask(g_mask_1, cf.Minibatch):{}".format([np.shape(i) for i in mask(g_mask_1, cf.Minibatch)]))
+                print("X_train[_inds]+mask(g_mask_1, cf.Minibatch):{}".format(
+                    [np.shape(i) for i in list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)]))
+                inputs_z = list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)
+                for i in range(len(inputs_z)):
+                    print("inputs_z[{}]:{}".format(i, np.shape(inputs_z[i])))
+                for i in range(len(inputs_z)):
+                    print(" inputs_z[{}][0]:{}".format(i, np.shape(inputs_z[i][0])))
+                    print(" inputs_z[{}][0]:{}".format(i, inputs_z[i][0]))
+                g_loss = binary_classify.train_on_batch(
+                    [list(np.array([X_train[_inds]])) + mask(g_mask_1, cf.Minibatch)], y_train[_inds])
             else:
-                g_loss = freezed_classify_1.train_on_batch([X_train[_inds], mask(g_mask_1, cf.Minibatch)], y_train[_inds])
+                g_loss = freezed_classify_1.train_on_batch(X_train[_inds]+mask(g_mask_1, cf.Minibatch), y_train[_inds])
                 # g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], mask(g_mask_1, cf.Minibatch)], [y_train[_inds], t])  # 生成器を学習
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
@@ -811,7 +829,7 @@ def get_active_nodes(binary_classify, X_train, y_train):
     ### 欠落させると精度が落ちるノードを検出
     pruned_train_val_acc = \
         binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)[1]
-    for i in range(dense_size[0]):
+    for i in range(dense_size[1]):
         # g_mask_1 = np.ones(wSize)
         g_mask_1[i] = 0
         _acc = \
@@ -824,13 +842,13 @@ def get_active_nodes(binary_classify, X_train, y_train):
         # for i in active_nodes:
         # g_mask_1[i] = 0 # active_nodeは使用中フラグを立てる
     if len(active_nodes) == 0:
-        for i in range(dense_size[0]):
+        for i in range(dense_size[1]):
             _acc_list = sorted(acc_list)
             if g_mask_1[_acc_list[-i - 1][1]] == 1:
                 active_nodes.append(_acc_list[-1][1])
                 break
                 # g_mask_1[sorted(acc_list)[-1][1]] = 0
-    concated_active = np.zeros(dense_size[0])
+    concated_active = np.zeros(dense_size[1])
     for i in active_nodes:
         concated_active[i] = 1
     np.save(cf.Save_layer_mask_path[binary_target], concated_active)  # g_mask_1)
@@ -839,7 +857,48 @@ def get_active_nodes(binary_classify, X_train, y_train):
     ### 第1中間層ノードプルーニング
     return g_mask_1 # active_node箇所だけ1
 
-def shrink_nodes(model, target_layer):# int, np.array
+def get_active_node_non_mask(model, X_train, y_train, target_layer):
+    active_nodes = [[] for _ in range(output_size)]  # 整数リスト　g_maskはone-hot表現
+    acc_list = [[] for _ in range(output_size)]
+    target_layer *= 2
+    g_mask_1 = np.ones(np.shape(model.get_weights())[target_layer][0])# load_concate_masks(False)  # activeでないノード=1
+    for i in range(len(X_train)):
+        ### 欠落させると精度が落ちるノードを検出
+        pruned_train_val_acc = model.evaluate([X_train, mask(g_mask_1, len(X_train[i]))], y_train[i])[1]
+        for j in range(len(g_mask_1)):
+            g_mask_1[i] = 0
+            _acc = model.evaluate([X_train[j], mask(g_mask_1, len(X_train[j]))], y_train[j])[1]
+            acc_list.append([_acc, i])
+            if _acc < pruned_train_val_acc * 0.999:
+                active_nodes.append(i)
+            g_mask_1[i] = 1
+        if len(active_nodes) == 0:
+            for i in range(dense_size[1]):
+                _acc_list = sorted(acc_list)
+                if g_mask_1[_acc_list[-i - 1][1]] == 1:
+                    active_nodes.append(_acc_list[-1][1])
+                    break
+                    # g_mask_1[sorted(acc_list)[-1][1]] = 0
+    concated_active = np.zeros(dense_size[1])
+    for i in active_nodes:
+        concated_active[i] = 1
+    np.save(cf.Save_layer_mask_path[binary_target], concated_active)  # g_mask_1)
+    g_mask_1 = concated_active  # load_concate_masks(active_true=True)
+    print("active_nodes:{}".format(active_nodes))
+    return g_mask_1  # active_node箇所だけ1
+
+
+def divide_data(X_test, y_test):
+    global dataset_category
+    _X_test = [[] for _ in range(dataset_category)]
+    _y_test = [[] for _ in range(dataset_category)]
+    class_acc = [[] for _ in range(dataset_category)]
+    for data, target in zip(X_test, y_test):
+        _X_test[np.argmax(target)].append(data)
+        _y_test[np.argmax(target)].append(target)
+    return X_test, _y_test
+
+def shrink_nodes(model, target_layer, Xtrain, y_train):# int, np.array
     # 入力 : 全クラス分類モデル、訓練データ、訓練ラベル
     # 出力 : 不要ノードを削除したモデル
     target_layer *= 2 # weigthsリストが[重み、バイアス....]となっているため
@@ -847,8 +906,11 @@ def shrink_nodes(model, target_layer):# int, np.array
     weights = [weigths, copy.deepcopy(weigths)] # [ソート前, ソート後]
 
     # クラス別に訓練データを分割
-    # for i in range(クラス数):
+    X_trains, y_trains = divide_data(Xtrain, y_train)
+    for i in range(output_size):    # for i in range(クラス数):
         # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
+        active_nodes = [[] for _ in range(output_size)]
+        # for i in range()
         # activeノードの番号を保存 -> active_nodes[i].append(activeノード)
     used_for_sort = [] # ソートに使用済みのノード番号リスト
     # for i in range(クラス数):
@@ -857,10 +919,10 @@ def shrink_nodes(model, target_layer):# int, np.array
     # target_layer層のノード[len(used_for_sort):]部分を削除
         # target層から出る重み削除
         # target層に繋がる重み削除
-    
+
     for i in range(np.shape(weights[target_layer])):
         print()
-    return weightGAN_Model(input_size=input_size, wSize=dense_size[0], output_size=output_size, use_mbd=use_mbd,
+    return weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
                           dense_size=dense_size)
 
 
@@ -874,7 +936,7 @@ class Main_test():
         ite = 0
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset, binary_flag=binary_flag)
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
-            = weightGAN_Model(input_size=input_size, wSize=dense_size[0], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
+            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
         g_mask_1 = load_concate_masks(active_true=(not binary_flag))# np.load(cf.Save_layer_mask_path)
         # g_mask_1 = np.ones(wSize)
         print("g_mask(usable):{}".format(g_mask_1))
@@ -908,10 +970,10 @@ class Main_test():
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             else:
                 syncro_weights, active_nodes_num = generate_syncro_weights(binary_classify, size_only=(not loadflag))
-                dense_size[0] = len(syncro_weights[1])
-                g_mask_1 = np.ones(dense_size[0])
+                dense_size[1] = len(syncro_weights[1])
+                g_mask_1 = np.ones(dense_size[1])
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
-                    = weightGAN_Model(input_size=input_size, wSize=dense_size[0], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
+                    = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 _weights = [freezed_classify_1.get_weights(), freezed_classify_1.get_weights()]
                 # _weights[高精度確定重み, プルーニング重み]
@@ -1242,6 +1304,7 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_iris import *
         dataset = "balance"
+    dense_size[0] = input_size
     if args.binary_target >= 0:
         binary_flag = True
         binary_target = args.binary_target
