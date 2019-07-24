@@ -907,7 +907,7 @@ def divide_data(X_test, y_test):
         _y_test[i] = np.array(_y_test[i])
     return _X_test, _y_test
 
-def shrink_nodes(model, target_layer, X_train, y_train):
+def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
     # model: freezed_classify_1のみ対応
     # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
     # 出力 : 不要ノードを削除したモデル(model)
@@ -919,12 +919,12 @@ def shrink_nodes(model, target_layer, X_train, y_train):
     for i in range(output_size):    # for i in range(クラス数):
         # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
         pruned_train_val_acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
-        for j in range(len(_mask[target_layer])):
-            _mask[target_layer][j] = 0
+        for j in range(len(_mask[target_layer//2])):
+            _mask[target_layer//2][j] = 0
             _acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
             if _acc < pruned_train_val_acc * 0.999:
                 active_nodes[i].append(j)# activeノードの番号を保存 -> active_nodes[i].append(activeノード)
-            _mask[target_layer][j] = 1
+            _mask[target_layer//2][j] = 1
     print("active_nodes:{}".format(active_nodes))
     usable = [True for _ in range(len(_mask[target_layer//2]))] # ソートに使用済みのノード番号リスト
     altered_weights = [[], [], []]# [np.zeros((weights[target_layer]).shape),
@@ -954,11 +954,11 @@ def shrink_nodes(model, target_layer, X_train, y_train):
     freezed_classify_1.set_weights(weights)
 
     _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
-    im_architecture = mydraw(weights, freezed_classify_1.evaluate(inputs_z(X_train, _mask), y_train)[1],
+    im_architecture = mydraw(weights, freezed_classify_1.evaluate(inputs_z(X_test, _mask), y_test)[1],
                              comment="shrinking layer[{}]".format(target_layer//2))
     im_h_resize = im_architecture
     path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
-           + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+           + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}_.png".format(target_layer//2))
     cv2.imwrite(path, im_h_resize)
     print("saved concated graph to -> {}".format(path))
     return freezed_classify_1
@@ -1025,8 +1025,6 @@ class Main_test():
 
                 # print("_weights\n{}".format(_weights))
                 print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
-                # shrink_nodes(model=freezed_classify_1, target_layer=2, X_train=X_train, y_train=y_train)
-                # exit()
             ### プルーニングなしのネットワーク構造を描画
             # if not binary_flag:
             im_architecture = mydraw(_weights[0], test_val_loss[1],
@@ -1110,7 +1108,6 @@ class Main_test():
                                          + "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0]
                                                                     if sum(g_mask_1) > 0 else "None")
                                                                    if binary_flag else active_nodes_num))
-        ### ネットワーク構造を描画
 
         im_h_resize = im_architecture
         """
@@ -1124,6 +1121,7 @@ class Main_test():
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
                + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
+        ### ネットワーク構造を描画
         print("saved concated graph to -> {}".format(path))
         if binary_flag:
             _X_test=[[] for _ in range(2)]
@@ -1139,6 +1137,9 @@ class Main_test():
             for i in range(len(class_acc)):
                     print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target)+" " if i == 0 else "else", class_acc[i][1]*100, len(_y_test[i])))
         else:
+            for target_layer in range(1, len(dense_size)):
+                freezed_classify_1 = shrink_nodes(model=freezed_classify_1, target_layer=target_layer,
+                                                  X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
             global dataset_category
             _X_test=[[] for _ in range(dataset_category)]
             _y_test=[[] for _ in range(dataset_category)]
