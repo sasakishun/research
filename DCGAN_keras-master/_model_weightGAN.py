@@ -204,6 +204,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     ### モデル定義
 
     ### モデル構造を出力
+    """
     print("g.summary()")
     g.summary()
     print("d.summary()")
@@ -212,9 +213,10 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     c.summary()
     print("classify.summary()")
     classify.summary()
+    """
     hidden_layers=[G_dense1, G_dense2, G_dense3, G_dense4, G_output]
-    for i in range(len(hidden_layers)):
-        print("hiddden_layers[{}].summary()".format(i))
-        hidden_layers[i].summary()
-    freezed_classify_1.summary()
+    # for i in range(len(hidden_layers)):
+        # print("hiddden_layers[{}].summary()".format(i))
+        # hidden_layers[i].summary()
+    # freezed_classify_1.summary()
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1

@@ -417,13 +417,15 @@ def getdata(dataset, binary_flag):
     elif dataset == "balance":
         return balance_data()
 
-def mask(mask, batch_size):
+def mask(masks, batch_size):
     ### 1バッチ分のmask生成
-    _mask = np.array([np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))])
-    if mask.ndim == 1:
-        _mask[1] = np.array(mask)
+    _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
+    # print("masks({}):{}".format(type(masks), [np.shape(i) for i in masks]))
+    # print("_mask({}):{}".format(type(_mask), [np.shape(i) for i in _mask]))
+    if type(masks) is list:
+        _mask = masks
     else:
-        _mask = mask
+        _mask[1] = np.array(masks)
     ### 1バッチ分のmask生成
 
     ###各maskをミニバッチサイズでそれぞれ複製
@@ -491,6 +493,8 @@ def generate_syncro_weights(binary_classify, size_only=False):
     return syncro_weights, active_nodes_num
 
 def inputs_z(X_test, g_mask_1):
+    # print("\nlist(np.array([X_test])) + mask(g_mask_1, len(X_test)):{}"
+          # .format([np.shape(i) for i in list(np.array([X_test])) + mask(g_mask_1, len(X_test))]))
     return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
 
 class Main_train():
@@ -808,7 +812,7 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
                 pruned_test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1),y_test)  # [0.026, 1.0]
             else:
                 freezed_classify_1.set_weights(_weights[1])
-                pruned_test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+                pruned_test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
             print("pruning is done")
             ### プルーニング率を微上昇させ性能検証
         # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
@@ -891,30 +895,29 @@ def get_active_node_non_mask(model, X_train, y_train, target_layer):
     print("active_nodes:{}".format(active_nodes))
     return g_mask_1  # active_node箇所だけ1
 
-
 def divide_data(X_test, y_test):
     global dataset_category
     _X_test = [[] for _ in range(dataset_category)]
     _y_test = [[] for _ in range(dataset_category)]
-    class_acc = [[] for _ in range(dataset_category)]
     for data, target in zip(X_test, y_test):
-        _X_test[np.argmax(target)].append(data)
-        _y_test[np.argmax(target)].append(target)
-    return X_test, _y_test
+        _X_test[np.argmax(target)].append(np.array(data))
+        _y_test[np.argmax(target)].append(np.array(target))
+    for i in range(dataset_category):
+        _X_test[i] = np.array(_X_test[i])
+        _y_test[i] = np.array(_y_test[i])
+    return _X_test, _y_test
 
-def shrink_nodes(model, target_layer, X_train, y_train):# int, np.array
-    # 入力 : 全クラス分類モデル、訓練データ、訓練ラベル
-    # 出力 : 不要ノードを削除したモデル
+def shrink_nodes(model, target_layer, X_train, y_train):
+    # model: freezed_classify_1のみ対応
+    # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
+    # 出力 : 不要ノードを削除したモデル(model)
     target_layer *= 2 # weigthsリストが[重み、バイアス....]となっているため
-    weigths = model.get_weights()
-    weights = [weigths, copy.deepcopy(weigths)] # [ソート前, ソート後]
-    _mask = np.array([np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))])
-
-    # クラス別に訓練データを分割
-    X_trains, y_trains = divide_data(X_train, y_train)
+    weights = model.get_weights()
+    _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
+    active_nodes = [[] for _ in range(output_size)]
+    X_trains, y_trains = divide_data(X_train, y_train) # クラス別に訓練データを分割
     for i in range(output_size):    # for i in range(クラス数):
         # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
-        active_nodes = [[] for _ in range(output_size)]
         pruned_train_val_acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
         for j in range(len(_mask[target_layer])):
             _mask[target_layer][j] = 0
@@ -922,21 +925,44 @@ def shrink_nodes(model, target_layer, X_train, y_train):# int, np.array
             if _acc < pruned_train_val_acc * 0.999:
                 active_nodes[i].append(j)# activeノードの番号を保存 -> active_nodes[i].append(activeノード)
             _mask[target_layer][j] = 1
-    used_nodes = [False for _ in range(len(_mask[target_layer]))] # ソートに使用済みのノード番号リスト
-    print("used_nodes:{}".format(used_nodes))
-    upper_weights = weigths[0][target_layer]
-    under_biases = weigths[0][target_layer+1]
-    under_weights = weigths[0][target_layer+2]
+    print("active_nodes:{}".format(active_nodes))
+    usable = [True for _ in range(len(_mask[target_layer//2]))] # ソートに使用済みのノード番号リスト
+    altered_weights = [[], [], []]# [np.zeros((weights[target_layer]).shape),
+                       # np.zeros((weights[target_layer - 1]).shape),
+                       # np.zeros((weights[target_layer + 2]).shape)]
+    for i in range(output_size):
+        for j in range(len(active_nodes[i])):
+            # print("i:{} j:{} usable:{}".format(i, j, usable))
+            if usable[active_nodes[i][j]]:
+                used_num = sum(1 for x in usable if not x)
+                altered_weights[0].append(weights[target_layer-2][:, active_nodes[i][j]])
+                altered_weights[1].append(weights[target_layer-1][active_nodes[i][j]])
+                altered_weights[2].append(weights[target_layer][active_nodes[i][j]])
+            usable[active_nodes[i][j]] = False
+    for i in range(len(altered_weights)):
+        altered_weights[i] = np.array(altered_weights[i])
+        if i == 0:
+            altered_weights[0] = altered_weights[0].T
+    # print("\naltered_weights:{}\n".format([np.shape(i) for i in altered_weights]))
+    # print("\ntaregt_weights:{}\n".format([np.shape(i) for i in weights[target_layer-2:target_layer+1]]))
+    weights[target_layer-2] = altered_weights[0][:, :sum(1 for x in usable if not x)]
+    weights[target_layer-1] = altered_weights[1][:sum(1 for x in usable if not x)]
+    weights[target_layer] = altered_weights[2][:sum(1 for x in usable if not x)]
+    dense_size[target_layer//2] = sum(1 for x in usable if not x)
+    g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
+            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)    
+    freezed_classify_1.set_weights(weights)
 
-    # for i in range(クラス数):
-        # iクラスのactiveノードに繋がる重みで_weigths[target_layer]をソート（プルーニングなし)
-        #  for j in range(len(active_nodes[i]):
-    # target_layer層のノード[len(used_for_sort):]部分を削除
-        # target層から出る重み削除
-        # target層に繋がる重み削除
+    _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
+    im_architecture = mydraw(weights, freezed_classify_1.evaluate(inputs_z(X_train, _mask), y_train)[1],
+                             comment="shrinking layer[{}]".format(target_layer//2))
+    im_h_resize = im_architecture
+    path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
+           + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+    cv2.imwrite(path, im_h_resize)
+    print("saved concated graph to -> {}".format(path))
+    return freezed_classify_1
 
-    return weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
-                          dense_size=dense_size)
 
 
 class Main_test():

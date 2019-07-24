@@ -6,7 +6,8 @@ python _main_mnist_weightGAN.py --digit --train --load_model
 python _main_mnist_weightGAN.py --digit --test --pruning_rate 0.
 
 goto end
-python _main_mnist_weightGAN.py --digit --train --binary_target 0 --no_mask
+python _main_mnist_weightGAN.py --digit --train --binary_target 1 --no_mask
+python _main_mnist_weightGAN.py --digit --test --binary_target 1 --pruning_rate 0.
 for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --digit --train --binary_target %%a --no_mask
     python _main_mnist_weightGAN.py --digit --test --binary_target %%a --pruning_rate 0.
