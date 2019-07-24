@@ -26,7 +26,8 @@ KTF.set_learning_phase(1)
 ###
 
 from keras.utils import np_utils
-from tensorflow_model_optimization.sparsity import keras as sparsity
+# from tensorflow_model_optimization.sparsity import keras as sparsity
+"""
 pruning_params = {
       'pruning_schedule': sparsity.PolynomialDecay(initial_sparsity=0.50,
                                                    final_sparsity=0.90,
@@ -34,6 +35,7 @@ pruning_params = {
                                                    end_step=10000,
                                                    frequency=100)
 }
+"""
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
     abs_diffs = K.sum(K.abs(diffs), 2)
@@ -109,7 +111,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     g_mask_4 = Input(shape=(dense_size[4],), name='g_mask_4')
     g_masks = [g_mask_0, g_mask_1, g_mask_2, g_mask_3, g_mask_4]
 
-    inputs_z = Input(shape=(input_size,), name='Z')  # 入力を取得
+    inputs_z = Input(shape=(dense_size[0],), name='Z')  # 入力を取得
     # inputs_z = multiply([inputs_z, g_mask_0]) # inputの値を変更するのはエラー発生
     g_dense1 = _g_dense1(inputs_z)
     g_dense1 = multiply([g_dense1, g_mask_1])
@@ -150,8 +152,13 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     ### 識別器の順伝播
 
     ### モデル定義
-    print("\n\n\n[inputs_z] + g_masks:{}\n\n\n".format([inputs_z] + g_masks))
-    exit()
+    for i in range(len([inputs_z] + g_masks)):
+        print("([inputs_z] + g_masks)[{}]:{}".format(i, ([inputs_z] + g_masks)[i]))
+    for i in range(len(dense_size)):
+        print("dense_size[{}]:{}".format(i, dense_size[i]))
+    for i in range(len(g_masks)):
+        print("g_masks[{}]:{}".format(i, g_masks[i]))
+
     g = Model(inputs=[inputs_z]+g_masks, outputs=[x, g_dense1], name='G')
     d = Model(inputs=[inputs_w, inputs_labels], outputs=[d_out_true], name='D')
     c = Model(inputs=[inputs_z, inputs_labels]+g_masks, outputs=[x, d_out_fake], name='C')  # end-to-end学習(g+d)

@@ -38,8 +38,8 @@ import tensorflow as tf
 from draw_architecture import *
 
 ### モデル量子化
-from keras.models import load_model
-from keras_compressor.compressor import compress
+# from keras.models import load_model
+# from keras_compressor.compressor import compress
 ### モデル量子化
 
 old_session = KTF.get_session()
@@ -225,24 +225,20 @@ def augumentaton(train, target):
     for i in range(len(train)):
         samples[target[i]][0].append(train[i])
         samples[target[i]][1].append(target[i])
-    _max = 0
-    for i in range(len(samples)):
-        print("{}: {} samples".format(i, len(samples[i][0])))
-        _max = max(_max, len(samples[i][0]))
+    _max = max([len(samples[i][0]) for i in range(len(samples))])
+    print("samples_num: {}".format([len(samples[i][0]) for i in range(len(samples))]))
     for i in range(len(samples)):
         if len(samples[i][0]) < _max:
             scale = _max // len(samples[i][0]) - 1
             origin = copy.deepcopy(samples[i])
-            print("i:{} scale:{}".format(i, scale))
+            # print("i:{} scale:{}".format(i, scale))
             for j in range(scale):
                 # print(samples[i][0])
                 samples[i][0]+=origin[0]
                 samples[i][1]+=origin[1]
             samples[i][0] += origin[0][:_max - len(samples[i][0])]
             samples[i][1] += origin[1][:_max - len(samples[i][1])]
-    print("augumentated")
-    for i in range(len(samples)):
-        print("{}: {} samples".format(i, len(samples[i][0])))
+    print("     augumentated -> {}".format([len(samples[i][0]) for i in range(len(samples))]))
     train = []
     target = []
     for i in range(len(samples)):
@@ -424,11 +420,15 @@ def getdata(dataset, binary_flag):
 def mask(mask, batch_size):
     ### 1バッチ分のmask生成
     _mask = np.array([np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))])
-    _mask[1] = np.array(mask)
+    if mask.ndim == 1:
+        _mask[1] = np.array(mask)
+    else:
+        _mask = mask
     ### 1バッチ分のmask生成
 
     ###各maskをミニバッチサイズでそれぞれ複製
-    return [[_mask[i] for _ in range(batch_size)] for i in range(len(_mask))]
+    return [np.array([_mask[i] for _ in range(batch_size)]) for i in range(len(_mask))]
+    # mask[0]*32, mask[1]*32,...を返す
     ###各maskをミニバッチサイズでそれぞれ複製
 
 def show_weight(weights):
@@ -490,6 +490,8 @@ def generate_syncro_weights(binary_classify, size_only=False):
     print("syncro_bias   :{}\n{}".format(syncro_weights[1].shape, syncro_weights[1]))
     return syncro_weights, active_nodes_num
 
+def inputs_z(X_test, g_mask_1):
+    return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
 
 class Main_train():
     def __init__(self):
@@ -511,8 +513,6 @@ class Main_train():
                 g_mask_1 = load_concate_masks(active_true=False)
         else:
             g_mask_1 = load_concate_masks(active_true=True)# np.load(cf.Save_layer_mask_path)
-            # g_mask_1 = np.ones(dense_size[1])
-        print("dense_size[1]:{}".format(dense_size[1]))
         g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
             = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
         if load_model:
@@ -631,31 +631,30 @@ class Main_train():
                 # ten_inds = ten_data_inds[ten_train_ind * cf.Minibatch: (ten_train_ind + 1) * cf.Minibatch]
                 # freezed_loss = freezed_classify_1.train_on_batch([ten_X_train[ten_inds], mask(load_concate_masks(active_true=True), cf.Minibatch)], ten_y_train[ten_inds])
                 ###
-                print("X_train[_inds]:{}".format(np.shape(X_train[_inds])))
-                print("mask(g_mask_1, cf.Minibatch):{}".format([np.shape(i) for i in mask(g_mask_1, cf.Minibatch)]))
-                print("X_train[_inds]+mask(g_mask_1, cf.Minibatch):{}".format(
-                    [np.shape(i) for i in list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)]))
-                inputs_z = list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)
-                for i in range(len(inputs_z)):
-                    print("inputs_z[{}]:{}".format(i, np.shape(inputs_z[i])))
-                for i in range(len(inputs_z)):
-                    print(" inputs_z[{}][0]:{}".format(i, np.shape(inputs_z[i][0])))
-                    print(" inputs_z[{}][0]:{}".format(i, inputs_z[i][0]))
-                g_loss = binary_classify.train_on_batch(
-                    [list(np.array([X_train[_inds]])) + mask(g_mask_1, cf.Minibatch)], y_train[_inds])
+                # print("X_train[_inds]:{}".format(np.shape(X_train[_inds])))
+                # print("mask(g_mask_1, cf.Minibatch):{}".format([np.shape(i) for i in mask(g_mask_1, cf.Minibatch)]))
+                # print("X_train[_inds]+mask(g_mask_1, cf.Minibatch):{}".format(
+                    # [np.shape(i) for i in list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)]))
+                # for i in range(len(inputs_z)):
+                    # print("inputs_z[{}]:{} type:{}".format(i, np.shape(inputs_z[i]), type(inputs_z[i])))
+                # for i in range(len(inputs_z)):
+                    # print(" inputs_z[{}][0]:{} type:{}".format(i, np.shape(inputs_z[i][0]), type(inputs_z[i][0])))
+                    # print(" inputs_z[{}][0]:{}".format(i, inputs_z[i][0]))
+                # binary_classify.summary()
+                g_loss = binary_classify.train_on_batch(inputs_z(X_train[_inds], g_mask_1), y_train[_inds])
             else:
-                g_loss = freezed_classify_1.train_on_batch(X_train[_inds]+mask(g_mask_1, cf.Minibatch), y_train[_inds])
+                g_loss = freezed_classify_1.train_on_batch(inputs_z(X_train[_inds], g_mask_1), y_train[_inds])
                 # g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], mask(g_mask_1, cf.Minibatch)], [y_train[_inds], t])  # 生成器を学習
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
                 if binary_flag:
-                    test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                    train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                    test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)
+                    train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 else:
                     # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                     # train_val_loss = classify.evaluate([X_train,mask(g_mask_1 ,len(X_train))], y_train)
-                    test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                    train_val_loss = freezed_classify_1.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                    test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
+                    train_val_loss = freezed_classify_1.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 max_score = max(max_score, test_val_loss[1])
                 # if binary_flag:
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.2f}, d: {:.2f}, test_val: loss:{:.6f} acc:{:.6f}".format(
@@ -721,6 +720,12 @@ class Main_train():
         f.close()
         ## Save trained model
         if binary_flag:
+            print("binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)[1]:{}"
+                  .format(binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)[1]))
+            if binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)[1] < 0.9:
+                _Main_train = Main_train()
+                _Main_train.train(load_model=load_model, use_mbd=use_mbd)
+                exit()
             d.save_weights(cf.Save_d_path)
             g.save_weights(cf.Save_g_path)
             c.save_weights(cf.Save_c_path)
@@ -735,7 +740,6 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
-
 
 def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False, comment=""):
     print("\n{}".format(" test" if testflag else "train"))
@@ -801,8 +805,7 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
                             _weights[1][i][j] = 0.
             if binary_flag:
                 binary_classify.set_weights(_weights[1])
-                pruned_test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))],
-                                                                y_test)  # [0.026, 1.0]
+                pruned_test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1),y_test)  # [0.026, 1.0]
             else:
                 freezed_classify_1.set_weights(_weights[1])
                 pruned_test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
@@ -828,12 +831,12 @@ def get_active_nodes(binary_classify, X_train, y_train):
     g_mask_1 = load_concate_masks(False)  # activeでないノード=1
     ### 欠落させると精度が落ちるノードを検出
     pruned_train_val_acc = \
-        binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)[1]
+        binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)[1]
     for i in range(dense_size[1]):
         # g_mask_1 = np.ones(wSize)
         g_mask_1[i] = 0
         _acc = \
-            binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)[1]  # [0.026, 1.0]
+            binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)[1]  # [0.026, 1.0]
         acc_list.append([_acc, i])
         if _acc < pruned_train_val_acc * 0.999:
             active_nodes.append(i)
@@ -862,6 +865,7 @@ def get_active_node_non_mask(model, X_train, y_train, target_layer):
     acc_list = [[] for _ in range(output_size)]
     target_layer *= 2
     g_mask_1 = np.ones(np.shape(model.get_weights())[target_layer][0])# load_concate_masks(False)  # activeでないノード=1
+
     for i in range(len(X_train)):
         ### 欠落させると精度が落ちるノードを検出
         pruned_train_val_acc = model.evaluate([X_train, mask(g_mask_1, len(X_train[i]))], y_train[i])[1]
@@ -898,30 +902,39 @@ def divide_data(X_test, y_test):
         _y_test[np.argmax(target)].append(target)
     return X_test, _y_test
 
-def shrink_nodes(model, target_layer, Xtrain, y_train):# int, np.array
+def shrink_nodes(model, target_layer, X_train, y_train):# int, np.array
     # 入力 : 全クラス分類モデル、訓練データ、訓練ラベル
     # 出力 : 不要ノードを削除したモデル
     target_layer *= 2 # weigthsリストが[重み、バイアス....]となっているため
     weigths = model.get_weights()
     weights = [weigths, copy.deepcopy(weigths)] # [ソート前, ソート後]
+    _mask = np.array([np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))])
 
     # クラス別に訓練データを分割
-    X_trains, y_trains = divide_data(Xtrain, y_train)
+    X_trains, y_trains = divide_data(X_train, y_train)
     for i in range(output_size):    # for i in range(クラス数):
         # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
         active_nodes = [[] for _ in range(output_size)]
-        # for i in range()
-        # activeノードの番号を保存 -> active_nodes[i].append(activeノード)
-    used_for_sort = [] # ソートに使用済みのノード番号リスト
+        pruned_train_val_acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
+        for j in range(len(_mask[target_layer])):
+            _mask[target_layer][j] = 0
+            _acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
+            if _acc < pruned_train_val_acc * 0.999:
+                active_nodes[i].append(j)# activeノードの番号を保存 -> active_nodes[i].append(activeノード)
+            _mask[target_layer][j] = 1
+    used_nodes = [False for _ in range(len(_mask[target_layer]))] # ソートに使用済みのノード番号リスト
+    print("used_nodes:{}".format(used_nodes))
+    upper_weights = weigths[0][target_layer]
+    under_biases = weigths[0][target_layer+1]
+    under_weights = weigths[0][target_layer+2]
+
     # for i in range(クラス数):
-        # iクラスのactiveノードに繋がる重みで_weigths[target_layer]をソート（プルーニングなし）
-        # for j in range(len(active_nodes[i]):
+        # iクラスのactiveノードに繋がる重みで_weigths[target_layer]をソート（プルーニングなし)
+        #  for j in range(len(active_nodes[i]):
     # target_layer層のノード[len(used_for_sort):]部分を削除
         # target層から出る重み削除
         # target層に繋がる重み削除
 
-    for i in range(np.shape(weights[target_layer])):
-        print()
     return weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
                           dense_size=dense_size)
 
@@ -964,7 +977,7 @@ class Main_test():
                 # for i in range(len(hidden_layers)):
                     # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
                 _weights = [binary_classify.get_weights(), binary_classify.get_weights()]
-                test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)  # [0.026, 1.0]
+                test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)  # [0.026, 1.0]
                 # train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 # pruned_train_val_loss = copy.deepcopy(train_val_loss)
@@ -979,14 +992,15 @@ class Main_test():
                 # _weights[高精度確定重み, プルーニング重み]
                 # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
                 # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
-                test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                train_val_loss = freezed_classify_1.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+                test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
+                train_val_loss = freezed_classify_1.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 pruned_train_val_loss = copy.deepcopy(train_val_loss)
 
                 # print("_weights\n{}".format(_weights))
                 print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
-
+                # shrink_nodes(model=freezed_classify_1, target_layer=2, X_train=X_train, y_train=y_train)
+                # exit()
             ### プルーニングなしのネットワーク構造を描画
             # if not binary_flag:
             im_architecture = mydraw(_weights[0], test_val_loss[1],
@@ -1019,15 +1033,15 @@ class Main_test():
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
         if binary_flag:
-            test_val_loss = binary_classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test) # [0.026, 1.0]
-            train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
+            test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test) # [0.026, 1.0]
+            train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
             # binary_classify.load_weights(cf.Save_binary_classify_path)
             weights = binary_classify.get_weights()# classify.get_weights()
         else:
             # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
             # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
             # weights = classify.get_weights()
-            test_val_loss = freezed_classify_1.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
+            test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
             weights = freezed_classify_1.get_weights()
         """
         if not binary_flag:
@@ -1095,8 +1109,7 @@ class Main_test():
             _X_test = np.array(_X_test)
             _y_test = np.array(_y_test)
             for i in range(len(class_acc)):
-                class_acc[i] = binary_classify.evaluate(
-                    [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
+                class_acc[i] = binary_classify.evaluate(inputs_z(_X_test[i], g_mask_1), np.array(_y_test[i]))
             for i in range(len(class_acc)):
                     print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target)+" " if i == 0 else "else", class_acc[i][1]*100, len(_y_test[i])))
         else:
@@ -1107,11 +1120,13 @@ class Main_test():
             for data, target in zip(X_test, y_test):
                 _X_test[np.argmax(target)].append(data)
                 _y_test[np.argmax(target)].append(target)
-            _X_test = np.array(_X_test)
-            _y_test = np.array(_y_test)
+            for i in range(len(_X_test)):
+                _X_test[i] = np.array(_X_test[i])
+                _y_test[i] = np.array(_y_test[i])
+            # _X_test = np.array(_X_test)
+            # _y_test = np.array(_y_test)
             for i in range(len(class_acc)):
-                class_acc[i] = freezed_classify_1.evaluate(
-                    [np.array(_X_test[i]), mask(g_mask_1, len(_X_test[i]))], np.array(_y_test[i]))
+                class_acc[i] = freezed_classify_1.evaluate(inputs_z(_X_test[i], g_mask_1), _y_test[i])
             for i in range(len(class_acc)):
                     print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
             ### クラスごとのactiveネットワーク構造を描画
