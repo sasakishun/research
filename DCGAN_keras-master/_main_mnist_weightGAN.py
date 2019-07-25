@@ -793,6 +793,9 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
             if binary_flag:
                 pruning_layers = 2
             for i in range(pruning_layers):
+                if (not binary_flag) and i < 2:
+                    # 10クラス分類時には第一中間層重みはプルーニングしない
+                    continue
                 if _weights[1][i].ndim == 2:  # 重みプルーニング
                     print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
                     for j in range(np.shape(_weights[1][i])[0]):
