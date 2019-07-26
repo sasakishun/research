@@ -1143,6 +1143,7 @@ class Main_test():
             for target_layer in range(1, len(dense_size)):
                 freezed_classify_1 = shrink_nodes(model=freezed_classify_1, target_layer=target_layer,
                                                   X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
+            weights = freezed_classify_1.get_weights()
             global dataset_category
             _X_test=[[] for _ in range(dataset_category)]
             _y_test=[[] for _ in range(dataset_category)]
