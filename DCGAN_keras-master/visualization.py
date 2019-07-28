@@ -16,7 +16,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
             plt.xticks(range(len(x[i][0])))
             xtick_flag = True
     _max_list_size = min(100, _max_list_size)
-    plt.figure(figsize=(10, _max_list_size // 2 + 5), dpi=100)
+    plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],

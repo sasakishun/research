@@ -748,15 +748,17 @@ class Main_train():
 def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False, comment=""):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
-    # print("labels:{}".format(labels_scalar))
+    # print("labels_scalar:{}".format(labels_scalar))
+    # print("classify:{}".format(classify))
     layer1_outs = [[[], [], []] for _ in range(output_size)]
     for i in range(len(labels_scalar)):
         layer1_outs[labels_scalar[i]][0].append(input[i])  # 入力
         layer1_outs[labels_scalar[i]][1].append(layer1_out[i])  # 中間層出力
         layer1_outs[labels_scalar[i]][2].append(classify[i])  # 分類層出力
     # print("layer1_outs:{}".format(layer1_outs))
+    """
     for i in range(len(layer1_outs)):
-        print("\nlabel:{}".format(i))
+        # print("\nlabel:{}".format(i))
         for j in range(len(layer1_outs[i][0])):
             # print("{}".format(np.argmax(layer1_outs[i][2][j])))
             if dataset == "iris":
@@ -771,6 +773,7 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
                 # print("\nlabel:{} input / {}\n{}".format(i, len(layer1_outs[i][0]), np.array(layer1_outs[i][0])))
                 # print("label:{} layer1_outs / {}\n{}".format(i, len(layer1_outs[i][1]), np.array(layer1_outs[i][1])))
                 # print("label:{} x_outs / {}\n{}".format(i, len(layer1_outs[i][2]), np.array(layer1_outs[i][2])))
+    """
     return visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
                      testflag, showflag=showflag, comment=comment)
     # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
@@ -985,6 +988,7 @@ class Main_test():
         g_mask_1 = load_concate_masks(active_true=(not binary_flag))# np.load(cf.Save_layer_mask_path)
         # g_mask_1 = np.ones(wSize)
         print("g_mask(usable):{}".format(g_mask_1))
+
         """
         if not binary_flag:
             for i in range(len(g_mask_1)):
@@ -1161,8 +1165,6 @@ class Main_test():
             for i in range(len(_X_test)):
                 _X_test[i] = np.array(_X_test[i])
                 _y_test[i] = np.array(_y_test[i])
-            # _X_test = np.array(_X_test)
-            # _y_test = np.array(_y_test)
             for i in range(len(class_acc)):
                 class_acc[i] = freezed_classify_1.evaluate(inputs_z(_X_test[i], g_mask_1), _y_test[i])
             for i in range(len(class_acc)):
@@ -1183,6 +1185,48 @@ class Main_test():
                        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}.png".format(i))
                 cv2.imwrite(path, im_architecture)
             ### クラスごとのactiveネットワーク構造を描画
+
+            ### 各層の出力を描画
+            im_input_train = show_result(input=X_train, onehot_labels=y_train,
+                                         layer1_out=X_train,
+                                         ite=cf.Iteration, classify=np.round(
+                    freezed_classify_1.predict(inputs_z(X_train, g_mask_1), verbose=0)),
+                                         testflag=False, showflag=True, comment="input")
+            im_input_test = show_result(input=X_test, onehot_labels=y_test,
+                                         layer1_out=X_test,
+                                         ite=cf.Iteration, classify=np.round(freezed_classify_1.predict(inputs_z(X_test, g_mask_1), verbose=0)),
+                                         testflag=True, showflag=True, comment="input")
+            im_g_dense_train = [[] for _ in range(len(hidden_layers))]
+            im_g_dense_test = [[] for _ in range(len(hidden_layers))]
+
+            print("im_g_dense:{}".format(im_g_dense_train))
+            for i in range(len(hidden_layers)):
+                im_g_dense_train[i].append(show_result(input=X_train, onehot_labels=y_train,
+                                                 layer1_out=hidden_layers[i].predict(inputs_z(X_train, g_mask_1),
+                                                                                     verbose=0),
+                                                 ite=cf.Iteration, classify=np.round(
+                        freezed_classify_1.predict(inputs_z(X_train, g_mask_1), verbose=0)), testflag=False,
+                                                 showflag=True, comment="dense{}".format(i)))
+                im_g_dense_test[i].append(show_result(input=X_test, onehot_labels=y_test,
+                                                 layer1_out=hidden_layers[i].predict(inputs_z(X_test, g_mask_1), verbose=0),
+                                                 ite=cf.Iteration, classify=np.round(freezed_classify_1.predict(inputs_z(X_test, g_mask_1), verbose=0)), testflag=True,
+                                                 showflag=True, comment="dense{}".format(i)))
+            im_h_resize_train = im_input_train
+            for im in im_g_dense_train:
+                im_h_resize_train = hconcat_resize_min([im_h_resize_train, hconcat_resize_min(im)])
+            im_h_resize_test = im_input_test
+            for im in im_g_dense_test:
+                im_h_resize_test = hconcat_resize_min([im_h_resize_test, hconcat_resize_min(im)])
+            # im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
+            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
+                   + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+            cv2.imwrite(path, im_h_resize_train)
+            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
+                   + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+            cv2.imwrite(path, im_h_resize_test)
+            ### 各層の出力を描画
+
+
     def _test(self):
         ## Load network model
         g = G_model(Height=Height, Width=Width, channel=Channel)
