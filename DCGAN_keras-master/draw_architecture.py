@@ -221,6 +221,97 @@ def active_route(_weights, acc, comment="", binary_target=-1, using_nodes=[]):
                 g_mask_1 = [g_mask_1[1], []]
     return mydraw(weights, acc, comment=comment+"\nusing_node:[{}:{}]".format(using_nodes[0], sum(using_nodes)))
 
+def _active_route(_weights, acc, comment="", binary_target=-1, using_nodes=[], active_nodes=[]):
+    # _weightsはバイアスを含まない重み集合
+    import config_mnist as cf
+    import copy
+    weights = []
+    for i in range(np.shape(_weights)[0]):
+        # print("\n_weights[{}]:{}\n{}".format(i, np.shape(_weights[i]), _weights[i]))
+        if _weights[i].ndim == 2:
+            weights.append(_weights[i])
+    print("\nbinary_target:{}".format(binary_target))
+    print("weights")
+    for i in range(len(weights)):
+        print(weights[i].shape)
+    print("using_nodes:{}".format(using_nodes))
+    if binary_target >= 0:
+        g_mask_1 = [[0  for _ in range(weights[0].shape[1])], [0  for _ in range(weights[1].shape[1])]]
+        # g_mask_1 = [[今のactive], [次層のactive]]
+        for i in range(using_nodes[0], sum(using_nodes)):
+            g_mask_1[0][i] = 1
+
+        for i in range(len(weights)-1):
+            print("g_mask_1:{}".format([len(g_mask_1[0]), len(g_mask_1[1])]))
+            print("g_mask_1[0]:{}".format(g_mask_1[0]))
+            print("g_mask_1[1]:{}".format(g_mask_1[1]))
+            print("i:{} / {}".format(i, len(weights)-1))
+            # i層目に着目
+            for j in range(weights[i].shape[0]):
+                # i層目j番ノードに着目
+                print(" j:{} / {}".format(j, weights[i].shape[0]))
+                for k in range(weights[i][j].shape[0]):
+                    if g_mask_1[0][k] == 0:
+                        # i層目j番ノードがactiveでない->繋がる重みを全て0に
+                        weights[i][j][k] = 0
+                        # i+1層目k番ノードがactive->そのノードとi+2層と繋がるノードをactiveに
+                        # if weights[i][j][k] != 0.:
+                            # g_mask_1[1][k] = 1
+            for k in range(weights[i+1].shape[0]):
+                for l in range(weights[i+1][k].shape[0]):
+                    if g_mask_1[0][k] == 0:
+                        # i層目j番ノードがactiveでない->繋がる重みを全て0に
+                        weights[i+1][k][l] = 0
+            # 次のactiveを設定
+            if i < len(weights) - 1:
+                for k in range(weights[i+1].shape[0]):
+                    if g_mask_1[0][k] == 1:
+                        for l in range(weights[i+1][k].shape[0]):
+                            if weights[i+1][k][l] != 0:
+                                g_mask_1[1][l] = 1
+            if i < len(weights) - 2:
+                g_mask_1 = [copy.deepcopy(g_mask_1[1]), [0 for _ in range(weights[i+2].shape[1])]]
+            else:
+                g_mask_1 = [g_mask_1[1], []]
+    return mydraw(weights, acc, comment=comment+"\nusing_node:[{}:{}]".format(using_nodes[0], sum(using_nodes)))
+
+def active_route(_weights, acc, comment="", binary_target=-1, using_nodes=[], active_nodes=[]):
+    # _weights : バイアスを含まない重み行列
+    # active_nodes : クラス(binary_target)において使用するノード番号リスト
+    import config_mnist as cf
+    import copy
+    print("active_nodes:{}".format(active_nodes))
+    weights = []
+    for i in range(np.shape(_weights)[0]):
+        if _weights[i].ndim == 2:
+            weights.append(_weights[i])
+    _active_nodes = [[0 for _ in range(np.shape(weights[i])[0])] for i in range(len(weights))]
+    print("_active_nodes:{}".format([np.shape(i) for i in _active_nodes]))
+    if not active_nodes[0]:
+        _active_nodes[0] = [1 for _ in range(np.shape(_weights[0])[0])]
+    for i in range(len(active_nodes)):
+        for j in range(len(active_nodes[i])):
+            _active_nodes[i][j] = 1
+    for i in range(len(_active_nodes)):
+        print("_active_nodes[{}]:{}".format(i, _active_nodes[i]))
+    print("\nbinary_target:{}".format(binary_target))
+    print("weights")
+    for i in range(len(weights)):
+        print(weights[i].shape)
+    if binary_target >= 0:
+        for i in range(1, len(weights)):
+            # i層目に着目
+            for j in range(weights[i].shape[0]):
+                # i層目j番ノードに着目
+                print("i:{} j:{}".format(i, j))
+                if _active_nodes[i][j] == 0:
+                    for k in range(weights[i][j].shape[0]):
+                        weights[i][j][k] = 0
+                    for k in range(weights[i-1].shape[0]):
+                        weights[i-1][k][j] = 0
+    return mydraw(weights, acc, comment=comment+"\nusing_node:[{}:{}]".format(using_nodes[0], sum(using_nodes)))
+
+
 if __name__ == "__main__":
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2

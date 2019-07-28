@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -502,6 +501,7 @@ class Main_train():
         pass
 
     def train(self, load_model=False, use_mbd=False):
+        print("\n\n-----training-----\n\n")
         global dense_size
         # 性能評価用パラメータ
         max_score = 0.
@@ -910,7 +910,7 @@ def divide_data(X_test, y_test):
         _y_test[i] = np.array(_y_test[i])
     return _X_test, _y_test
 
-def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
+def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_active_list=False):
     # model: freezed_classify_1のみ対応
     # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
     # 出力 : 不要ノードを削除したモデル(model)
@@ -929,6 +929,8 @@ def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
                 active_nodes[i].append(j)# activeノードの番号を保存 -> active_nodes[i].append(activeノード)
             _mask[target_layer//2][j] = 1
     print("active_nodes:{}".format(active_nodes))
+    if only_active_list:
+        return active_nodes
     usable = [True for _ in range(len(_mask[target_layer//2]))] # ソートに使用済みのノード番号リスト
     altered_weights = [[], [], []]# [np.zeros((weights[target_layer]).shape),
                        # np.zeros((weights[target_layer - 1]).shape),
@@ -973,6 +975,7 @@ class Main_test():
         pass
 
     def test(self, loadflag=True):
+        print("\n\n-----test-----\n\n")
         # global wSize
         global dense_size
         ite = 0
@@ -1043,7 +1046,8 @@ class Main_test():
 
             ### magnitude プルーニング
             _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss\
-                = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
+                = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
+                # = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
             ### magnitude プルーニング
 
             ### 第1中間層ノードプルーニング
@@ -1144,6 +1148,9 @@ class Main_test():
                 freezed_classify_1 = shrink_nodes(model=freezed_classify_1, target_layer=target_layer,
                                                   X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
             weights = freezed_classify_1.get_weights()
+            architecture = [np.shape(weights[i*2])[0] for i in range(len(weights)//2)]
+            g_mask_1 = [np.ones((architecture[i])) for i in range(len(architecture))]
+            print("g_mask_1:{}".format([np.shape(i) for i in g_mask_1]))
             global dataset_category
             _X_test=[[] for _ in range(dataset_category)]
             _y_test=[[] for _ in range(dataset_category)]
@@ -1160,12 +1167,18 @@ class Main_test():
                 class_acc[i] = freezed_classify_1.evaluate(inputs_z(_X_test[i], g_mask_1), _y_test[i])
             for i in range(len(class_acc)):
                     print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
+            active_nodes = [[[] for __ in range(output_size)] for _ in range(len(weights)//2)]
+            for i in range(1, len(active_nodes)):
+                active_nodes[i] = shrink_nodes(model=freezed_classify_1, target_layer=i,
+                                               X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, only_active_list=True)
+            for i in range(len(active_nodes)):
+                print("active_nodes[{}]:{}".format(i, active_nodes[i]))
             ### クラスごとのactiveネットワーク構造を描画
             for i in range(output_size):
                 print("\n\n\noutput_size:{}\nactive_nodes:{}".format(output_size, active_nodes_num))
                 print("generating_architecture.....")
                 im_architecture = active_route(copy.deepcopy(weights), acc=class_acc[i][1], comment="binary_target:{}".format(i), binary_target=i,
-                                               using_nodes=[sum(active_nodes_num[:i]), active_nodes_num[i]])
+                                               using_nodes=[sum(active_nodes_num[:i]), active_nodes_num[i]], active_nodes=[_active[i] for _active in active_nodes])
                 path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
                        + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}.png".format(i))
                 cv2.imwrite(path, im_architecture)
