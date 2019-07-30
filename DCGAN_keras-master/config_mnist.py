@@ -24,8 +24,8 @@ Input_type = 'channels_last'
 File_extensions = ['.jpg', '.png']
 
 ## Training config
-Iteration = 100000# 0#
-Minibatch = 32# 64
+Iteration = 1000000
+Minibatch = 16# 32# 64
 
 ## Test config
 ## The total number of generated images is Test_Minibatch * Test_num

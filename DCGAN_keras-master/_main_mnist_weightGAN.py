@@ -1003,7 +1003,6 @@ class Main_test():
                 classify.load_weights(cf.Save_classify_path)
                 binary_classify.load_weights(cf.Save_binary_classify_path)
                 print("load:{}".format(cf.Save_binary_classify_path))
-                # exit()
                 for i in range(len(hidden_layers)):
                     hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
                 # g = compress(g, 7e-1)
@@ -1199,6 +1198,11 @@ class Main_test():
             im_g_dense_train = [[] for _ in range(len(hidden_layers))]
             im_g_dense_test = [[] for _ in range(len(hidden_layers))]
 
+            _, _, _, _, hidden_layers, _, _ \
+                = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
+                                  dense_size=dense_size)
+            for i in range(len(hidden_layers)):
+                hidden_layers[i].set_weights(freezed_classify_1.get_weights()[:i*2+2])
             print("im_g_dense:{}".format(im_g_dense_train))
             for i in range(len(hidden_layers)):
                 im_g_dense_train[i].append(show_result(input=X_train, onehot_labels=y_train,
