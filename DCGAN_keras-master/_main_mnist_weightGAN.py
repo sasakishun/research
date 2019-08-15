@@ -60,10 +60,11 @@ wSize = 20
 dataset = ""
 binary_flag = False
 binary_target = -1
-pruning_rate=-1
+pruning_rate = -1
 dataset_category = 10
 no_mask = False
 dense_size = [64, 60, 32, 16, 10]
+
 
 def krkopt_data():
     _train = [[], []]
@@ -139,6 +140,7 @@ def krkopt_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def iris_data():
     X_train, X_test, y_train, y_test = \
         train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
@@ -151,6 +153,7 @@ def iris_data():
     print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
 
 def stringToList(_string, split=" "):
     str_list = []
@@ -165,6 +168,7 @@ def stringToList(_string, split=" "):
         str_list.append(temp)
     return str_list
 
+
 def normalize(X_train, X_test):
     # 正規化
     from sklearn.preprocessing import MinMaxScaler
@@ -173,6 +177,7 @@ def normalize(X_train, X_test):
     X_test = mmsc.transform(X_test)
     return X_train, X_test
 
+
 def standardize(X_train, X_test):
     # 標準化
     from sklearn.preprocessing import StandardScaler
@@ -180,6 +185,7 @@ def standardize(X_train, X_test):
     X_train = stdsc.fit_transform(X_train)
     X_test = stdsc.transform(X_test)
     return X_train, X_test
+
 
 def wine_data():
     ### .dataファイルを読み込む
@@ -192,12 +198,13 @@ def wine_data():
     _target = []
     for line in lines:
         line = stringToList(line, ",")
-        _target.append(int(line[0])-1) #今回はリストの先頭がクラスラベル(1 or 2 or 3)
-        _train.append([float(i) for i in line[1:]]) #それ以外は訓練データ
+        _target.append(int(line[0]) - 1)  # 今回はリストの先頭がクラスラベル(1 or 2 or 3)
+        _train.append([float(i) for i in line[1:]])  # それ以外は訓練データ
     ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
 
     X_train, X_test, y_train, y_test = \
-        train_test_split(np.array(_train), np.array(_target), test_size=0.1, train_size=0.9, shuffle=True, random_state=1)
+        train_test_split(np.array(_train), np.array(_target), test_size=0.1, train_size=0.9, shuffle=True,
+                         random_state=1)
 
     ### 各列で正規化
     # X_train, X_test = normalize(X_train, X_test)
@@ -219,6 +226,7 @@ def wine_data():
     # exit()
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def augumentaton(train, target):
     samples = [[[], []] for _ in range(dataset_category)]
     for i in range(len(train)):
@@ -233,8 +241,8 @@ def augumentaton(train, target):
             # print("i:{} scale:{}".format(i, scale))
             for j in range(scale):
                 # print(samples[i][0])
-                samples[i][0]+=origin[0]
-                samples[i][1]+=origin[1]
+                samples[i][0] += origin[0]
+                samples[i][1] += origin[1]
             samples[i][0] += origin[0][:_max - len(samples[i][0])]
             samples[i][1] += origin[1][:_max - len(samples[i][1])]
     print("     augumentated -> {}".format([len(samples[i][0]) for i in range(len(samples))]))
@@ -245,6 +253,7 @@ def augumentaton(train, target):
             train.append(samples[i][0][j])
             target.append(samples[i][1][j])
     return np.array(train), np.array(target)
+
 
 def balance_data():
     ### .dataファイルを読み込む
@@ -267,13 +276,14 @@ def balance_data():
         else:
             print("Dataset Error")
             exit()
-        _train.append([float(i) for i in line[1:]]) #それ以外は訓練データ
+        _train.append([float(i) for i in line[1:]])  # それ以外は訓練データ
     ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
 
-    normalize_array = np.full((len(_train), 4), 1/5)
+    normalize_array = np.full((len(_train), 4), 1 / 5)
     _train *= normalize_array
     X_train, X_test, y_train, y_test = \
-        train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+        train_test_split(np.array(_train), np.array(_target), test_size=0.2, train_size=0.8, shuffle=True,
+                         random_state=1)
     X_train, y_train = augumentaton(X_train, y_train)
     usable = [0, 1, 2]
     if binary_flag:
@@ -299,8 +309,9 @@ def balance_data():
     # exit()
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def digits_data(binary_flag=False):
-    usable = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]# random.sample([int(i) for i in range(10)], 2)
+    usable = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # random.sample([int(i) for i in range(10)], 2)
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
     _X_train, _y_train = digits.data, digits.target
@@ -338,6 +349,7 @@ def digits_data(binary_flag=False):
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     X_train = []
     y_train = []
@@ -346,7 +358,7 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     for i in range(len(_y_train)):
         if _y_train[i] == usable[binary_target]:
             # _y_train[i] = 1
-            for j in range(len(usable)-1):# データ数をそろえる処理
+            for j in range(len(usable) - 1):  # データ数をそろえる処理
                 y_train.append([1])
                 X_train.append(_X_train[i])
         else:
@@ -356,7 +368,7 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     for i in range(len(_y_test)):
         if _y_test[i] == usable[binary_target]:
             # _y_test[i] = 1
-            for j in range(len(usable)-1):
+            for j in range(len(usable) - 1):
                 y_test.append([1])
                 X_test.append(_X_test[i])
         else:
@@ -370,6 +382,7 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     y_train = np_utils.to_categorical(y_train, 2)
     y_test = np_utils.to_categorical(y_test, 2)
     return X_train, X_test, y_train, y_test
+
 
 def mnist_data():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -388,6 +401,7 @@ def mnist_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -404,10 +418,11 @@ def my_tqdm(ite):
     ### 学習進行状況表示
     return con
 
+
 def getdata(dataset, binary_flag):
     if dataset == "iris":
         return iris_data()
-    elif  dataset == "mnist":
+    elif dataset == "mnist":
         return mnist_data()
     elif dataset == "digits":
         return digits_data(binary_flag=binary_flag)
@@ -415,6 +430,7 @@ def getdata(dataset, binary_flag):
         return wine_data()
     elif dataset == "balance":
         return balance_data()
+
 
 def mask(masks, batch_size):
     ### 1バッチ分のmask生成
@@ -432,10 +448,12 @@ def mask(masks, batch_size):
     # mask[0]*32, mask[1]*32,...を返す
     ###各maskをミニバッチサイズでそれぞれ複製
 
+
 def show_weight(weights):
     for i in range(len(weights)):
         print("\n{}\n".format(np.shape(weights[i])))
         print(weights[i])
+
 
 def load_concate_masks(active_true=False):
     ### 保存されているmaskにおける、and集合を返す
@@ -458,6 +476,7 @@ def load_concate_masks(active_true=False):
     else:
         return g_mask
 
+
 def generate_syncro_weights(binary_classify, size_only=False):
     """
     syncro_weights = [np.zeros((input_size, wSize)), np.zeros((wSize, ))]
@@ -469,7 +488,7 @@ def generate_syncro_weights(binary_classify, size_only=False):
         print("bias\n{}\n".format(binary_classify.get_weights()[1]))
     """
     # if size_only:
-        # return [np.ones((wSize, input_size)), np.ones(wSize)]
+    # return [np.ones((wSize, input_size)), np.ones(wSize)]
     syncro_weights = [[], []]
     active_nodes_num = [0 for _ in range(output_size)]
     for i in range(dataset_category):
@@ -491,10 +510,12 @@ def generate_syncro_weights(binary_classify, size_only=False):
     print("syncro_bias   :{}\n{}".format(syncro_weights[1].shape, syncro_weights[1]))
     return syncro_weights, active_nodes_num
 
+
 def inputs_z(X_test, g_mask_1):
     # print("\nlist(np.array([X_test])) + mask(g_mask_1, len(X_test)):{}"
-          # .format([np.shape(i) for i in list(np.array([X_test])) + mask(g_mask_1, len(X_test))]))
+    # .format([np.shape(i) for i in list(np.array([X_test])) + mask(g_mask_1, len(X_test))]))
     return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
+
 
 class Main_train():
     def __init__(self):
@@ -512,13 +533,14 @@ class Main_train():
                 ### layer_maskファイルを全初期化
                 for i in range(dataset_category):
                     np.save(cf.Save_layer_mask_path[i], g_mask_1)
-                g_mask_1 = load_concate_masks(active_true=False)# [1,1,1,1,...1]
+                g_mask_1 = load_concate_masks(active_true=False)  # [1,1,1,1,...1]
             else:
                 g_mask_1 = load_concate_masks(active_true=False)
         else:
-            g_mask_1 = load_concate_masks(active_true=True)# np.load(cf.Save_layer_mask_path)
-        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
-            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
+            g_mask_1 = load_concate_masks(active_true=True)  # np.load(cf.Save_layer_mask_path)
+        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
+            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
+                              dense_size=dense_size)
         if load_model:
             freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
             g.load_weights(cf.Save_g_path)
@@ -541,19 +563,23 @@ class Main_train():
                 dense_size[1] = len(syncro_weights[1])
                 g_mask_1 = np.ones(dense_size[1])
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
-                    = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size = dense_size)
+                    = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size,
+                                      use_mbd=use_mbd, dense_size=dense_size)
 
                 # freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
-                freezed_classify_1.set_weights(syncro_weights+(freezed_classify_1.get_weights()[2:]))
+                freezed_classify_1.set_weights(syncro_weights + (freezed_classify_1.get_weights()[2:]))
                 freezed_classify_1.save_weights(cf.Save_freezed_classify_1_path)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 show_weight(freezed_classify_1.get_weights())
                 im_architecture = mydraw(freezed_classify_1.get_weights(), -1,
-                                         comment="using all classes syncro graph\n{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
+                                         comment="using all classes syncro graph\n{}".format(
+                                             np.array(np.nonzero(g_mask_1)).tolist()[0]))
                 ### ネットワーク構造を描画
                 im_h_resize = im_architecture
-                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
-                       + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+                if not os.path.exists(path):
+                    path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+                path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
                 cv2.imwrite(path, im_h_resize)
                 # exit()
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
@@ -567,10 +593,12 @@ class Main_train():
             fname = os.path.join(cf.Save_dir, 'loss_krkopt.txt')
         else:
             fname = os.path.join(cf.Save_dir, 'loss.txt')
-        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset, binary_flag=binary_flag)
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset,
+                                                                                           binary_flag=binary_flag)
         if binary_flag:
             ### 10クラス分類用のデータ
-            ten_X_train, ten_X_test, ten_y_train, ten_y_test, ten_train_num_per_step, ten_data_inds, ten_max_ite = getdata(dataset, binary_flag=False)
+            ten_X_train, ten_X_test, ten_y_train, ten_y_test, ten_train_num_per_step, ten_data_inds, ten_max_ite = getdata(
+                dataset, binary_flag=False)
             ###
 
         f = open(fname, 'w')
@@ -621,7 +649,7 @@ class Main_train():
             # concated_labels = np.concatenate((fake_labels, real_labels))
 
             # if ite % 100 == 0:
-                # d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
+            # d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
             # else:
             d_loss = 0
 
@@ -631,19 +659,19 @@ class Main_train():
                 ### 10クラス分類用NNも学習（1クラス前のlayer_maskのみ対象）
                 # ten_train_ind = ite % ten_train_num_per_step
                 # if ite % (ten_train_num_per_step + 1) == 0:
-                    # np.random.shuffle(ten_data_inds)
+                # np.random.shuffle(ten_data_inds)
                 # ten_inds = ten_data_inds[ten_train_ind * cf.Minibatch: (ten_train_ind + 1) * cf.Minibatch]
                 # freezed_loss = freezed_classify_1.train_on_batch([ten_X_train[ten_inds], mask(load_concate_masks(active_true=True), cf.Minibatch)], ten_y_train[ten_inds])
                 ###
                 # print("X_train[_inds]:{}".format(np.shape(X_train[_inds])))
                 # print("mask(g_mask_1, cf.Minibatch):{}".format([np.shape(i) for i in mask(g_mask_1, cf.Minibatch)]))
                 # print("X_train[_inds]+mask(g_mask_1, cf.Minibatch):{}".format(
-                    # [np.shape(i) for i in list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)]))
+                # [np.shape(i) for i in list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)]))
                 # for i in range(len(inputs_z)):
-                    # print("inputs_z[{}]:{} type:{}".format(i, np.shape(inputs_z[i]), type(inputs_z[i])))
+                # print("inputs_z[{}]:{} type:{}".format(i, np.shape(inputs_z[i]), type(inputs_z[i])))
                 # for i in range(len(inputs_z)):
-                    # print(" inputs_z[{}][0]:{} type:{}".format(i, np.shape(inputs_z[i][0]), type(inputs_z[i][0])))
-                    # print(" inputs_z[{}][0]:{}".format(i, inputs_z[i][0]))
+                # print(" inputs_z[{}][0]:{} type:{}".format(i, np.shape(inputs_z[i][0]), type(inputs_z[i][0])))
+                # print(" inputs_z[{}][0]:{}".format(i, inputs_z[i][0]))
                 # binary_classify.summary()
                 g_loss = binary_classify.train_on_batch(inputs_z(X_train[_inds], g_mask_1), y_train[_inds])
             else:
@@ -664,10 +692,10 @@ class Main_train():
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.2f}, d: {:.2f}, test_val: loss:{:.6f} acc:{:.6f}".format(
                     ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
                 # if binary_flag:
-                    # con += " 10cate_acc{:.4f}".format(freezed_loss[1])
+                # con += " 10cate_acc{:.4f}".format(freezed_loss[1])
                 # else:
-                    # con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
-                        # ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
+                # con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
+                # ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
                 # print("real_weight\n{}".format(real_weight))
                 # print("real_labels\n{}".format(real_labels))
                 # print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
@@ -675,11 +703,16 @@ class Main_train():
                     if dataset == "iris":
                         # print("labels:{}".format(np.argmax(y_train, axis=1)))
                         show_result(input=X_train, onehot_labels=y_train,
-                                    layer1_out=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0], decimals=2), testflag=False)
+                                    layer1_out=np.round(
+                                        g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[1], decimals=2),
+                                    ite=ite,
+                                    classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0],
+                                                      decimals=2), testflag=False)
                         show_result(input=X_test, onehot_labels=y_test,
-                                    layer1_out=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0], decimals=2), testflag=True)
+                                    layer1_out=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[1],
+                                                        decimals=2), ite=ite,
+                                    classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0],
+                                                      decimals=2), testflag=True)
                     """
                     else:
                         show_result(input=X_train[:100], onehot_labels=y_train[:100],
@@ -694,7 +727,7 @@ class Main_train():
                 # if binary_flag:
                 con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
                 # else:
-                    # con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
+                # con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
 
             sys.stdout.write("\r" + con)
 
@@ -710,7 +743,7 @@ class Main_train():
                     binary_classify.save_weights(cf.Save_binary_classify_path)
                     for i in range(len(hidden_layers)):
                         hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
-                    # np.save(cf.Save_layer_mask_path[binary_target], g_mask_1)
+                        # np.save(cf.Save_layer_mask_path[binary_target], g_mask_1)
                 else:
                     freezed_classify_1.save(cf.Save_freezed_classify_1_path)
                 """
@@ -744,6 +777,7 @@ class Main_train():
         ### add for TensorBoard
         KTF.set_session(old_session)
         ###
+
 
 def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False, comment=""):
     print("\n{}".format(" test" if testflag else "train"))
@@ -779,7 +813,9 @@ def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False,
     # visualize([_outs[1] for _outs in layer1_outs], [_outs[2] for _outs in layer1_outs], labels_scalar, ite,
     # testflag, showflag=False)
 
-def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss):
+
+def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify,
+                   hidden_layers, pruned_test_val_loss):
     ### 重みプルーニング
     global pruning_rate
     print("pruning_rate:{}".format(pruning_rate))
@@ -815,7 +851,7 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
                             _weights[1][i][j] = 0.
             if binary_flag:
                 binary_classify.set_weights(_weights[1])
-                pruned_test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1),y_test)  # [0.026, 1.0]
+                pruned_test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)  # [0.026, 1.0]
             else:
                 freezed_classify_1.set_weights(_weights[1])
                 pruned_test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
@@ -834,9 +870,10 @@ def weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y
     ### 重みプルーニング
     return _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss
 
+
 def get_active_nodes(binary_classify, X_train, y_train):
     ### 第1中間層ノードプルーニング
-    active_nodes = [] # 整数リスト　g_maskはone-hot表現
+    active_nodes = []  # 整数リスト　g_maskはone-hot表現
     acc_list = []
     g_mask_1 = load_concate_masks(False)  # activeでないノード=1
     ### 欠落させると精度が落ちるノードを検出
@@ -868,13 +905,14 @@ def get_active_nodes(binary_classify, X_train, y_train):
     g_mask_1 = concated_active  # load_concate_masks(active_true=True)
     print("active_nodes:{}".format(active_nodes))
     ### 第1中間層ノードプルーニング
-    return g_mask_1 # active_node箇所だけ1
+    return g_mask_1  # active_node箇所だけ1
+
 
 def get_active_node_non_mask(model, X_train, y_train, target_layer):
     active_nodes = [[] for _ in range(output_size)]  # 整数リスト　g_maskはone-hot表現
     acc_list = [[] for _ in range(output_size)]
     target_layer *= 2
-    g_mask_1 = np.ones(np.shape(model.get_weights())[target_layer][0])# load_concate_masks(False)  # activeでないノード=1
+    g_mask_1 = np.ones(np.shape(model.get_weights())[target_layer][0])  # load_concate_masks(False)  # activeでないノード=1
 
     for i in range(len(X_train)):
         ### 欠落させると精度が落ちるノードを検出
@@ -901,6 +939,7 @@ def get_active_node_non_mask(model, X_train, y_train, target_layer):
     print("active_nodes:{}".format(active_nodes))
     return g_mask_1  # active_node箇所だけ1
 
+
 def divide_data(X_test, y_test):
     global dataset_category
     _X_test = [[] for _ in range(dataset_category)]
@@ -913,38 +952,39 @@ def divide_data(X_test, y_test):
         _y_test[i] = np.array(_y_test[i])
     return _X_test, _y_test
 
+
 def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_active_list=False):
     # model: freezed_classify_1のみ対応
     # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
     # 出力 : 不要ノードを削除したモデル(model)
-    target_layer *= 2 # weigthsリストが[重み、バイアス....]となっているため
+    target_layer *= 2  # weigthsリストが[重み、バイアス....]となっているため
     weights = model.get_weights()
     _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
     active_nodes = [[] for _ in range(output_size)]
-    X_trains, y_trains = divide_data(X_train, y_train) # クラス別に訓練データを分割
-    for i in range(output_size):    # for i in range(クラス数):
+    X_trains, y_trains = divide_data(X_train, y_train)  # クラス別に訓練データを分割
+    for i in range(output_size):  # for i in range(クラス数):
         # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
         pruned_train_val_acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
-        for j in range(len(_mask[target_layer//2])):
-            _mask[target_layer//2][j] = 0
+        for j in range(len(_mask[target_layer // 2])):
+            _mask[target_layer // 2][j] = 0
             _acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
             if _acc < pruned_train_val_acc * 0.999:
-                active_nodes[i].append(j)# activeノードの番号を保存 -> active_nodes[i].append(activeノード)
-            _mask[target_layer//2][j] = 1
+                active_nodes[i].append(j)  # activeノードの番号を保存 -> active_nodes[i].append(activeノード)
+            _mask[target_layer // 2][j] = 1
     print("active_nodes:{}".format(active_nodes))
     if only_active_list:
         return active_nodes
-    usable = [True for _ in range(len(_mask[target_layer//2]))] # ソートに使用済みのノード番号リスト
-    altered_weights = [[], [], []]# [np.zeros((weights[target_layer]).shape),
-                       # np.zeros((weights[target_layer - 1]).shape),
-                       # np.zeros((weights[target_layer + 2]).shape)]
+    usable = [True for _ in range(len(_mask[target_layer // 2]))]  # ソートに使用済みのノード番号リスト
+    altered_weights = [[], [], []]  # [np.zeros((weights[target_layer]).shape),
+    # np.zeros((weights[target_layer - 1]).shape),
+    # np.zeros((weights[target_layer + 2]).shape)]
     for i in range(output_size):
         for j in range(len(active_nodes[i])):
             # print("i:{} j:{} usable:{}".format(i, j, usable))
             if usable[active_nodes[i][j]]:
                 used_num = sum(1 for x in usable if not x)
-                altered_weights[0].append(weights[target_layer-2][:, active_nodes[i][j]])
-                altered_weights[1].append(weights[target_layer-1][active_nodes[i][j]])
+                altered_weights[0].append(weights[target_layer - 2][:, active_nodes[i][j]])
+                altered_weights[1].append(weights[target_layer - 1][active_nodes[i][j]])
                 altered_weights[2].append(weights[target_layer][active_nodes[i][j]])
             usable[active_nodes[i][j]] = False
     for i in range(len(altered_weights)):
@@ -953,24 +993,27 @@ def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_act
             altered_weights[0] = altered_weights[0].T
     # print("\naltered_weights:{}\n".format([np.shape(i) for i in altered_weights]))
     # print("\ntaregt_weights:{}\n".format([np.shape(i) for i in weights[target_layer-2:target_layer+1]]))
-    weights[target_layer-2] = altered_weights[0][:, :sum(1 for x in usable if not x)]
-    weights[target_layer-1] = altered_weights[1][:sum(1 for x in usable if not x)]
+    weights[target_layer - 2] = altered_weights[0][:, :sum(1 for x in usable if not x)]
+    weights[target_layer - 1] = altered_weights[1][:sum(1 for x in usable if not x)]
     weights[target_layer] = altered_weights[2][:sum(1 for x in usable if not x)]
-    dense_size[target_layer//2] = sum(1 for x in usable if not x)
-    g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
-            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)    
+    dense_size[target_layer // 2] = sum(1 for x in usable if not x)
+    g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
+        = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
+                          dense_size=dense_size)
     freezed_classify_1.set_weights(weights)
 
     _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
     im_architecture = mydraw(weights, freezed_classify_1.evaluate(inputs_z(X_test, _mask), y_test)[1],
-                             comment="shrinking layer[{}]".format(target_layer//2))
+                             comment="shrinking layer[{}]".format(target_layer // 2))
     im_h_resize = im_architecture
-    path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
-           + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}_.png".format(target_layer//2))
+    path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+    if not os.path.exists(path):
+        path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+    path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}_.png".format(target_layer // 2))
+
     cv2.imwrite(path, im_h_resize)
     print("saved concated graph to -> {}".format(path))
     return freezed_classify_1
-
 
 
 class Main_test():
@@ -982,10 +1025,12 @@ class Main_test():
         # global wSize
         global dense_size
         ite = 0
-        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset, binary_flag=binary_flag)
-        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1\
-            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
-        g_mask_1 = load_concate_masks(active_true=(not binary_flag))# np.load(cf.Save_layer_mask_path)
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset,
+                                                                                           binary_flag=binary_flag)
+        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
+            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
+                              dense_size=dense_size)
+        g_mask_1 = load_concate_masks(active_true=(not binary_flag))  # np.load(cf.Save_layer_mask_path)
         # g_mask_1 = np.ones(wSize)
         print("g_mask(usable):{}".format(g_mask_1))
 
@@ -1005,11 +1050,11 @@ class Main_test():
                 print("load:{}".format(cf.Save_binary_classify_path))
                 for i in range(len(hidden_layers)):
                     hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
-                # g = compress(g, 7e-1)
-                # d = compress(d, 7e-1)
-                # c = compress(c, 7e-1)
-                # classify = compress(classify, 7e-1)
-                # for i in range(len(hidden_layers)):
+                    # g = compress(g, 7e-1)
+                    # d = compress(d, 7e-1)
+                    # c = compress(c, 7e-1)
+                    # classify = compress(classify, 7e-1)
+                    # for i in range(len(hidden_layers)):
                     # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
                 _weights = [binary_classify.get_weights(), binary_classify.get_weights()]
                 test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)  # [0.026, 1.0]
@@ -1021,7 +1066,8 @@ class Main_test():
                 dense_size[1] = len(syncro_weights[1])
                 g_mask_1 = np.ones(dense_size[1])
                 g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
-                    = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd, dense_size=dense_size)
+                    = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size,
+                                      use_mbd=use_mbd, dense_size=dense_size)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 _weights = [freezed_classify_1.get_weights(), freezed_classify_1.get_weights()]
                 # _weights[高精度確定重み, プルーニング重み]
@@ -1039,27 +1085,31 @@ class Main_test():
             im_architecture = mydraw(_weights[0], test_val_loss[1],
                                      comment=("[{} vs other]".format(binary_target) if binary_flag else "")
                                              + " pruned <{:.4f}\n".format(0.)
-                                             + "active_node:{}".format(active_nodes_num if not binary_flag else "-1"))# np.array(np.nonzero(g_mask_1)).tolist()[0]))
+                                             + "active_node:{}".format(
+                                         active_nodes_num if not binary_flag else "-1"))  # np.array(np.nonzero(g_mask_1)).tolist()[0]))
             im_h_resize = im_architecture
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
-                   + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            if not os.path.exists(path):
+                path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
             cv2.imwrite(path, im_h_resize)
             print("saved concated graph to -> {}".format(path))
             ### プルーニングなしのネットワーク構造を描画
 
             ### magnitude プルーニング
-            _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss\
-                = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
-                # = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
+            _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss \
+                = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1,
+                                 classify, hidden_layers, pruned_test_val_loss)
+            # = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
             ### magnitude プルーニング
 
             ### 第1中間層ノードプルーニング
             # active_nodes = []
             if binary_flag:
                 g_mask_1 = get_active_nodes(binary_classify, X_train, y_train)
-            # else:
+                # else:
                 # active_nodes = [-1]# g_mask_1
-            ### 第1中間層ノードプルーニング
+                ### 第1中間層ノードプルーニング
 
         if (not loadflag) and (pruning_rate >= 0):
             print("\nError : Please load Model to do pruning")
@@ -1067,10 +1117,10 @@ class Main_test():
         # t = np.array([0] * len(X_train))
         # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
         if binary_flag:
-            test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test) # [0.026, 1.0]
+            test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)  # [0.026, 1.0]
             train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
             # binary_classify.load_weights(cf.Save_binary_classify_path)
-            weights = binary_classify.get_weights()# classify.get_weights()
+            weights = binary_classify.get_weights()  # classify.get_weights()
         else:
             # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
             # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
@@ -1128,14 +1178,16 @@ class Main_test():
                 im_h_resize = vconcat_resize_min([hconcat_resize_min(im), im_h_resize])
             im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
         """
-        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
-               + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+        if not os.path.exists(path):
+            path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+        path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
         cv2.imwrite(path, im_h_resize)
         ### ネットワーク構造を描画
         print("saved concated graph to -> {}".format(path))
         if binary_flag:
-            _X_test=[[] for _ in range(2)]
-            _y_test=[[] for _ in range(2)]
+            _X_test = [[] for _ in range(2)]
+            _y_test = [[] for _ in range(2)]
             class_acc = [[] for _ in range(2)]
             for data, target in zip(X_test, y_test):
                 _X_test[np.argmax(target)].append(data)
@@ -1145,18 +1197,19 @@ class Main_test():
             for i in range(len(class_acc)):
                 class_acc[i] = binary_classify.evaluate(inputs_z(_X_test[i], g_mask_1), np.array(_y_test[i]))
             for i in range(len(class_acc)):
-                    print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target)+" " if i == 0 else "else", class_acc[i][1]*100, len(_y_test[i])))
+                print("{}: {:0=5.2f}% <- {}sample".format(str(binary_target) + " " if i == 0 else "else",
+                                                          class_acc[i][1] * 100, len(_y_test[i])))
         else:
             for target_layer in range(1, len(dense_size)):
                 freezed_classify_1 = shrink_nodes(model=freezed_classify_1, target_layer=target_layer,
                                                   X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
             weights = freezed_classify_1.get_weights()
-            architecture = [np.shape(weights[i*2])[0] for i in range(len(weights)//2)]
+            architecture = [np.shape(weights[i * 2])[0] for i in range(len(weights) // 2)]
             g_mask_1 = [np.ones((architecture[i])) for i in range(len(architecture))]
             print("g_mask_1:{}".format([np.shape(i) for i in g_mask_1]))
             global dataset_category
-            _X_test=[[] for _ in range(dataset_category)]
-            _y_test=[[] for _ in range(dataset_category)]
+            _X_test = [[] for _ in range(dataset_category)]
+            _y_test = [[] for _ in range(dataset_category)]
             class_acc = [[] for _ in range(dataset_category)]
             for data, target in zip(X_test, y_test):
                 _X_test[np.argmax(target)].append(data)
@@ -1167,21 +1220,26 @@ class Main_test():
             for i in range(len(class_acc)):
                 class_acc[i] = freezed_classify_1.evaluate(inputs_z(_X_test[i], g_mask_1), _y_test[i])
             for i in range(len(class_acc)):
-                    print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1]*100, len(_y_test[i])))
-            active_nodes = [[[] for __ in range(output_size)] for _ in range(len(weights)//2)]
+                print("{}: {:0=5.2f}% <- {}sample".format(i, class_acc[i][1] * 100, len(_y_test[i])))
+            active_nodes = [[[] for __ in range(output_size)] for _ in range(len(weights) // 2)]
             for i in range(1, len(active_nodes)):
                 active_nodes[i] = shrink_nodes(model=freezed_classify_1, target_layer=i,
-                                               X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, only_active_list=True)
+                                               X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test,
+                                               only_active_list=True)
             for i in range(len(active_nodes)):
                 print("active_nodes[{}]:{}".format(i, active_nodes[i]))
             ### クラスごとのactiveネットワーク構造を描画
             for i in range(output_size):
                 print("\n\n\noutput_size:{}\nactive_nodes:{}".format(output_size, active_nodes_num))
                 print("generating_architecture.....")
-                im_architecture = active_route(copy.deepcopy(weights), acc=class_acc[i][1], comment="binary_target:{}".format(i), binary_target=i,
-                                               using_nodes=[sum(active_nodes_num[:i]), active_nodes_num[i]], active_nodes=[_active[i] for _active in active_nodes])
-                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"\
-                       + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}.png".format(i))
+                im_architecture = active_route(copy.deepcopy(weights), acc=class_acc[i][1],
+                                               comment="binary_target:{}".format(i), binary_target=i,
+                                               using_nodes=[sum(active_nodes_num[:i]), active_nodes_num[i]],
+                                               active_nodes=[_active[i] for _active in active_nodes])
+                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+                if not os.path.exists(path):
+                    path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+                path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}.png".format(i))
                 cv2.imwrite(path, im_architecture)
             ### クラスごとのactiveネットワーク構造を描画
 
@@ -1192,9 +1250,10 @@ class Main_test():
                     freezed_classify_1.predict(inputs_z(X_train, g_mask_1), verbose=0)),
                                          testflag=False, showflag=True, comment="input")
             im_input_test = show_result(input=X_test, onehot_labels=y_test,
-                                         layer1_out=X_test,
-                                         ite=cf.Iteration, classify=np.round(freezed_classify_1.predict(inputs_z(X_test, g_mask_1), verbose=0)),
-                                         testflag=True, showflag=True, comment="input")
+                                        layer1_out=X_test,
+                                        ite=cf.Iteration, classify=np.round(
+                    freezed_classify_1.predict(inputs_z(X_test, g_mask_1), verbose=0)),
+                                        testflag=True, showflag=True, comment="input")
             im_g_dense_train = [[] for _ in range(len(hidden_layers))]
             im_g_dense_test = [[] for _ in range(len(hidden_layers))]
 
@@ -1202,19 +1261,21 @@ class Main_test():
                 = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
                                   dense_size=dense_size)
             for i in range(len(hidden_layers)):
-                hidden_layers[i].set_weights(freezed_classify_1.get_weights()[:i*2+2])
+                hidden_layers[i].set_weights(freezed_classify_1.get_weights()[:i * 2 + 2])
             print("im_g_dense:{}".format(im_g_dense_train))
             for i in range(len(hidden_layers)):
                 im_g_dense_train[i].append(show_result(input=X_train, onehot_labels=y_train,
-                                                 layer1_out=hidden_layers[i].predict(inputs_z(X_train, g_mask_1),
-                                                                                     verbose=0),
-                                                 ite=cf.Iteration, classify=np.round(
+                                                       layer1_out=hidden_layers[i].predict(inputs_z(X_train, g_mask_1),
+                                                                                           verbose=0),
+                                                       ite=cf.Iteration, classify=np.round(
                         freezed_classify_1.predict(inputs_z(X_train, g_mask_1), verbose=0)), testflag=False,
-                                                 showflag=True, comment="dense{}".format(i)))
+                                                       showflag=True, comment="dense{}".format(i)))
                 im_g_dense_test[i].append(show_result(input=X_test, onehot_labels=y_test,
-                                                 layer1_out=hidden_layers[i].predict(inputs_z(X_test, g_mask_1), verbose=0),
-                                                 ite=cf.Iteration, classify=np.round(freezed_classify_1.predict(inputs_z(X_test, g_mask_1), verbose=0)), testflag=True,
-                                                 showflag=True, comment="dense{}".format(i)))
+                                                      layer1_out=hidden_layers[i].predict(inputs_z(X_test, g_mask_1),
+                                                                                          verbose=0),
+                                                      ite=cf.Iteration, classify=np.round(
+                        freezed_classify_1.predict(inputs_z(X_test, g_mask_1), verbose=0)), testflag=True,
+                                                      showflag=True, comment="dense{}".format(i)))
             im_h_resize_train = im_input_train
             for im in im_g_dense_train:
                 im_h_resize_train = hconcat_resize_min([im_h_resize_train, hconcat_resize_min(im)])
@@ -1222,14 +1283,17 @@ class Main_test():
             for im in im_g_dense_test:
                 im_h_resize_test = hconcat_resize_min([im_h_resize_test, hconcat_resize_min(im)])
             # im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
-                   + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            if not os.path.exists(path):
+                path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
             cv2.imwrite(path, im_h_resize_train)
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple" \
-                   + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            if not os.path.exists(path):
+                path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
             cv2.imwrite(path, im_h_resize_test)
             ### 各層の出力を描画
-
 
     def _test(self):
         ## Load network model
@@ -1339,6 +1403,7 @@ if __name__ == '__main__':
         from keras.datasets import mnist
         import config_mnist as cf
         from _model_mnist import *
+
         # np.random.seed(cf.Random_seed)
         dataset = "mnist"
     elif args.cifar10:
@@ -1350,6 +1415,7 @@ if __name__ == '__main__':
         import config_cifar10 as cf
         from keras.datasets import cifar10 as mnist
         from _model_cifar10 import *
+
         # np.random.seed(cf.Random_seed)
         dataset = "cifar10"
     elif args.iris:
@@ -1363,6 +1429,7 @@ if __name__ == '__main__':
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         from sklearn.datasets import load_iris
+
         iris = load_iris()
         dataset = "iris"
     elif args.digits:
@@ -1376,6 +1443,7 @@ if __name__ == '__main__':
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         from sklearn.datasets import load_digits
+
         dataset_category = 10
         digits = load_digits(n_class=dataset_category)
         dataset = "digits"
@@ -1387,6 +1455,7 @@ if __name__ == '__main__':
         output_size = 17
         import config_mnist as cf
         from _model_iris import *
+
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         # iris = load_iris()
@@ -1400,6 +1469,7 @@ if __name__ == '__main__':
         dataset_category = 3
         import config_mnist as cf
         from _model_iris import *
+
         dataset = "wine"
     elif args.balance:
         Height = 1
@@ -1410,17 +1480,18 @@ if __name__ == '__main__':
         dataset_category = 3
         import config_mnist as cf
         from _model_iris import *
+
         dataset = "balance"
     dense_size[0] = input_size
     if args.binary_target >= 0:
         binary_flag = True
         binary_target = args.binary_target
-        cf.Save_binary_classify_path = cf.Save_binary_classify_path[:-3]\
-                                       +str(binary_target)+\
+        cf.Save_binary_classify_path = cf.Save_binary_classify_path[:-3] \
+                                       + str(binary_target) + \
                                        cf.Save_binary_classify_path[-3:]
         for i in range(len(cf.Save_hidden_layers_path)):
             _path = cf.Save_hidden_layers_path[i]
-            cf.Save_hidden_layers_path[i] = _path[:-3] + "_" +str(binary_target) + _path[-3:]
+            cf.Save_hidden_layers_path[i] = _path[:-3] + "_" + str(binary_target) + _path[-3:]
             print(_path)
     if args.train:
         main = Main_train()

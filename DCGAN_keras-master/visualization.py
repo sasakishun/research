@@ -35,16 +35,18 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
         if x[i]:
             for j in range(min(300, len(x[i][0]))):
                 if j == 0:
-                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
+                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j],
+                                color=colors[i],
                                 s=5, label=i)
                     if testflag:
                         plt.legend(loc='uppper right', bbox_to_anchor=(0.62, 0.5, 0.5, .100),
                                    # borderaxespad=0.,
                                    facecolor="white")  # colors[i])
-                    # plt.legend(loc='lower right', facecolor=colors[i])
+                        # plt.legend(loc='lower right', facecolor=colors[i])
                 else:
-                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j], color=colors[i],
-                                s=5, alpha=j/len(x[i][0] + 0.1))
+                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j],
+                                color=colors[i],
+                                s=5, alpha=j / len(x[i][0] + 0.1))
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("{} node".format(comment))
     if not testflag:
@@ -67,6 +69,11 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     if showflag:
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
+        import os
+        if not os.path.exists(path):  # ディレクトリがないとき新規作成
+            path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
+            os.makedirs(path+r"\test")
+            os.makedirs(path + r"\test")
         path += "{}{}_{}".format(
             r"\test" if testflag else r"\train",
             r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
@@ -81,12 +88,14 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
     print("\n\nimg:{}\n\n".format(type(img)))
     return img
 
+
 def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     # print("im_list[0]:{}".format(im_list[0]))
     h_min = max(im.shape[0] for im in im_list)
     im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
                       for im in im_list]
     return cv2.hconcat(im_list_resize)
+
 
 def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     w_min = max(im.shape[1] for im in im_list)
