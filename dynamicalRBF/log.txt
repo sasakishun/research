@@ -1,1 +1,0 @@
-batchsize:32 epoch:1000 rbfNode:100 traAcc:0.11236666666666667 valAcc:0.1135
