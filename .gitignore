@@ -16,3 +16,4 @@ DCGAN_keras-master/train_images_cifar10/
 DCGAN_keras-master/test_images_mnist/
 DCGAN_keras-master/visualized_iris/
 *.csv
+segm/data/
