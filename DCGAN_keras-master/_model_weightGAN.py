@@ -221,13 +221,13 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
 
 def tree(input_size):
-    activation = "sigmoid"
-    layer_num = int(pow(input_size, 1/2))-3
+    activation = "relu"
+    layer_num = int(pow(input_size, 1/2))-1
     hidden_nodes_num = [input_size//(2**(i+1)) for i in range(layer_num)]
     print("layer_num:{}".format(layer_num))
     print("hidden_nodes_num:{}".format(hidden_nodes_num))
 
-    _dense = [[Dense(1, activation=activation, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}'.format(i, j),
+    _dense = [[Dense(1, activation=activation if i != layer_num-1 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}'.format(i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                for j in range(hidden_nodes_num[i])]
               for i in range(layer_num)]
@@ -259,3 +259,20 @@ def tree(input_size):
                             metrics=[metrics.categorical_accuracy])
     return dense_tree
 
+def mlp(input_size):
+    activation = "relu"
+    hidden_size = [32, 16, 8]
+    _dense = [Dense(hidden_size[j], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+               for j in range(3)]
+    _dense.append(Dense(2, activation="softmax", kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(len(_dense)),
+                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None)))
+    inputs = Input(shape=(input_size, ), name='inputs')
+    dense = [inputs]
+    for i in range(len(_dense)):
+        dense.append(_dense[i](dense[i]))
+    _mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
+    _mlp.compile(loss='categorical_crossentropy',
+                       optimizer="adam",
+                       metrics=[metrics.categorical_accuracy])
+    return _mlp

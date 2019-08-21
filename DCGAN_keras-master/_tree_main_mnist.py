@@ -27,7 +27,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
 from visualization import visualize, hconcat_resize_min, vconcat_resize_min
-from _model_weightGAN import weightGAN_Model, tree
+from _model_weightGAN import *
 # import config_mnist as cf
 
 # from _model_mnist import *
@@ -386,12 +386,15 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     return X_train, X_test, y_train, y_test
 
 def parity_data():
-    _X_train, _y_train = [[int(1 if random.random() > 0.5 else 0) for _ in range(64)] for _ in range(1000)], [0 for _ in range(1000)]# digits.data, digits.target
+    _X_train, _y_train = [[int(1 if random.random() > 0.5 else 0) for _ in range(input_size)]
+                          for _ in range(2000)], [0 for _ in range(2000)]
+    # _X_train, _y_train = [[int(1 if random.random() > 0.5 else 0) if i == 0 else 0 for i in range(input_size)]
+                          # for _ in range(1000)], [0 for _ in range(1000)]
     for i in range(len(_y_train)):
         if sum(_X_train[i]) % 2 == 1:
             _y_train[i] = 1
-    for i in range(len(_X_train)):
-        print("_X_train:{} _y_train:{}".format(sum(_X_train[i]), _y_train[i]))
+    # for i in range(len(_X_train)):
+        # print("_X_train:{} _y_train:{}".format(sum(_X_train[i]), _y_train[i]))
     X_train, y_train = _X_train, _y_train
     X_train = np.array(X_train)
     y_train = np.array(y_train)
@@ -402,7 +405,7 @@ def parity_data():
     X_test, y_test = augumentaton(X_test, y_test)
     ### データ数偏り補正
 
-    # X_train, X_test = normalize(X_train, X_test)
+    X_train, X_test = normalize(X_train, X_test)
     print("X_train:{}".format(X_train.shape))
     print("y_train:{}".format(y_train.shape))
     # X_train = np.array([[[__data] for __data in _data] for _data in X_train])
@@ -554,6 +557,7 @@ def binarize_inputs_z(X_train, X_test):#入力データを変形[i]*64->[i,j]*32
     return binarize(X_train), binarize(X_test)
 
 def separate_inputs_z(data):
+    # return data
     return [np.array([[data[j][i]] for j in range(np.shape(data)[0])]) for i in range(np.shape(data)[1])]
 
 class Main_train():
@@ -634,15 +638,12 @@ class Main_train():
                                                                                            binary_flag=binary_flag)
         if tree_flag:
             tree_model = tree(input_size)
+            # tree_model = mlp(input_size)
             tree_model.summary()
             from keras.utils import plot_model
             import pydot_ng as pydot
-            # path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            # plot_model(tree_model, to_file=path +'\model.png')
-            # exit()
-            # X_train = separate_inputs_z(X_train)
-            # X_test = separate_inputs_z(X_test)
-            # X_train, X_test = binarize_inputs_z(X_train, X_test)
+            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            plot_model(tree_model, to_file=path +'\model.png', show_shapes=True)
 
         f = open(fname, 'w')
         f.write("Iteration,G_loss,D_loss{}".format(os.linesep))
@@ -1271,6 +1272,7 @@ def arg_parse():
     parser.add_argument('--binary_target', type=int, default=-1)
     parser.add_argument('--tree', dest='tree', action='store_true')
     parser.add_argument('--parity', dest='parity', action='store_true')
+    parser.add_argument('--parity_shape', type=int)
     args = parser.parse_args()
     return args
 
@@ -1380,7 +1382,9 @@ if __name__ == '__main__':
         dataset = "balance"
     elif args.parity:
         Height = 1
-        Width = 64
+        Width = 16
+        if args.parity_shape:
+            Width = args.parity_shape
         Channel = 1
         input_size = Height * Width * Channel
         output_size = 2
