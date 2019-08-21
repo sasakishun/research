@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
@@ -26,7 +27,7 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 import random
 from visualization import visualize, hconcat_resize_min, vconcat_resize_min
-from _model_weightGAN import weightGAN_Model
+from _model_weightGAN import weightGAN_Model, tree
 # import config_mnist as cf
 
 # from _model_mnist import *
@@ -59,6 +60,7 @@ input_size = Height * Width * Channel
 wSize = 20
 dataset = ""
 binary_flag = False
+tree_flag = False
 binary_target = -1
 pruning_rate = -1
 dataset_category = 10
@@ -516,10 +518,13 @@ def inputs_z(X_test, g_mask_1):
     # .format([np.shape(i) for i in list(np.array([X_test])) + mask(g_mask_1, len(X_test))]))
     return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
 
-def bianrize_inputs_z(X_train, X_test):#入力データを変形[i]*64->[i,j]*32
+def binarize_inputs_z(X_train, X_test):#入力データを変形[i]*64->[i,j]*32
     def binarize(data):
         return [[[data[i][2*j], data[i][2*j+1]] for j in range(len(data[i])//2)] for i in range(len(data))]
     return binarize(X_train), binarize(X_test)
+
+def separate_inputs_z(data):
+    return [np.array([[data[j][i]] for j in range(np.shape(data)[0])]) for i in range(np.shape(data)[1])]
 
 class Main_train():
     def __init__(self):
@@ -552,7 +557,6 @@ class Main_train():
             c.load_weights(cf.Save_c_path)
             classify.load_weights(cf.Save_classify_path)
             print("classify.summary()")
-            # classify.summary()
             if binary_flag:
                 print("binary_classify.summary()")
                 binary_classify.summary()
@@ -585,7 +589,6 @@ class Main_train():
                     path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
                 path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
                 cv2.imwrite(path, im_h_resize)
-                # exit()
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
 
         ### Prepare Training data　前処理
@@ -599,11 +602,17 @@ class Main_train():
             fname = os.path.join(cf.Save_dir, 'loss.txt')
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset,
                                                                                            binary_flag=binary_flag)
-        if binary_flag:
-            ### 10クラス分類用のデータ
-            ten_X_train, ten_X_test, ten_y_train, ten_y_test, ten_train_num_per_step, ten_data_inds, ten_max_ite = getdata(
-                dataset, binary_flag=False)
-            ###
+        if tree_flag:
+            tree_model = tree(input_size)
+            tree_model.summary()
+            from keras.utils import plot_model
+            import pydot_ng as pydot
+            # path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            # plot_model(tree_model, to_file=path +'\model.png')
+            # exit()
+            # X_train = separate_inputs_z(X_train)
+            # X_test = separate_inputs_z(X_test)
+            # X_train, X_test = binarize_inputs_z(X_train, X_test)
 
         f = open(fname, 'w')
         f.write("Iteration,G_loss,D_loss{}".format(os.linesep))
@@ -615,94 +624,40 @@ class Main_train():
                 np.random.shuffle(data_inds)
             _inds = data_inds[train_ind * cf.Minibatch: (train_ind + 1) * cf.Minibatch]
 
-            ### GAN用の真画像(real_weight)、分類ラベル(real_labels)生成
-            real_weight = np.zeros((cf.Minibatch, dense_size[1]))
-            real_labels = np.zeros((cf.Minibatch, output_size))
-            """
-            for i in range(cf.Minibatch):
-                _list = list(range(wSize))
-                random.shuffle(_list)
-                for j in _list[:2]: # ランダムに4つ選んで発火するようノード選択
-                    real_weight[i][j] = 1
-                real_labels[i][np.random.randint(output_size)] = 1 # ノードごとの真の画像ラベル条件
-                if y_train[_inds][i][0] == 1:
-                    real_weight[i][0] = 1
-                    # real_weight[i][1] = 1
-                    real_labels[i][0] = 1
-                    # real_weight[i][2] = 1
-                elif y_train[_inds][i][1] == 1:
-                    real_weight[i][2] = 1
-                    # real_weight[i][4] = 1
-                    # real_weight[i][5] = 1
-                    real_labels[i][1] = 1
-                elif y_train[_inds][i][2] == 1:
-                    real_weight[i][4] = 1
-                    # real_weight[i][7] = 1
-                    # real_weight[i][8] = 1
-                    real_labels[i][2] = 1
-                """
-            ### GAN用のreal画像、分類ラベル生成
-
-            ### GAN用のfake画像、分類ラベル生成
-            # fake_weight = g.predict([X_train[_inds], mask(g_mask_1, cf.Minibatch)], verbose=0)[1]
-            # fake_labels = y_train[_inds]
-            ### GAN用のfake画像、分類ラベル生成
-
-            # t = np.array([1] * cf.Minibatch + [0] * cf.Minibatch)
-            # concated_weight = np.concatenate((fake_weight, real_weight))
-            # concated_labels = np.concatenate((fake_labels, real_labels))
-
-            # if ite % 100 == 0:
-            # d_loss = d.train_on_batch([concated_weight, concated_labels], t)  # これで重み更新までされる
-            # else:
             d_loss = 0
-
-            # t = np.array([0] * cf.Minibatch)
-            # g_loss = 0 # c.train_on_batch([X_train[_inds], y_train[_inds]], [y_train[_inds], t])  # 生成器を学習
-            if binary_flag:
-                ### 10クラス分類用NNも学習（1クラス前のlayer_maskのみ対象）
-                # ten_train_ind = ite % ten_train_num_per_step
-                # if ite % (ten_train_num_per_step + 1) == 0:
-                # np.random.shuffle(ten_data_inds)
-                # ten_inds = ten_data_inds[ten_train_ind * cf.Minibatch: (ten_train_ind + 1) * cf.Minibatch]
-                # freezed_loss = freezed_classify_1.train_on_batch([ten_X_train[ten_inds], mask(load_concate_masks(active_true=True), cf.Minibatch)], ten_y_train[ten_inds])
-                ###
-                # print("X_train[_inds]:{}".format(np.shape(X_train[_inds])))
-                # print("mask(g_mask_1, cf.Minibatch):{}".format([np.shape(i) for i in mask(g_mask_1, cf.Minibatch)]))
-                # print("X_train[_inds]+mask(g_mask_1, cf.Minibatch):{}".format(
-                # [np.shape(i) for i in list(np.array([X_train[_inds]]))+mask(g_mask_1, cf.Minibatch)]))
-                # for i in range(len(inputs_z)):
-                # print("inputs_z[{}]:{} type:{}".format(i, np.shape(inputs_z[i]), type(inputs_z[i])))
-                # for i in range(len(inputs_z)):
-                # print(" inputs_z[{}][0]:{} type:{}".format(i, np.shape(inputs_z[i][0]), type(inputs_z[i][0])))
-                # print(" inputs_z[{}][0]:{}".format(i, inputs_z[i][0]))
-                # binary_classify.summary()
+            if tree_flag:
+                """
+                print("Xtrain:{}".format(np.shape(X_train)))
+                print("Xtrain[0]:{}".format(np.shape(X_train[0])))
+                print("ytrain:{}".format(np.shape(y_train)))
+                print("ytrain[0]:{}".format(np.shape(y_train[0])))
+                print("_inds:{}".format(_inds))
+                print("Xtrain:{}".format(np.shape(X_train[_inds])))
+                print("Xtrain[0]:{}".format(np.shape(X_train[_inds][0])))
+                print("ytrain:{}".format(np.shape(y_train[_inds])))
+                print("ytrain[0]:{}".format(np.shape(y_train[_inds][0])))
+                print("sep_Xtrain:{}".format(np.shape(separate_inputs_z(X_train[_inds]))))
+                print("sep_Xtrain[0]:{}".format(np.shape(separate_inputs_z(X_train[_inds])[0])))
+                """
+                g_loss = tree_model.train_on_batch(separate_inputs_z(X_train[_inds]), y_train[_inds])
+            elif binary_flag:
                 g_loss = binary_classify.train_on_batch(inputs_z(X_train[_inds], g_mask_1), y_train[_inds])
             else:
                 g_loss = freezed_classify_1.train_on_batch(inputs_z(X_train[_inds], g_mask_1), y_train[_inds])
-                # g_loss = c.train_on_batch([X_train[_inds], y_train[_inds], mask(g_mask_1, cf.Minibatch)], [y_train[_inds], t])  # 生成器を学習
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
-                if binary_flag:
+                if tree_flag:
+                    test_val_loss = tree_model.train_on_batch(separate_inputs_z(X_test), y_test)
+                    train_val_loss = tree_model.train_on_batch(separate_inputs_z(X_train), y_train)
+                elif binary_flag:
                     test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)
                     train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 else:
-                    # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                    # train_val_loss = classify.evaluate([X_train,mask(g_mask_1 ,len(X_train))], y_train)
                     test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
                     train_val_loss = freezed_classify_1.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 max_score = max(max_score, test_val_loss[1])
-                # if binary_flag:
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.2f}, d: {:.2f}, test_val: loss:{:.6f} acc:{:.6f}".format(
                     ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
-                # if binary_flag:
-                # con += " 10cate_acc{:.4f}".format(freezed_loss[1])
-                # else:
-                # con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.6f}, d: {:.6f}, test_val: loss:{:.6f} acc:{:.6f}".format(
-                # ite, g_loss[1], train_val_loss[1], g_loss[2], d_loss, test_val_loss[0], test_val_loss[1])
-                # print("real_weight\n{}".format(real_weight))
-                # print("real_labels\n{}".format(real_labels))
-                # print("layer1_out:train\n{}".format(np.round(fake_weight, decimals=2)))  # 訓練データ時
                 if ite % cf.Save_train_step == 0:
                     if dataset == "iris":
                         # print("labels:{}".format(np.argmax(y_train, axis=1)))
@@ -717,21 +672,8 @@ class Main_train():
                                                         decimals=2), ite=ite,
                                     classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0],
                                                       decimals=2), testflag=True)
-                    """
-                    else:
-                        show_result(input=X_train[:100], onehot_labels=y_train[:100],
-                                    layer1_out=np.round(g.predict(X_train[:100], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict(X_train[:100], verbose=0)[0], decimals=2),
-                                    testflag=False)
-                        show_result(input=X_test[:100], onehot_labels=y_test[:100],
-                                    layer1_out=np.round(g.predict(X_test[:100], verbose=0)[1], decimals=2), ite=ite,
-                                    classify=np.round(g.predict(X_test[:100], verbose=0)[0], decimals=2), testflag=True)
-                    """
             else:
-                # if binary_flag:
                 con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
-                # else:
-                # con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[1], g_loss[2], d_loss)
 
             sys.stdout.write("\r" + con)
 
@@ -750,14 +692,6 @@ class Main_train():
                         # np.save(cf.Save_layer_mask_path[binary_target], g_mask_1)
                 else:
                     freezed_classify_1.save(cf.Save_freezed_classify_1_path)
-                """
-                gerated = g.predict([z], verbose=0)
-                # save some samples
-                if cf.Save_train_combine is True:
-                    save_images(gerated, index=str(ite)+" loss:{}".format(cnn_val_loss), dir_path=cf.Save_train_img_dir)
-                elif cf.Save_train_combine is False:
-                    save_images_separate(gerated, index=str(ite)+" loss:{}".format(cnn_val_loss), dir_path=cf.Save_train_img_dir)
-                """
         f.close()
         ## Save trained model
         if binary_flag:
@@ -892,9 +826,6 @@ def get_active_nodes(binary_classify, X_train, y_train):
         if _acc < pruned_train_val_acc * 0.999:
             active_nodes.append(i)
         g_mask_1[i] = 1
-        # g_mask_1 = load_concate_masks(active_true=True) # np.load(cf.Save_layer_mask_path)
-        # for i in active_nodes:
-        # g_mask_1[i] = 0 # active_nodeは使用中フラグを立てる
     if len(active_nodes) == 0:
         for i in range(dense_size[1]):
             _acc_list = sorted(acc_list)
@@ -1038,12 +969,6 @@ class Main_test():
         # g_mask_1 = np.ones(wSize)
         print("g_mask(usable):{}".format(g_mask_1))
 
-        """
-        if not binary_flag:
-            for i in range(len(g_mask_1)):
-                g_mask_1[i] = (g_mask_1[i] + 1) % 2
-            g_mask_1 = np.ones(wSize)
-        """
         if loadflag:
             if binary_flag:
                 g.load_weights(cf.Save_g_path)
@@ -1054,17 +979,9 @@ class Main_test():
                 print("load:{}".format(cf.Save_binary_classify_path))
                 for i in range(len(hidden_layers)):
                     hidden_layers[i].load_weights(cf.Save_hidden_layers_path[i])
-                    # g = compress(g, 7e-1)
-                    # d = compress(d, 7e-1)
-                    # c = compress(c, 7e-1)
-                    # classify = compress(classify, 7e-1)
-                    # for i in range(len(hidden_layers)):
-                    # hidden_layers[i] = compress(hidden_layers[i], 7e-1)
                 _weights = [binary_classify.get_weights(), binary_classify.get_weights()]
                 test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)  # [0.026, 1.0]
-                # train_val_loss = binary_classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
-                # pruned_train_val_loss = copy.deepcopy(train_val_loss)
             else:
                 syncro_weights, active_nodes_num = generate_syncro_weights(binary_classify, size_only=(not loadflag))
                 dense_size[1] = len(syncro_weights[1])
@@ -1074,15 +991,11 @@ class Main_test():
                                       use_mbd=use_mbd, dense_size=dense_size)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
                 _weights = [freezed_classify_1.get_weights(), freezed_classify_1.get_weights()]
-                # _weights[高精度確定重み, プルーニング重み]
-                # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-                # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
                 test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
                 train_val_loss = freezed_classify_1.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 pruned_train_val_loss = copy.deepcopy(train_val_loss)
 
-                # print("_weights\n{}".format(_weights))
                 print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
             ### プルーニングなしのネットワーク構造を描画
             # if not binary_flag:
@@ -1131,30 +1044,6 @@ class Main_test():
             # weights = classify.get_weights()
             test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
             weights = freezed_classify_1.get_weights()
-        """
-        if not binary_flag:
-            im_input_train = show_result(input=X_train, onehot_labels=y_train,
-                                         layer1_out=X_train,
-                                         ite=cf.Iteration, classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0]), testflag=False,
-                                         showflag=True, comment="input")
-            im_input_test = show_result(input=X_test, onehot_labels=y_test,
-                                         layer1_out=X_test,
-                                         ite=cf.Iteration, classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0]),
-                                         testflag=True, showflag=True, comment="input")
-            im_g_dense = [[] for _ in range(len(hidden_layers))]
-            print("im_g_dense:{}".format(im_g_dense))
-            for i in range(len(hidden_layers)):
-                im_g_dense[i].append(show_result(input=X_train, onehot_labels=y_train,
-                                                 layer1_out=hidden_layers[i].predict([X_train, mask(g_mask_1, len(X_train))], verbose=0),
-                                                 ite=cf.Iteration, classify=np.round(g.predict([X_train, mask(g_mask_1, len(X_train))], verbose=0)[0]), testflag=False,
-                                                 showflag=True, comment="dense{}".format(i)))
-                im_g_dense[i].append(show_result(input=X_test, onehot_labels=y_test,
-                                                 layer1_out=hidden_layers[i].predict([X_test, mask(g_mask_1, len(X_test))], verbose=0),
-                                                 ite=cf.Iteration, classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0]), testflag=True,
-                                                 showflag=True, comment="dense{}".format(i)))
-            print("Ite:{}, train: loss :{:.6f} acc:{:.6f} test_val: loss:{:.6f} acc:{:.6f}"
-                  .format(ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1]))
-        """
 
         for i in range(len(weights)):
             print(np.shape(weights[i]))
@@ -1174,14 +1063,6 @@ class Main_test():
                                                                    if binary_flag else active_nodes_num))
 
         im_h_resize = im_architecture
-        """
-        if not binary_flag:
-            im_h_resize = hconcat_resize_min([im_input_train, im_input_test])
-            for im in im_g_dense:
-                # im_h_resize = vconcat_resize_min([hconcat_resize_min([np.array(im_train), np.array(im_test)]), im_h_resize])
-                im_h_resize = vconcat_resize_min([hconcat_resize_min(im), im_h_resize])
-            im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
-        """
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
         if not os.path.exists(path):
             path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
@@ -1299,31 +1180,6 @@ class Main_test():
             cv2.imwrite(path, im_h_resize_test)
             ### 各層の出力を描画
 
-    def _test(self):
-        ## Load network model
-        g = G_model(Height=Height, Width=Width, channel=Channel)
-        g.load_weights(cf.Save_g_path, by_name=True)
-
-        print('-- Test start!!')
-        if cf.Save_test_combine is None:
-            print("generated image will not be stored")
-        elif cf.Save_test_combine is True:
-            print("generated image write combined >>", cf.Save_test_img_dir)
-        elif cf.Save_test_combine is False:
-            print("generated image write separately >>", cf.Save_test_img_dir)
-        pbar = tqdm(total=cf.Test_num)
-
-        for i in range(cf.Test_num):
-            input_noise = np.random.uniform(-1, 1, size=(cf.Test_Minibatch, 100))
-            g_output = g.predict(input_noise, verbose=0)
-
-            if cf.Save_test_combine is True:
-                save_images(g_output, index=i, dir_path=cf.Save_test_img_dir)
-            elif cf.Save_test_combine is False:
-                save_images_separate(g_output, index=i, dir_path=cf.Save_test_img_dir)
-            pbar.update(1)
-
-
 def save_images(imgs, index, dir_path):
     # Argment
     #  img_batch = np.array((batch, height, width, channel)) with value range [-1, 1]
@@ -1380,6 +1236,7 @@ def arg_parse():
     parser.add_argument('--pruning_rate', type=float, default=-1)
     parser.add_argument('--wSize', type=int)
     parser.add_argument('--binary_target', type=int, default=-1)
+    parser.add_argument('--tree', dest='tree', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -1387,6 +1244,8 @@ def arg_parse():
 if __name__ == '__main__':
     args = arg_parse()
     use_mbd = False
+    if args.tree:
+        tree_flag = True
     if args.wSize:
         wSize = args.wSize
     if args.no_mask:
@@ -1484,7 +1343,6 @@ if __name__ == '__main__':
         dataset_category = 3
         import config_mnist as cf
         from _model_iris import *
-
         dataset = "balance"
     dense_size[0] = input_size
     if args.binary_target >= 0:
