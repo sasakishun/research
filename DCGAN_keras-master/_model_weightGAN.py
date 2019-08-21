@@ -5,7 +5,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras import backend as K
 from keras import metrics, regularizers
-from keras.layers.core import Lambda
+from keras.layers.core import Lambda, Activation
 from keras.models import Model
 from keras.layers import Input, Dense, Reshape, multiply
 from keras.layers.normalization import BatchNormalization
@@ -221,7 +221,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
 
 def tree(input_size):
-    activation = "relu"
+    activation = "sigmoid"
     layer_num = int(pow(input_size, 1/2))-3
     hidden_nodes_num = [input_size//(2**(i+1)) for i in range(layer_num)]
     print("layer_num:{}".format(layer_num))
@@ -231,7 +231,6 @@ def tree(input_size):
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                for j in range(hidden_nodes_num[i])]
               for i in range(layer_num)]
-    #_dense.append([Dense(1, activation='sigmoid', name='dense{}_{}'.format(layer_num-1, 0))])
 
     inputs = [Input(shape=(1, ), name='inputs_{}'.format(i)) for i in range(input_size)]
     dense = [inputs]
@@ -253,7 +252,7 @@ def tree(input_size):
             i += 1
             dense[i] = [keras.layers.concatenate([dense[i][j * 2], dense[i][j * 2 + 1]])
                         for j in range(len(dense[i]) // 2)]
-
+            dense[i] = keras.layers.Activation("softmax")(dense[i][0])
     dense_tree = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
     dense_tree.compile(loss='categorical_crossentropy',
                             optimizer="adam",

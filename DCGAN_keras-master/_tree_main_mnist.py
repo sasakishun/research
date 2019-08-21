@@ -385,6 +385,37 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     y_test = np_utils.to_categorical(y_test, 2)
     return X_train, X_test, y_train, y_test
 
+def parity_data():
+    _X_train, _y_train = [[int(1 if random.random() > 0.5 else 0) for _ in range(64)] for _ in range(1000)], [0 for _ in range(1000)]# digits.data, digits.target
+    for i in range(len(_y_train)):
+        if sum(_X_train[i]) % 2 == 1:
+            _y_train[i] = 1
+    for i in range(len(_X_train)):
+        print("_X_train:{} _y_train:{}".format(sum(_X_train[i]), _y_train[i]))
+    X_train, y_train = _X_train, _y_train
+    X_train = np.array(X_train)
+    y_train = np.array(y_train)
+    X_train, X_test, y_train, y_test = \
+        train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=2)
+    ### データ数偏り補正
+    X_train, y_train = augumentaton(X_train, y_train)
+    X_test, y_test = augumentaton(X_test, y_test)
+    ### データ数偏り補正
+
+    # X_train, X_test = normalize(X_train, X_test)
+    print("X_train:{}".format(X_train.shape))
+    print("y_train:{}".format(y_train.shape))
+    # X_train = np.array([[[__data] for __data in _data] for _data in X_train])
+    # X_test = np.array([[[__data] for __data in _data] for _data in X_test])
+    y_train = np_utils.to_categorical(y_train, dataset_category)
+    y_test = np_utils.to_categorical(y_test, dataset_category)
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 def mnist_data():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -403,7 +434,6 @@ def mnist_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -420,7 +450,6 @@ def my_tqdm(ite):
     ### 学習進行状況表示
     return con
 
-
 def getdata(dataset, binary_flag):
     if dataset == "iris":
         return iris_data()
@@ -432,7 +461,8 @@ def getdata(dataset, binary_flag):
         return wine_data()
     elif dataset == "balance":
         return balance_data()
-
+    elif dataset == "parity":
+        return parity_data()
 
 def mask(masks, batch_size):
     ### 1バッチ分のmask生成
@@ -647,8 +677,11 @@ class Main_train():
             con = my_tqdm(ite)
             if ite % cf.Save_train_step == 0:
                 if tree_flag:
-                    test_val_loss = tree_model.train_on_batch(separate_inputs_z(X_test), y_test)
-                    train_val_loss = tree_model.train_on_batch(separate_inputs_z(X_train), y_train)
+                    test_val_loss = tree_model.evaluate(separate_inputs_z(X_test), y_test)
+                    train_val_loss = tree_model.evaluate(separate_inputs_z(X_train), y_train)
+                    _y = tree_model.predict(separate_inputs_z(X_train))
+                    for i in range(len(X_train)):
+                        print("{}:{} -> {} vs {}".format(X_train[i], sum(X_train[i]), _y[i], y_train[i]))
                 elif binary_flag:
                     test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)
                     train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
@@ -1237,6 +1270,7 @@ def arg_parse():
     parser.add_argument('--wSize', type=int)
     parser.add_argument('--binary_target', type=int, default=-1)
     parser.add_argument('--tree', dest='tree', action='store_true')
+    parser.add_argument('--parity', dest='parity', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -1344,6 +1378,16 @@ if __name__ == '__main__':
         import config_mnist as cf
         from _model_iris import *
         dataset = "balance"
+    elif args.parity:
+        Height = 1
+        Width = 64
+        Channel = 1
+        input_size = Height * Width * Channel
+        output_size = 2
+        dataset_category = 2
+        import config_mnist as cf
+        from _model_iris import *
+        dataset = "parity"
     dense_size[0] = input_size
     if args.binary_target >= 0:
         binary_flag = True
