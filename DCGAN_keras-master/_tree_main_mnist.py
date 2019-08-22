@@ -637,7 +637,7 @@ class Main_train():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset,
                                                                                            binary_flag=binary_flag)
         if tree_flag:
-            tree_model = tree(input_size)
+            tree_model = tree(input_size, dataset_category)
             # tree_model = mlp(input_size)
             tree_model.summary()
             from keras.utils import plot_model

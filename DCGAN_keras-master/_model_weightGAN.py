@@ -220,40 +220,55 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     # freezed_classify_1.summary()
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
 
-def tree(input_size):
+def tree(input_size, output_size):
     activation = "sigmoid"
-    layer_num = int(pow(input_size, 1/2))-1
+    layer_num = int(pow(input_size, 1/2))
     hidden_nodes_num = [input_size//(2**(i+1)) for i in range(layer_num)]
     print("layer_num:{}".format(layer_num))
     print("hidden_nodes_num:{}".format(hidden_nodes_num))
 
-    _dense = [[Dense(1, activation=activation if i != layer_num-1 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}'.format(i, j),
+    _dense = [[[Dense(1, activation=activation if i != layer_num-1 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}_{}'.format(output, i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                for j in range(hidden_nodes_num[i])]
               for i in range(layer_num)]
+              for output in range(output_size)]
 
     inputs = [Input(shape=(1, ), name='inputs_{}'.format(i)) for i in range(input_size)]
-    dense = [inputs]
-    for i in range(len(_dense)):
-        for j in range(len(_dense[i])):
-            print("_dense[{}][{}]:{}".format(i, j, _dense[i][j].name))
+    dense = [[inputs] for _ in range(output_size)]
+    for i in range(len(_dense[0])):
+        for j in range(len(_dense[0][i])):
+            print("_dense[{}][{}][{}]:{}".format(0, i, j, _dense[0][i][j].name))
         print()
     # dense = [_dense[0][j](dense[0][j]) for j in range(hidden_nodes_num[0])]
     for i in range(layer_num):
         print("i:{}".format(i))
-        dense[i] = [keras.layers.concatenate([dense[i][j*2], dense[i][j*2+1]])
-                    for j in range(len(dense[i])//2)]
-        for j in range(len(dense[i])):
-            print("dense[{}][{}]:{}".format(i, j, dense[i][j]))
-        print("hidden_nodes_num[{}]:{}".format(i, hidden_nodes_num[i]))
-        dense.append([_dense[i][j](dense[i][j])
-                      for j in range(hidden_nodes_num[i])])
-        if i == layer_num - 1:
-            i += 1
-            dense[i] = [keras.layers.concatenate([dense[i][j * 2], dense[i][j * 2 + 1]])
-                        for j in range(len(dense[i]) // 2)]
-            dense[i] = keras.layers.Activation("softmax")(dense[i][0])
-    dense_tree = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
+        for _out in range(output_size):
+            dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j*2], dense[_out][i][j*2+1]])
+                              for j in range(len(dense[_out][i])//2)]
+            for j in range(len(dense[_out][i])):
+                print("dense[{}][{}][{}]:{}".format(_out, i, j, dense[_out][i][j]))
+            for _i in range(len(dense)):
+                for _j in range(len(dense[_i])):
+                    for _k in range(len(dense[_i][_j])):
+                        print("dense[{}][{}][{}]:{}".format(_i, _j, _k, dense[_i][_j][_k]))
+            print("hidden_nodes_num[{}]:{}".format(i, hidden_nodes_num[i]))
+            dense[_out].append([_dense[_out][i][j](dense[_out][i][j])
+                          for j in range(hidden_nodes_num[i])])
+            """
+            if i == layer_num - 1:
+                i += 1
+                dense[_out][i] = [keras.layers.concatenate([dense[i][j * 2], dense[i][j * 2 + 1]])
+                            for j in range(len(dense[i]) // 2)]
+                dense[_out][i] = keras.layers.Activation("softmax")(dense[_out][i][0])
+            """
+            """
+                dense[_out][i] = [keras.layers.concatenate([dense[i][j * 2], dense[i][j * 2 + 1]])
+                            for j in range(len(dense[i]) // 2)]
+                dense[_out][i] = keras.layers.Activation("softmax")(dense[i][0])
+            """
+    output = keras.layers.concatenate([dense[i][-1][0] for i in range(len(dense))])
+    output = keras.layers.Activation("softmax")(output)
+    dense_tree = Model(inputs=inputs, outputs=output, name='dense_tree')
     dense_tree.compile(loss='categorical_crossentropy',
                             optimizer="adam",
                             metrics=[metrics.categorical_accuracy])
