@@ -221,7 +221,7 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
 
 def tree(input_size):
-    activation = "relu"
+    activation = "sigmoid"
     layer_num = int(pow(input_size, 1/2))-1
     hidden_nodes_num = [input_size//(2**(i+1)) for i in range(layer_num)]
     print("layer_num:{}".format(layer_num))
