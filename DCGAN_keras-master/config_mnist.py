@@ -50,6 +50,7 @@ Save_c_name = 'C.h5'
 Save_classify_name = 'Classify.h5'
 Save_freezed_classify_1_name = 'Freezed_Classify_1.h5'
 Save_binary_classify_name = 'Binary_classify.h5'
+Save_tree_name = 'Tree.h5'
 Save_syncro_name = 'Syncro_layer.h5'
 Save_d_path = os.path.join(Save_dir, Save_d_name)
 Save_g_path = os.path.join(Save_dir, Save_g_name)
@@ -57,6 +58,7 @@ Save_c_path = os.path.join(Save_dir, Save_c_name)
 Save_classify_path = os.path.join(Save_dir, Save_classify_name)
 Save_freezed_classify_1_path = os.path.join(Save_dir, Save_freezed_classify_1_name)
 Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
+Save_tree_path = os.path.join(Save_dir, Save_tree_name)
 Save_hidden_layers_path = []
 for i in range(5):
     Save_hidden_layers_path.append(os.path.join(Save_dir, 'hidden_layers{}.h5'.format(i)))

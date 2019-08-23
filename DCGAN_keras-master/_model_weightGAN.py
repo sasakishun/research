@@ -257,15 +257,17 @@ def tree(input_size, output_size, all_combination_flag = False):
     ### 中間層定義
 
     dense = [[inputs] for _ in range(output_size)]
+    """
     for i in range(len(_dense[0])):
         for j in range(len(_dense[0][i])):
             print("_dense[{}][{}][{}]:{}".format(0, i, j, _dense[0][i][j].name))
         print()
+    """
     for _out in range(output_size):
         for i in range(layer_num):
             print("i:{}".format(i))
             # print("dense[{}][{}]:{} type:{}".format(_out, i, dense[_out][i], type(dense[_out][i])))
-            print("dense[{}][{}]:{} type:{}".format(_out, i, len(dense[_out][i]), type(dense[_out][i])))
+            # print("dense[{}][{}]:{} type:{}".format(_out, i, len(dense[_out][i]), type(dense[_out][i])))
             odd_flag = False
             if len(dense[_out][i]) % 2 == 1:
                 odd_node = dense[_out][i][-1]
