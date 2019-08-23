@@ -487,7 +487,7 @@ def mask(masks, batch_size):
 def show_weight(weights):
     for i in range(len(weights)):
         print("\nweights[{}]:{}".format(i, np.shape(weights[i])))
-        print(weights[i])
+        # print(weights[i])
 
 
 def load_concate_masks(active_true=False):
@@ -989,6 +989,16 @@ def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_act
     print("saved concated graph to -> {}".format(path))
     return freezed_classify_1
 
+def set_dense_size_with_tree(input_size, dataset_category):
+    global dense_size
+    _dense = 1
+    dense_size = []
+    while _dense < input_size:
+        _dense *= 2
+        dense_size.append(_dense)
+    dense_size.reverse()
+    dense_size = [i * dataset_category for i in dense_size]
+    return
 
 class Main_test():
     def __init__(self):
@@ -997,21 +1007,43 @@ class Main_test():
     def test(self, loadflag=True):
         print("\n\n-----test-----\n\n")
         global dense_size
-        if tree_flag:
-            tree_model = tree(input_size, dataset_category)
-            show_weight(tree_model.get_weights())
-            exit()
         ite = 0
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset,
                                                                                            binary_flag=binary_flag)
-        g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
-            = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
-                              dense_size=dense_size)
-        g_mask_1 = load_concate_masks(active_true=(not binary_flag))  # np.load(cf.Save_layer_mask_path)
-        # g_mask_1 = np.ones(wSize)
-        print("g_mask(usable):{}".format(g_mask_1))
+        if tree_flag:
+            tree_model = tree(input_size, dataset_category)
+            show_weight(tree_model.get_weights())
+            set_dense_size_with_tree(input_size, dataset_category)
+            mlp_model = mlp(dense_size[0], dense_size[1:], output_size)
+        else:
+            g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
+                = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
+                                  dense_size=dense_size)
+            g_mask_1 = load_concate_masks(active_true=(not binary_flag))  # np.load(cf.Save_layer_mask_path)
+            # g_mask_1 = np.ones(wSize)
+            print("g_mask(usable):{}".format(g_mask_1))
 
         if loadflag:
+            if tree_flag:
+                tree_weights = tree_model.get_weights()
+                mlp_weights = mlp_model.get_weights()
+                mlp_weights = [np.zeros(_mlp.shape) for _mlp in mlp_weights]
+                print()
+                show_weight(mlp_weights)
+                ### tree構造の重みを全結合モデルにセット
+                tree_shape = tree(input_size, output_size, True)
+                print(tree_shape)
+                for i in range(output_size):
+                    for j in range(len(tree_shape)):
+                        for k in range(tree_shape[j]):
+                            mlp_weights[j][k]
+                            ###　重みの代入内容が未定義->第一に実装すること
+                exit()
+                test_val_loss = mlp_model.evaluate(X_test, y_test)
+                train_val_loss = mlp_model.evaluate(X_train, y_train)
+                pruned_test_val_loss = copy.deepcopy(test_val_loss)
+                pruned_train_val_loss = copy.deepcopy(train_val_loss)
+                exit()
             if binary_flag:
                 g.load_weights(cf.Save_g_path)
                 d.load_weights(cf.Save_d_path)
@@ -1032,10 +1064,7 @@ class Main_test():
                     = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size,
                                       use_mbd=use_mbd, dense_size=dense_size)
                 freezed_classify_1.load_weights(cf.Save_freezed_classify_1_path)
-
-                if tree_flag:
-                    _weights = tree_model.get_weights()
-                    ### tree構造の重みを全結合モデルにセット
+                show_weight(freezed_classify_1)
                 _weights = [freezed_classify_1.get_weights(), freezed_classify_1.get_weights()]
                 test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
                 train_val_loss = freezed_classify_1.evaluate(inputs_z(X_train, g_mask_1), y_train)

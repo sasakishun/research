@@ -228,9 +228,11 @@ def get_hidden_nodes_num(input_size, all_combination_flag):
         input_size = input_size//2 + input_size%2
     return hidden_nodes_num# [input_size//(2**(i+1)) for i in range(layer_num)]
 
-def tree(input_size, output_size, all_combination_flag = False):
+def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag = False):
     activation = "relu"
     hidden_nodes_num = get_hidden_nodes_num(input_size, all_combination_flag)
+    if get_hidden_flag:
+        return hidden_nodes_num
     layer_num = len(hidden_nodes_num)
     print("layer_num:{}".format(layer_num))
     print("hidden_nodes_num:{}".format(hidden_nodes_num))
@@ -272,7 +274,6 @@ def tree(input_size, output_size, all_combination_flag = False):
             if len(dense[_out][i]) % 2 == 1:
                 odd_node = dense[_out][i][-1]
                 odd_flag = True
-
             ### dense[_out][i]の各要素を次層入力のためにconcatenate
             dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j*2], dense[_out][i][j*2+1]])
                               for j in range(len(dense[_out][i])//2)]
@@ -290,13 +291,12 @@ def tree(input_size, output_size, all_combination_flag = False):
                             metrics=[metrics.categorical_accuracy])
     return dense_tree
 
-def mlp(input_size):
+def mlp(input_size, hidden_size, output_size):
     activation = "relu"
-    hidden_size = [32, 16, 8]
     _dense = [Dense(hidden_size[j], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-               for j in range(3)]
-    _dense.append(Dense(2, activation="softmax", kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(len(_dense)),
+               for j in range(len(hidden_size))]
+    _dense.append(Dense(output_size, activation="softmax", kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(len(_dense)),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None)))
     inputs = Input(shape=(input_size, ), name='inputs')
     dense = [inputs]
