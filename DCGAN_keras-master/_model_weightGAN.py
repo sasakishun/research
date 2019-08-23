@@ -220,62 +220,67 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     # freezed_classify_1.summary()
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
 
-def get_hidden_nodes_num(input_size):
-    layer_num = 0
-    _input_size = input_size
-    while _input_size/2 >= 1:
-        layer_num += 1
-        _input_size /= 2
-    return [input_size//(2**(i+1)) for i in range(layer_num)]
+def get_hidden_nodes_num(input_size, all_combination_flag):
+    # layer_num = 0
+    hidden_nodes_num = []
+    while input_size/2 >= 1:
+        hidden_nodes_num.append(input_size//2)
+        input_size = input_size//2 + input_size%2
+    return hidden_nodes_num# [input_size//(2**(i+1)) for i in range(layer_num)]
 
-def tree(input_size, output_size):
-    activation = "sigmoid"
-    hidden_nodes_num = get_hidden_nodes_num(input_size)
+def tree(input_size, output_size, all_combination_flag = False):
+    activation = "relu"
+    hidden_nodes_num = get_hidden_nodes_num(input_size, all_combination_flag)
     layer_num = len(hidden_nodes_num)
     print("layer_num:{}".format(layer_num))
     print("hidden_nodes_num:{}".format(hidden_nodes_num))
+    ### モデル入力定義
+    inputs = [Input(shape=(1, ), name='inputs_{}'.format(i)) for i in range(input_size)]
+    """
+    inputs = []
+    for i in range(len(_inputs)):
+        for j in range(i+1, len(_inputs)):
+            inputs.append(_inputs[i])
+            inputs.append(_inputs[j])
+    """
+    # calculated = [Lambda(lambda x: K.sqrt(x + 1.0), output_shape=(1,))(_inputs) for _inputs in inputs]
+    for i in range(len(inputs)):
+        print("inputs[{}]:{}".format(i, inputs[i]))
+    ### モデル入力定義
+
+    ### 中間層定義 入力列の隣合う要素同士を木の入力とする
     _dense = [[[Dense(1, activation=activation if i != layer_num-1 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}_{}'.format(output, i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                for j in range(hidden_nodes_num[i])]
               for i in range(layer_num)]
               for output in range(output_size)]
+    ### 中間層定義
 
-    inputs = [Input(shape=(1, ), name='inputs_{}'.format(i)) for i in range(input_size)]
     dense = [[inputs] for _ in range(output_size)]
     for i in range(len(_dense[0])):
         for j in range(len(_dense[0][i])):
             print("_dense[{}][{}][{}]:{}".format(0, i, j, _dense[0][i][j].name))
         print()
-    # dense = [_dense[0][j](dense[0][j]) for j in range(hidden_nodes_num[0])]
     for _out in range(output_size):
         for i in range(layer_num):
             print("i:{}".format(i))
+            # print("dense[{}][{}]:{} type:{}".format(_out, i, dense[_out][i], type(dense[_out][i])))
+            print("dense[{}][{}]:{} type:{}".format(_out, i, len(dense[_out][i]), type(dense[_out][i])))
+            odd_flag = False
+            if len(dense[_out][i]) % 2 == 1:
+                odd_node = dense[_out][i][-1]
+                odd_flag = True
+
+            ### dense[_out][i]の各要素を次層入力のためにconcatenate
             dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j*2], dense[_out][i][j*2+1]])
                               for j in range(len(dense[_out][i])//2)]
-            """
-            for j in range(len(dense[_out][i])):
-                print("dense[{}][{}][{}]:{}".format(_out, i, j, dense[_out][i][j]))
-            for _i in range(len(dense)):
-                for _j in range(len(dense[_i])):
-                    for _k in range(len(dense[_i][_j])):
-                        print("dense[{}][{}][{}]:{}".format(_i, _j, _k, dense[_i][_j][_k]))
-            print("hidden_nodes_num[{}]:{}".format(i, hidden_nodes_num[i]))
-            """
+            ### dense[_out][i+1]に入力を伝播
             dense[_out].append([_dense[_out][i][j](dense[_out][i][j])
                           for j in range(hidden_nodes_num[i])])
-            """
-            if i == layer_num - 1:
-                i += 1
-                dense[_out][i] = [keras.layers.concatenate([dense[i][j * 2], dense[i][j * 2 + 1]])
-                            for j in range(len(dense[i]) // 2)]
-                dense[_out][i] = keras.layers.Activation("softmax")(dense[_out][i][0])
-            """
-            """
-                dense[_out][i] = [keras.layers.concatenate([dense[i][j * 2], dense[i][j * 2 + 1]])
-                            for j in range(len(dense[i]) // 2)]
-                dense[_out][i] = keras.layers.Activation("softmax")(dense[i][0])
-            """
-    output = keras.layers.concatenate([dense[i][-1][0] for i in range(len(dense))])
+            if odd_flag:
+                dense[_out][-1].append(odd_node)
+                print("\nadd odd\n")
+    output = keras.layers.concatenate([dense[i][-1][0] for i in range(len(dense))]) if len(dense) > 1 else dense[0][-1][0]
     output = keras.layers.Activation("softmax")(output)
     dense_tree = Model(inputs=inputs, outputs=output, name='dense_tree')
     dense_tree.compile(loss='categorical_crossentropy',
