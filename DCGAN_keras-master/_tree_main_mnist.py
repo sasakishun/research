@@ -692,6 +692,7 @@ class Main_train():
                 max_score = max(max_score, test_val_loss[1])
                 con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.2f}, d: {:.2f}, test_val: loss:{:.6f} acc:{:.6f}".format(
                     ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
+                """
                 if ite % cf.Save_train_step == 0:
                     if dataset == "iris":
                         # print("labels:{}".format(np.argmax(y_train, axis=1)))
@@ -706,6 +707,7 @@ class Main_train():
                                                         decimals=2), ite=ite,
                                     classify=np.round(g.predict([X_test, mask(g_mask_1, len(X_test))], verbose=0)[0],
                                                       decimals=2), testflag=True)
+                """
             else:
                 con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
 

@@ -220,13 +220,20 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     # freezed_classify_1.summary()
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
 
+def get_hidden_nodes_num(input_size):
+    layer_num = 0
+    _input_size = input_size
+    while _input_size/2 >= 1:
+        layer_num += 1
+        _input_size /= 2
+    return [input_size//(2**(i+1)) for i in range(layer_num)]
+
 def tree(input_size, output_size):
     activation = "sigmoid"
-    layer_num = int(pow(input_size, 1/2))
-    hidden_nodes_num = [input_size//(2**(i+1)) for i in range(layer_num)]
+    hidden_nodes_num = get_hidden_nodes_num(input_size)
+    layer_num = len(hidden_nodes_num)
     print("layer_num:{}".format(layer_num))
     print("hidden_nodes_num:{}".format(hidden_nodes_num))
-
     _dense = [[[Dense(1, activation=activation if i != layer_num-1 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}_{}'.format(output, i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                for j in range(hidden_nodes_num[i])]
@@ -240,11 +247,12 @@ def tree(input_size, output_size):
             print("_dense[{}][{}][{}]:{}".format(0, i, j, _dense[0][i][j].name))
         print()
     # dense = [_dense[0][j](dense[0][j]) for j in range(hidden_nodes_num[0])]
-    for i in range(layer_num):
-        print("i:{}".format(i))
-        for _out in range(output_size):
+    for _out in range(output_size):
+        for i in range(layer_num):
+            print("i:{}".format(i))
             dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j*2], dense[_out][i][j*2+1]])
                               for j in range(len(dense[_out][i])//2)]
+            """
             for j in range(len(dense[_out][i])):
                 print("dense[{}][{}][{}]:{}".format(_out, i, j, dense[_out][i][j]))
             for _i in range(len(dense)):
@@ -252,6 +260,7 @@ def tree(input_size, output_size):
                     for _k in range(len(dense[_i][_j])):
                         print("dense[{}][{}][{}]:{}".format(_i, _j, _k, dense[_i][_j][_k]))
             print("hidden_nodes_num[{}]:{}".format(i, hidden_nodes_num[i]))
+            """
             dense[_out].append([_dense[_out][i][j](dense[_out][i][j])
                           for j in range(hidden_nodes_num[i])])
             """
