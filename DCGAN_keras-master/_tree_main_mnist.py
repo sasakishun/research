@@ -724,12 +724,12 @@ class Main_train():
                     c.save_weights(cf.Save_c_path)
                     classify.save_weights(cf.Save_classify_path)
                     binary_classify.save_weights(cf.Save_binary_classify_path)
-                    tree_model.save_weights(cf.Save_tree_path)
                     for i in range(len(hidden_layers)):
                         hidden_layers[i].save_weights(cf.Save_hidden_layers_path[i])
                         # np.save(cf.Save_layer_mask_path[binary_target], g_mask_1)
                 else:
                     freezed_classify_1.save(cf.Save_freezed_classify_1_path)
+                    tree_model.save_weights(cf.Save_tree_path)
         f.close()
         ## Save trained model
         if binary_flag:
@@ -1000,6 +1000,62 @@ def set_dense_size_with_tree(input_size, dataset_category):
     dense_size = [i * dataset_category for i in dense_size]
     return
 
+def tree_inputs2mlp(X_data, input_size, output_size):
+    X_data = list(copy.deepcopy(X_data))
+    X_data = [list(i) for i in X_data]
+    padding = [0 for _ in range(input_size//output_size - len(X_data[0]))]
+    _X_data = []
+    for data in X_data:
+        _data = []
+        for j in range(output_size):
+            _data += data + padding
+        _X_data.append(_data)
+    return np.array(_X_data)
+
+def _weight_pruning(_weights, test_val_loss, model, X_test, y_test):
+    ### 重みプルーニング
+    global pruning_rate
+    pruned_test_val_loss = model.evaluate(X_test, y_test)
+    if pruning_rate >= 0:
+        while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 10:
+            ### 精度98%以上となる重みを_weights[0]に確保
+            _weights[0] = copy.deepcopy(_weights[1])
+            ### 精度98%以上となる重みを_weights[0]に確保
+
+            ### プルーニング率を微上昇させ性能検証
+            pruning_rate += 0.01
+            non_zero_num = 0
+            pruning_layers = np.shape(_weights[1])[0]
+            if binary_flag:
+                pruning_layers = 2
+            for i in range(pruning_layers):
+                if (not binary_flag) and i < 2:
+                    # 10クラス分類時には第一中間層重みはプルーニングしない
+                    continue
+                if _weights[1][i].ndim == 2:  # 重みプルーニング
+                    print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
+                    for j in range(np.shape(_weights[1][i])[0]):
+                        for k in range(np.shape(_weights[1][i])[1]):
+                            if abs(_weights[1][i][j][k]) < pruning_rate:
+                                _weights[1][i][j][k] = 0.
+                    non_zero_num += np.count_nonzero(_weights[1][i] > 0)
+                    print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
+                    if non_zero_num == 0:
+                        break
+                else:  # バイアスプルーニング
+                    for j in range(np.shape(_weights[1][i])[0]):
+                        if abs(_weights[1][i][j]) < pruning_rate:
+                            _weights[1][i][j] = 0.
+            model.set_weights(_weights[1])
+            pruned_test_val_loss = model.evaluate(X_test, y_test)
+            print("pruning is done")
+            ### プルーニング率を微上昇させ性能検証
+        # print("cf.Save_binary_classify_path:{}".format(cf.Save_binary_classify_path))
+        model.set_weights(_weights[0])
+        # freezed_classify_1.save(cf.Save_freezed_classify_1_path)
+    ### 重みプルーニング
+    return _weights
+
 class Main_test():
     def __init__(self):
         pass
@@ -1012,9 +1068,15 @@ class Main_test():
                                                                                            binary_flag=binary_flag)
         if tree_flag:
             tree_model = tree(input_size, dataset_category)
-            show_weight(tree_model.get_weights())
+            tree_model.load_weights(cf.Save_tree_path)
+            train_val_loss = tree_model.evaluate(separate_inputs_z(X_train), y_train)
+            test_val_loss = tree_model.evaluate(separate_inputs_z(X_test), y_test)
+            print("train loss:{}".format(train_val_loss))
+            print("test  loss:{}".format(test_val_loss))
             set_dense_size_with_tree(input_size, dataset_category)
             mlp_model = mlp(dense_size[0], dense_size[1:], output_size)
+            X_train = tree_inputs2mlp(X_train, dense_size[0], output_size)
+            X_test = tree_inputs2mlp(X_test, dense_size[0], output_size)
         else:
             g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1 \
                 = weightGAN_Model(input_size=input_size, wSize=dense_size[1], output_size=output_size, use_mbd=use_mbd,
@@ -1025,10 +1087,10 @@ class Main_test():
 
         if loadflag:
             if tree_flag:
+                tree_model.load_weights(cf.Save_tree_path)
                 tree_weights = tree_model.get_weights()
                 mlp_weights = mlp_model.get_weights()
                 mlp_weights = [np.zeros(_mlp.shape) for _mlp in mlp_weights]
-                print()
                 show_weight(mlp_weights)
                 ### tree構造の重みを全結合モデルにセット
                 tree_shape = tree(input_size, output_size, True)
@@ -1037,22 +1099,37 @@ class Main_test():
                 for i in range(output_size):
                     for j in range(len(tree_shape)):
                         for k in range(tree_shape[j]):
-                            _node = k+i*output_size
-                            print("mlp_weights[{}][{}][{}:{}]:{}\nvs\ntree_weights[{}]:{}"
-                                  .format(2*j, _node, _node*2, _node*2+2,
-                            mlp_weights[2*j][_node*2:_node*2+2][_node], tree_index, tree_weights[tree_index]))
-                            mlp_weights[2*j][_node*2:_node*2+2][_node] = tree_weights[tree_index]
+                            _node = k+i*tree_shape[j]
+                            # print("i:{} j:{} k:{} _node:{}".format(i, j, k, _node))
+                            for l in range(2):
+                                """
+                                print("mlp_weights[{}][{}][{}]:{}"
+                                      .format(2 * j, _node * 2 + l, _node, mlp_weights[2 * j][_node * 2 + l][_node]))
+                                print(
+                                    "tree_weights[{}][{}][0]:{}".format(tree_index, l, tree_weights[tree_index][l][0]))
+                                """
+                                mlp_weights[2*j][_node*2+l][_node]\
+                                    = tree_weights[tree_index][l][0]
                             tree_index += 1
                             mlp_weights[2*j+1][_node] = tree_weights[tree_index]
                             tree_index += 1
-                            ###　重みの代入内容が未定義->第一に実装すること
-                exit()
+                mlp_model.set_weights(mlp_weights)
+                ### tree_modelから取得できるweightの順番を調査　現状は定義順になっておらずめちゃくちゃ
+                print("weight")
+                for i in mlp_model.get_weights():
+                    for j in i:
+                        print(j)
+                    print()
+                show_weight(mlp_model.get_weights())
                 test_val_loss = mlp_model.evaluate(X_test, y_test)
                 train_val_loss = mlp_model.evaluate(X_train, y_train)
+                print("test_loss:{}".format(test_val_loss))
+                print("train_loss:{}".format(train_val_loss))
                 pruned_test_val_loss = copy.deepcopy(test_val_loss)
                 pruned_train_val_loss = copy.deepcopy(train_val_loss)
-                exit()
-            if binary_flag:
+                _weights = [mlp_model.get_weights(), mlp_model.get_weights()]
+                active_nodes_num = -1
+            elif binary_flag:
                 g.load_weights(cf.Save_g_path)
                 d.load_weights(cf.Save_d_path)
                 c.load_weights(cf.Save_c_path)
@@ -1097,9 +1174,12 @@ class Main_test():
             ### プルーニングなしのネットワーク構造を描画
 
             ### magnitude プルーニング
-            _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss \
-                = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1,
-                                 classify, hidden_layers, pruned_test_val_loss)
+            if tree_flag:
+                _weights = _weight_pruning(_weights, test_val_loss, mlp_model, X_test, y_test)
+            else:
+                _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss \
+                    = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1,
+                                     classify, hidden_layers, pruned_test_val_loss)
             # = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
             ### magnitude プルーニング
 
@@ -1109,31 +1189,29 @@ class Main_test():
                 g_mask_1 = get_active_nodes(binary_classify, X_train, y_train)
                 # else:
                 # active_nodes = [-1]# g_mask_1
-                ### 第1中間層ノードプルーニング
+            ### 第1中間層ノードプルーニング
 
         if (not loadflag) and (pruning_rate >= 0):
             print("\nError : Please load Model to do pruning")
             exit()
-        # t = np.array([0] * len(X_train))
-        # g_loss = c.train_on_batch([X_train, y_train], [y_train, t])  # 生成器を学習
-        if binary_flag:
+        if tree_flag:
+            test_val_loss = mlp_model.evaluate(X_test, y_test)
+            weights = mlp_model.get_weights()
+        elif binary_flag:
             test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)  # [0.026, 1.0]
             train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
             # binary_classify.load_weights(cf.Save_binary_classify_path)
             weights = binary_classify.get_weights()  # classify.get_weights()
         else:
-            # test_val_loss = classify.evaluate([X_test, mask(g_mask_1, len(X_test))], y_test)
-            # train_val_loss = classify.evaluate([X_train, mask(g_mask_1, len(X_train))], y_train)
-            # weights = classify.get_weights()
             test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
             weights = freezed_classify_1.get_weights()
 
         for i in range(len(weights)):
             print(np.shape(weights[i]))
-        classify.summary()
+        # classify.summary()
 
         print("\ntest Acc:{}".format(test_val_loss[1]))
-        print("g_mask_1\n{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
+        # print("g_mask_1\n{}".format(np.array(np.nonzero(g_mask_1)).tolist()[0]))
         if binary_flag:
             print("g_mask_in_binary\n{}".format(np.array(np.nonzero(load_concate_masks(active_true=True))).tolist()[0]))
 
@@ -1143,7 +1221,7 @@ class Main_test():
                                          + " pruned <{:.4f}\n".format(pruning_rate)
                                          + "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0]
                                                                     if sum(g_mask_1) > 0 else "None")
-                                                                   if binary_flag else active_nodes_num))
+                                                                   if binary_flag else active_nodes_num) if not tree_flag else "")
 
         im_h_resize = im_architecture
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
@@ -1153,7 +1231,9 @@ class Main_test():
         cv2.imwrite(path, im_h_resize)
         ### ネットワーク構造を描画
         print("saved concated graph to -> {}".format(path))
-        if binary_flag:
+        if tree_flag:
+            print()
+        elif binary_flag:
             _X_test = [[] for _ in range(2)]
             _y_test = [[] for _ in range(2)]
             class_acc = [[] for _ in range(2)]
