@@ -1032,11 +1032,19 @@ class Main_test():
                 show_weight(mlp_weights)
                 ### tree構造の重みを全結合モデルにセット
                 tree_shape = tree(input_size, output_size, True)
-                print(tree_shape)
+                print("tree_shape:{}".format(tree_shape))
+                tree_index = 0
                 for i in range(output_size):
                     for j in range(len(tree_shape)):
                         for k in range(tree_shape[j]):
-                            mlp_weights[j][k]
+                            _node = k+i*output_size
+                            print("mlp_weights[{}][{}][{}:{}]:{}\nvs\ntree_weights[{}]:{}"
+                                  .format(2*j, _node, _node*2, _node*2+2,
+                            mlp_weights[2*j][_node*2:_node*2+2][_node], tree_index, tree_weights[tree_index]))
+                            mlp_weights[2*j][_node*2:_node*2+2][_node] = tree_weights[tree_index]
+                            tree_index += 1
+                            mlp_weights[2*j+1][_node] = tree_weights[tree_index]
+                            tree_index += 1
                             ###　重みの代入内容が未定義->第一に実装すること
                 exit()
                 test_val_loss = mlp_model.evaluate(X_test, y_test)
