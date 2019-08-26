@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -191,7 +192,8 @@ def standardize(X_train, X_test):
 
 def wine_data():
     ### .dataファイルを読み込む
-    _data = open(r"C:\Users\papap\Documents\research\DCGAN_keras-master\wine.data", "r")
+    _data = open(os.getcwd() + r"\wine.data", "r")
+    # _data = open(r"C:\Users\papap\Documents\research\DCGAN_keras-master\wine.data", "r")
     lines = _data.readlines()
     ### .dataファイルを読み込む
 
@@ -385,16 +387,17 @@ def digits_data_binary(usable, _X_train, _X_test, _y_train, _y_test):
     y_test = np_utils.to_categorical(y_test, 2)
     return X_train, X_test, y_train, y_test
 
+
 def parity_data():
     _X_train, _y_train = [[int(1 if random.random() > 0.5 else 0) for _ in range(input_size)]
                           for _ in range(2000)], [0 for _ in range(2000)]
     # _X_train, _y_train = [[int(1 if random.random() > 0.5 else 0) if i == 0 else 0 for i in range(input_size)]
-                          # for _ in range(1000)], [0 for _ in range(1000)]
+    # for _ in range(1000)], [0 for _ in range(1000)]
     for i in range(len(_y_train)):
         if sum(_X_train[i]) % 2 == 1:
             _y_train[i] = 1
-    # for i in range(len(_X_train)):
-        # print("_X_train:{} _y_train:{}".format(sum(_X_train[i]), _y_train[i]))
+            # for i in range(len(_X_train)):
+            # print("_X_train:{} _y_train:{}".format(sum(_X_train[i]), _y_train[i]))
     X_train, y_train = _X_train, _y_train
     X_train = np.array(X_train)
     y_train = np.array(y_train)
@@ -420,6 +423,7 @@ def parity_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def mnist_data():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
     X_train = (X_train.astype(np.float32) - 127.5) / 127.5
@@ -437,6 +441,7 @@ def mnist_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
+
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -453,6 +458,7 @@ def my_tqdm(ite):
     ### 学習進行状況表示
     return con
 
+
 def getdata(dataset, binary_flag):
     if dataset == "iris":
         return iris_data()
@@ -466,6 +472,7 @@ def getdata(dataset, binary_flag):
         return balance_data()
     elif dataset == "parity":
         return parity_data()
+
 
 def mask(masks, batch_size):
     ### 1バッチ分のmask生成
@@ -551,14 +558,18 @@ def inputs_z(X_test, g_mask_1):
     # .format([np.shape(i) for i in list(np.array([X_test])) + mask(g_mask_1, len(X_test))]))
     return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
 
-def binarize_inputs_z(X_train, X_test):#入力データを変形[i]*64->[i,j]*32
+
+def binarize_inputs_z(X_train, X_test):  # 入力データを変形[i]*64->[i,j]*32
     def binarize(data):
-        return [[[data[i][2*j], data[i][2*j+1]] for j in range(len(data[i])//2)] for i in range(len(data))]
+        return [[[data[i][2 * j], data[i][2 * j + 1]] for j in range(len(data[i]) // 2)] for i in range(len(data))]
+
     return binarize(X_train), binarize(X_test)
+
 
 def separate_inputs_z(data):
     # return data
     return [np.array([[data[j][i]] for j in range(np.shape(data)[0])]) for i in range(np.shape(data)[1])]
+
 
 class Main_train():
     def __init__(self):
@@ -642,8 +653,9 @@ class Main_train():
             tree_model.summary()
             from keras.utils import plot_model
             import pydot_ng as pydot
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            plot_model(tree_model, to_file=path +'\model.png', show_shapes=True)
+            path = os.getcwd() + r"\visualized_iris\network_architecture\triple"
+            # path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+            plot_model(tree_model, to_file=path + '\model.png', show_shapes=True)
             tree_model = tree(input_size, dataset_category)
 
         f = open(fname, 'w')
@@ -682,8 +694,8 @@ class Main_train():
                     test_val_loss = tree_model.evaluate(separate_inputs_z(X_test), y_test)
                     train_val_loss = tree_model.evaluate(separate_inputs_z(X_train), y_train)
                     _y = tree_model.predict(separate_inputs_z(X_train))
-                    for i in range(len(X_train)):
-                        print("{}:{} -> {} vs {}".format(X_train[i], sum(X_train[i]), _y[i], y_train[i]))
+                    # for i in range(len(X_train)):
+                        # print("{}:{} -> {} vs {}".format(X_train[i], sum(X_train[i]), _y[i], y_train[i]))
                 elif binary_flag:
                     test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)
                     train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
@@ -989,6 +1001,7 @@ def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_act
     print("saved concated graph to -> {}".format(path))
     return freezed_classify_1
 
+
 def set_dense_size_with_tree(input_size, dataset_category):
     global dense_size
     _dense = 1
@@ -1000,10 +1013,11 @@ def set_dense_size_with_tree(input_size, dataset_category):
     dense_size = [i * dataset_category for i in dense_size]
     return
 
+
 def tree_inputs2mlp(X_data, input_size, output_size):
     X_data = list(copy.deepcopy(X_data))
     X_data = [list(i) for i in X_data]
-    padding = [0 for _ in range(input_size//output_size - len(X_data[0]))]
+    padding = [0 for _ in range(input_size // output_size - len(X_data[0]))]
     _X_data = []
     for data in X_data:
         _data = []
@@ -1011,6 +1025,7 @@ def tree_inputs2mlp(X_data, input_size, output_size):
             _data += data + padding
         _X_data.append(_data)
     return np.array(_X_data)
+
 
 def _weight_pruning(_weights, test_val_loss, model, X_test, y_test):
     ### 重みプルーニング
@@ -1054,7 +1069,8 @@ def _weight_pruning(_weights, test_val_loss, model, X_test, y_test):
         model.set_weights(_weights[0])
         # freezed_classify_1.save(cf.Save_freezed_classify_1_path)
     ### 重みプルーニング
-    return _weights
+    return _weights[0]
+
 
 class Main_test():
     def __init__(self):
@@ -1088,7 +1104,16 @@ class Main_test():
         if loadflag:
             if tree_flag:
                 tree_model.load_weights(cf.Save_tree_path)
-                tree_weights = tree_model.get_weights()
+                _tree_weights = []  # tree_model.get_weights()
+                for layer in tree_model.layers:
+                    if layer.name[:5] == "dense":
+                        _tree_weights.append([layer.name, layer.get_weights()])
+                _tree_weights.sort()
+                tree_weights = []
+                for _weights in _tree_weights:
+                    for i in range(2):
+                        tree_weights.append(_weights[1][i])
+                print(len(tree_weights))
                 mlp_weights = mlp_model.get_weights()
                 mlp_weights = [np.zeros(_mlp.shape) for _mlp in mlp_weights]
                 show_weight(mlp_weights)
@@ -1099,27 +1124,15 @@ class Main_test():
                 for i in range(output_size):
                     for j in range(len(tree_shape)):
                         for k in range(tree_shape[j]):
-                            _node = k+i*tree_shape[j]
+                            _node = k + i * (dense_size + [output_size])[j + 1] // output_size  # tree_shape[j]
                             # print("i:{} j:{} k:{} _node:{}".format(i, j, k, _node))
                             for l in range(2):
-                                """
-                                print("mlp_weights[{}][{}][{}]:{}"
-                                      .format(2 * j, _node * 2 + l, _node, mlp_weights[2 * j][_node * 2 + l][_node]))
-                                print(
-                                    "tree_weights[{}][{}][0]:{}".format(tree_index, l, tree_weights[tree_index][l][0]))
-                                """
-                                mlp_weights[2*j][_node*2+l][_node]\
+                                mlp_weights[2 * j][_node * 2 + l][_node] \
                                     = tree_weights[tree_index][l][0]
                             tree_index += 1
-                            mlp_weights[2*j+1][_node] = tree_weights[tree_index]
+                            mlp_weights[2 * j + 1][_node] = tree_weights[tree_index]
                             tree_index += 1
                 mlp_model.set_weights(mlp_weights)
-                ### tree_modelから取得できるweightの順番を調査　現状は定義順になっておらずめちゃくちゃ
-                print("weight")
-                for i in mlp_model.get_weights():
-                    for j in i:
-                        print(j)
-                    print()
                 show_weight(mlp_model.get_weights())
                 test_val_loss = mlp_model.evaluate(X_test, y_test)
                 train_val_loss = mlp_model.evaluate(X_train, y_train)
@@ -1176,9 +1189,11 @@ class Main_test():
             ### magnitude プルーニング
             if tree_flag:
                 _weights = _weight_pruning(_weights, test_val_loss, mlp_model, X_test, y_test)
+                mlp_model.set_weights(_weights)
             else:
                 _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss \
-                    = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test, freezed_classify_1,
+                    = weight_pruning(_weights, test_val_loss, binary_classify, X_test, g_mask_1, y_test,
+                                     freezed_classify_1,
                                      classify, hidden_layers, pruned_test_val_loss)
             # = weight_pruning(_weights, test_val_loss, binary_classify, X_train, g_mask_1, y_train, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss)
             ### magnitude プルーニング
@@ -1189,7 +1204,7 @@ class Main_test():
                 g_mask_1 = get_active_nodes(binary_classify, X_train, y_train)
                 # else:
                 # active_nodes = [-1]# g_mask_1
-            ### 第1中間層ノードプルーニング
+                ### 第1中間層ノードプルーニング
 
         if (not loadflag) and (pruning_rate >= 0):
             print("\nError : Please load Model to do pruning")
@@ -1284,9 +1299,9 @@ class Main_test():
                                                comment="binary_target:{}".format(i), binary_target=i,
                                                using_nodes=[sum(active_nodes_num[:i]), active_nodes_num[i]],
                                                active_nodes=[_active[i] for _active in active_nodes])
-                path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-                if not os.path.exists(path):
-                    path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
+                path = os.getcwd() + r"\visualized_iris\network_architecture\triple"
+                # if not os.path.exists(path):
+                # path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
                 path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + "_{}.png".format(i))
                 cv2.imwrite(path, im_architecture)
             ### クラスごとのactiveネットワーク構造を描画
@@ -1331,17 +1346,11 @@ class Main_test():
             for im in im_g_dense_test:
                 im_h_resize_test = hconcat_resize_min([im_h_resize_test, hconcat_resize_min(im)])
             # im_h_resize = hconcat_resize_min([im_h_resize, np.array(im_architecture)])
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            if not os.path.exists(path):
-                path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
-            cv2.imwrite(path, im_h_resize_train)
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            if not os.path.exists(path):
-                path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
-            cv2.imwrite(path, im_h_resize_test)
+            path = os.getcwd() + r"\visualized_iris\network_architecture\triple"
+            cv2.imwrite(path + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png"), im_h_resize_train)
+            cv2.imwrite(path + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png"), im_h_resize_test)
             ### 各層の出力を描画
+
 
 def save_images(imgs, index, dir_path):
     # Argment
@@ -1508,6 +1517,7 @@ if __name__ == '__main__':
         dataset_category = 3
         import config_mnist as cf
         from _model_iris import *
+
         dataset = "balance"
     elif args.parity:
         Height = 1
@@ -1520,6 +1530,7 @@ if __name__ == '__main__':
         dataset_category = 2
         import config_mnist as cf
         from _model_iris import *
+
         dataset = "parity"
     dense_size[0] = input_size
     if args.binary_target >= 0:

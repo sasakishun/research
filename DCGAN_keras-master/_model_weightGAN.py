@@ -10,6 +10,7 @@ from keras.models import Model
 from keras.layers import Input, Dense, Reshape, multiply
 from keras.layers.normalization import BatchNormalization
 import numpy as np
+
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=2000)
 
@@ -17,6 +18,7 @@ np.set_printoptions(linewidth=2000)
 import keras.callbacks
 import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
+
 old_session = KTF.get_session()
 
 session = tf.Session('')
@@ -25,6 +27,7 @@ KTF.set_learning_phase(1)
 ###
 
 from keras.utils import np_utils
+
 # from tensorflow_model_optimization.sparsity import keras as sparsity
 """
 pruning_params = {
@@ -35,6 +38,8 @@ pruning_params = {
                                                    frequency=100)
 }
 """
+
+
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
     abs_diffs = K.sum(K.abs(diffs), 2)
@@ -44,6 +49,7 @@ def minb_disc(x):
 
 def lambda_output(input_shape):
     return input_shape[:2]
+
 
 def minibatch_discrimination(d_out):
     ### Minibatch Discrimination用のパラメータ
@@ -58,6 +64,7 @@ def minibatch_discrimination(d_out):
     x_mbd_true = MBD(x_mbd_true)
     d_out = keras.layers.concatenate([d_out, x_mbd_true])
     return d_out
+
 
 def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_size=[]):
     ### 生成器定義
@@ -158,10 +165,10 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     for i in range(len(g_masks)):
         print("g_masks[{}]:{}".format(i, g_masks[i]))
 
-    g = Model(inputs=[inputs_z]+g_masks, outputs=[x, g_dense1], name='G')
+    g = Model(inputs=[inputs_z] + g_masks, outputs=[x, g_dense1], name='G')
     d = Model(inputs=[inputs_w, inputs_labels], outputs=[d_out_true], name='D')
-    c = Model(inputs=[inputs_z, inputs_labels]+g_masks, outputs=[x, d_out_fake], name='C')  # end-to-end学習(g+d)
-    classify = Model(inputs=[inputs_z]+g_masks, outputs=[x], name='classify')
+    c = Model(inputs=[inputs_z, inputs_labels] + g_masks, outputs=[x, d_out_fake], name='C')  # end-to-end学習(g+d)
+    classify = Model(inputs=[inputs_z] + g_masks, outputs=[x], name='classify')
     classify.compile(loss='categorical_crossentropy',
                      optimizer="adam",
                      metrics=[metrics.categorical_accuracy])
@@ -174,32 +181,32 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     for layer in d.layers:
         layer.trainable = True
 
-    binary_classify = Model(inputs=[inputs_z]+g_masks, outputs=[binary_class_output], name='binary_classify')
+    binary_classify = Model(inputs=[inputs_z] + g_masks, outputs=[binary_class_output], name='binary_classify')
     binary_classify.compile(loss='categorical_crossentropy',
-                     optimizer="adam",
-                     metrics=[metrics.categorical_accuracy])
+                            optimizer="adam",
+                            metrics=[metrics.categorical_accuracy])
 
     d_opt = keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
     d.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense1 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense1], name='g_dense1')
+    G_dense1 = Model(inputs=[inputs_z] + g_masks, outputs=[g_dense1], name='g_dense1')
     G_dense1.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense2 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense2], name='g_dense2')
+    G_dense2 = Model(inputs=[inputs_z] + g_masks, outputs=[g_dense2], name='g_dense2')
     G_dense2.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense3 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense3], name='g_dense3')
+    G_dense3 = Model(inputs=[inputs_z] + g_masks, outputs=[g_dense3], name='g_dense3')
     G_dense3.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_dense4 = Model(inputs=[inputs_z]+g_masks, outputs=[g_dense4], name='g_dense4')
+    G_dense4 = Model(inputs=[inputs_z] + g_masks, outputs=[g_dense4], name='g_dense4')
     G_dense4.compile(optimizer=d_opt, loss='mean_squared_error')
-    G_output = Model(inputs=[inputs_z]+g_masks, outputs=[x], name='g_dense_out')
+    G_output = Model(inputs=[inputs_z] + g_masks, outputs=[x], name='g_dense_out')
     G_output.compile(optimizer=d_opt, loss='mean_squared_error')
 
     for layer in G_dense1.layers:
         # print(layer.name)
         layer.trainable = False
     # exit()
-    freezed_classify_1 = Model(inputs=[inputs_z]+g_masks, outputs=[x], name='freezed_classify_1')
+    freezed_classify_1 = Model(inputs=[inputs_z] + g_masks, outputs=[x], name='freezed_classify_1')
     freezed_classify_1.compile(loss='categorical_crossentropy',
-                     optimizer="adam",
-                     metrics=[metrics.categorical_accuracy])
+                               optimizer="adam",
+                               metrics=[metrics.categorical_accuracy])
     ### モデル定義
 
     ### モデル構造を出力
@@ -213,22 +220,24 @@ def weightGAN_Model(input_size=4, wSize=20, output_size=3, use_mbd=False, dense_
     print("classify.summary()")
     classify.summary()
     """
-    hidden_layers=[G_dense1, G_dense2, G_dense3, G_dense4, G_output]
+    hidden_layers = [G_dense1, G_dense2, G_dense3, G_dense4, G_output]
     # for i in range(len(hidden_layers)):
-        # print("hiddden_layers[{}].summary()".format(i))
-        # hidden_layers[i].summary()
+    # print("hiddden_layers[{}].summary()".format(i))
+    # hidden_layers[i].summary()
     # freezed_classify_1.summary()
     return g, d, c, classify, hidden_layers, binary_classify, freezed_classify_1
+
 
 def get_hidden_nodes_num(input_size, all_combination_flag):
     # layer_num = 0
     hidden_nodes_num = []
-    while input_size/2 >= 1:
-        hidden_nodes_num.append(input_size//2)
-        input_size = input_size//2 + input_size%2
-    return hidden_nodes_num# [input_size//(2**(i+1)) for i in range(layer_num)]
+    while input_size / 2 >= 1:
+        hidden_nodes_num.append(input_size // 2)
+        input_size = input_size // 2 + input_size % 2
+    return hidden_nodes_num  # [input_size//(2**(i+1)) for i in range(layer_num)]
 
-def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag = False):
+
+def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=False):
     activation = "relu"
     hidden_nodes_num = get_hidden_nodes_num(input_size, all_combination_flag)
     if get_hidden_flag:
@@ -237,34 +246,23 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag = 
     print("layer_num:{}".format(layer_num))
     print("hidden_nodes_num:{}".format(hidden_nodes_num))
     ### モデル入力定義
-    inputs = [Input(shape=(1, ), name='inputs_{}'.format(i)) for i in range(input_size)]
-    """
-    inputs = []
-    for i in range(len(_inputs)):
-        for j in range(i+1, len(_inputs)):
-            inputs.append(_inputs[i])
-            inputs.append(_inputs[j])
-    """
+    inputs = [Input(shape=(1,), name='inputs_{}'.format(i)) for i in range(input_size)]
     # calculated = [Lambda(lambda x: K.sqrt(x + 1.0), output_shape=(1,))(_inputs) for _inputs in inputs]
     for i in range(len(inputs)):
         print("inputs[{}]:{}".format(i, inputs[i]))
     ### モデル入力定義
 
     ### 中間層定義 入力列の隣合う要素同士を木の入力とする
-    _dense = [[[Dense(1, activation=activation if i != layer_num-1 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}_{}'.format(output, i, j),
+    _dense = [[[Dense(1, activation=activation if i != layer_num - 1 else None,
+                      kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}_{}'.format(output, i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-               for j in range(hidden_nodes_num[i])]
-              for i in range(layer_num)]
+                for j in range(hidden_nodes_num[i])]
+               for i in range(layer_num)]
               for output in range(output_size)]
     ### 中間層定義
 
     dense = [[inputs] for _ in range(output_size)]
-    """
-    for i in range(len(_dense[0])):
-        for j in range(len(_dense[0][i])):
-            print("_dense[{}][{}][{}]:{}".format(0, i, j, _dense[0][i][j].name))
-        print()
-    """
+
     for _out in range(output_size):
         for i in range(layer_num):
             print("i:{}".format(i))
@@ -275,35 +273,39 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag = 
                 odd_node = dense[_out][i][-1]
                 odd_flag = True
             ### dense[_out][i]の各要素を次層入力のためにconcatenate
-            dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j*2], dense[_out][i][j*2+1]])
-                              for j in range(len(dense[_out][i])//2)]
+            dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j * 2], dense[_out][i][j * 2 + 1]])
+                              for j in range(len(dense[_out][i]) // 2)]
             ### dense[_out][i+1]に入力を伝播
             dense[_out].append([_dense[_out][i][j](dense[_out][i][j])
-                          for j in range(hidden_nodes_num[i])])
+                                for j in range(hidden_nodes_num[i])])
             if odd_flag:
                 dense[_out][-1].append(odd_node)
                 print("\nadd odd\n")
-    output = keras.layers.concatenate([dense[i][-1][0] for i in range(len(dense))]) if len(dense) > 1 else dense[0][-1][0]
+    output = keras.layers.concatenate([dense[i][-1][0] for i in range(len(dense))]) if len(dense) > 1 else dense[0][-1][
+        0]
     output = keras.layers.Activation("softmax")(output)
     dense_tree = Model(inputs=inputs, outputs=output, name='dense_tree')
     dense_tree.compile(loss='categorical_crossentropy',
-                            optimizer="adam",
-                            metrics=[metrics.categorical_accuracy])
+                       optimizer="adam",
+                       metrics=[metrics.categorical_accuracy])
     return dense_tree
+
 
 def mlp(input_size, hidden_size, output_size):
     activation = "relu"
-    _dense = [Dense(hidden_size[j], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
-                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
-               for j in range(len(hidden_size))]
-    _dense.append(Dense(output_size, activation="softmax", kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(len(_dense)),
-                      kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None)))
-    inputs = Input(shape=(input_size, ), name='inputs')
+    _dense = [
+        Dense(hidden_size[j], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
+              kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        for j in range(len(hidden_size))]
+    _dense.append(Dense(output_size, activation="softmax", kernel_regularizer=regularizers.l1(0.01),
+                        name='dense{}'.format(len(_dense)),
+                        kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None)))
+    inputs = Input(shape=(input_size,), name='inputs')
     dense = [inputs]
     for i in range(len(_dense)):
         dense.append(_dense[i](dense[i]))
     _mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
     _mlp.compile(loss='categorical_crossentropy',
-                       optimizer="adam",
-                       metrics=[metrics.categorical_accuracy])
+                 optimizer="adam",
+                 metrics=[metrics.categorical_accuracy])
     return _mlp
