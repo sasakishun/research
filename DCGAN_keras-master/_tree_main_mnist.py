@@ -1189,8 +1189,6 @@ class Main_test():
             print("g_mask_in_binary\n{}".format(np.array(np.nonzero(load_concate_masks(active_true=True))).tolist()[0]))
 
         ### ネットワーク構造を描画
-        im_architecture = mydraw(add_original_input(input_size, output_size, mlp_weights) if tree_flag else
-                                 weights, test_val_loss[1])
         visualize_network(
             weights=add_original_input(input_size, output_size, mlp_weights) if tree_flag else _weights[0],
             acc=test_val_loss[1],
@@ -1205,11 +1203,10 @@ class Main_test():
             masked_mlp_model = masked_mlp(input_size, dense_size, output_size)
             show_weight(masked_mlp_model.get_weights())
             masked_mlp_model.set_weights(add_original_input(input_size, output_size, mlp_model.get_weights()))
-            for target_layer in range(1, len(dense_size)):
+            for target_layer in range(1, len(masked_mlp_model.get_weights())//2):
                 print("shrink {}th layer".format(target_layer))
                 masked_mlp_model = shrink_tree_nodes(masked_mlp_model, target_layer,
-                                                     original_X_train, y_train, X_test, y_test, only_active_list=False)
-            print()
+                                                     original_X_train, y_train, original_X_test, y_test, only_active_list=False)
         elif binary_flag:
             _X_test = [[] for _ in range(2)]
             _y_test = [[] for _ in range(2)]
