@@ -32,8 +32,9 @@ class Layer():
         self.neurons = self.__intialise_neurons(number_of_neurons)
         self.weights = weights
         self.neuron_color = ["black" for _ in range(number_of_neurons)]
-        for i in non_active_neurons:
-            non_active_neurons[i] = "white"
+        if non_active_neurons:
+            for i in non_active_neurons:
+                non_active_neurons[i] = "white"
 
     def __intialise_neurons(self, number_of_neurons):
         neurons = []
@@ -86,7 +87,7 @@ class Layer():
     def draw(self):
         for this_layer_neuron_index in range(len(self.neurons)):
             neuron = self.neurons[this_layer_neuron_index]
-            neuron.draw(this_layer_neuron_index, "", color=self.neuron_color[this_layer_neuron_index])
+            neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index])
             if self.previous_layer:
                 for previous_layer_neuron_index in range(len(self.previous_layer.neurons)):
                     previous_layer_neuron = self.previous_layer.neurons[previous_layer_neuron_index]

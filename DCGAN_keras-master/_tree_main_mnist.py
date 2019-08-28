@@ -2,59 +2,41 @@
 import os
 
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# import tensorflow as tf
+# from keras import backend as K
+# import numpy as np
+# from keras.utils import np_utils
+import argparse
+# import numpy as np
+import copy
+import matplotlib.pyplot as plt
+import sys
+from sklearn.model_selection import train_test_split
+import random
+from visualization import visualize, hconcat_resize_min, vconcat_resize_min
+from _tree_functions import *
+import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
-from keras import backend as K
-from keras import metrics
-from keras.layers.core import Lambda
+from draw_architecture import *
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 K.set_session(sess)
 
-import argparse
-import cv2
-import numpy as np
-import copy
-
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=2000)
-import glob
-import matplotlib.pyplot as plt
-import sys
-from tqdm import tqdm
-from sklearn.model_selection import train_test_split
-import random
-from visualization import visualize, hconcat_resize_min, vconcat_resize_min
-from _model_weightGAN import *
-from _tree_functions import *
-
-# import config_mnist as cf
-
-# from _model_mnist import *
-### add for TensorBoard
-import keras.callbacks
-import keras.backend.tensorflow_backend as KTF
-import tensorflow as tf
-from draw_architecture import *
 
 ### モデル量子化
 # from keras.models import load_model
 # from keras_compressor.compressor import compress
 ### モデル量子化
-
 old_session = KTF.get_session()
-
 session = tf.Session('')
 KTF.set_session(session)
 KTF.set_learning_phase(1)
 ###
-from keras.models import load_model
-import numpy as np
-from keras.preprocessing.image import img_to_array, load_img
-from keras.utils import np_utils
 
 Height, Width = 28, 28
 Channel = 1
@@ -632,7 +614,8 @@ class Main_train():
                 ### ネットワーク構造を描画
                 im_h_resize = im_architecture
                 path = os.getcwd()
-                path += r"\visualized_iris\network_architecture\triple\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
+                path += r"\visualized_iris\network_architecture\triple\{}".format(
+                    datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
                 cv2.imwrite(path, im_h_resize)
                 ### [0,1,...,9]の重みとバイアス(入力層->中間層)を読み込む
 
@@ -695,7 +678,7 @@ class Main_train():
                     train_val_loss = tree_model.evaluate(separate_inputs_z(X_train), y_train)
                     _y = tree_model.predict(separate_inputs_z(X_train))
                     # for i in range(len(X_train)):
-                        # print("{}:{} -> {} vs {}".format(X_train[i], sum(X_train[i]), _y[i], y_train[i]))
+                    # print("{}:{} -> {} vs {}".format(X_train[i], sum(X_train[i]), _y[i], y_train[i]))
                 elif binary_flag:
                     test_val_loss = binary_classify.evaluate(inputs_z(X_test, g_mask_1), y_test)
                     train_val_loss = binary_classify.evaluate(inputs_z(X_train, g_mask_1), y_train)
@@ -926,8 +909,7 @@ def get_active_node_non_mask(model, X_train, y_train, target_layer):
     return g_mask_1  # active_node箇所だけ1
 
 
-def divide_data(X_test, y_test):
-    global dataset_category
+def divide_data(X_test, y_test, dataset_category):
     _X_test = [[] for _ in range(dataset_category)]
     _y_test = [[] for _ in range(dataset_category)]
     for data, target in zip(X_test, y_test):
@@ -947,7 +929,7 @@ def shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_act
     weights = model.get_weights()
     _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
     active_nodes = [[] for _ in range(output_size)]
-    X_trains, y_trains = divide_data(X_train, y_train)  # クラス別に訓練データを分割
+    X_trains, y_trains = divide_data(X_train, y_train, dataset_category)  # クラス別に訓練データを分割
     for i in range(output_size):  # for i in range(クラス数):
         # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
         pruned_train_val_acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
@@ -1083,6 +1065,8 @@ class Main_test():
             print("test  loss:{}".format(test_val_loss))
             set_dense_size_with_tree(input_size, dataset_category)
             mlp_model = mlp(dense_size[0], dense_size[1:], output_size)
+            original_X_train = copy.deepcopy(X_train)
+            original_X_test = copy.deepcopy(X_test)
             X_train = tree_inputs2mlp(X_train, dense_size[0], output_size)
             X_test = tree_inputs2mlp(X_test, dense_size[0], output_size)
         else:
@@ -1120,7 +1104,7 @@ class Main_test():
                 pruned_train_val_loss = copy.deepcopy(train_val_loss)
                 _weights = [mlp_model.get_weights(), mlp_model.get_weights()]
                 active_nodes_num = -1
-                non_active_neurons = non_active_in_tree2mlp()
+                non_active_neurons = None  # non_active_in_tree2mlp()
             elif binary_flag:
                 g.load_weights(cf.Save_g_path)
                 d.load_weights(cf.Save_d_path)
@@ -1151,19 +1135,13 @@ class Main_test():
                 print("pruned_test_val_loss:{}".format(pruned_test_val_loss))
             ### プルーニングなしのネットワーク構造を描画
             # if not binary_flag:
-            im_architecture = mydraw(_weights[0], test_val_loss[1],
-                                     comment=("[{} vs other]".format(binary_target) if binary_flag else "")
-                                             + " pruned <{:.4f}\n".format(0.)
-                                             + "active_node:{}".format(
-                                         active_nodes_num if not binary_flag else "-1"),
-                                     non_active_neurons=non_active_neurons)
-            im_h_resize = im_architecture
-            path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            if not os.path.exists(path):
-                path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
-            cv2.imwrite(path, im_h_resize)
-            print("saved concated graph to -> {}".format(path))
+            visualize_network(
+                weights=add_original_input(input_size, output_size, mlp_weights) if tree_flag else _weights[0],
+                acc=test_val_loss[1],
+                comment=("[{} vs other]".format(binary_target) if binary_flag else "")
+                        + " pruned <{:.4f}\n".format(0.)
+                        + "active_node:{}".format(active_nodes_num if not binary_flag else "-1"),
+                non_active_neurons=non_active_neurons)
             ### プルーニングなしのネットワーク構造を描画
 
             ### magnitude プルーニング
@@ -1211,22 +1189,26 @@ class Main_test():
             print("g_mask_in_binary\n{}".format(np.array(np.nonzero(load_concate_masks(active_true=True))).tolist()[0]))
 
         ### ネットワーク構造を描画
-        im_architecture = mydraw(weights, test_val_loss[1],
-                                 comment=("[{} vs other]".format(binary_target) if binary_flag else "full classes test")
-                                         + " pruned <{:.4f}\n".format(pruning_rate)
-                                         + "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0]
-                                                                    if sum(g_mask_1) > 0 else "None")
-                                                                   if binary_flag else active_nodes_num) if not tree_flag else "")
-
-        im_h_resize = im_architecture
-        path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-        if not os.path.exists(path):
-            path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
-        path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
-        cv2.imwrite(path, im_h_resize)
+        im_architecture = mydraw(add_original_input(input_size, output_size, mlp_weights) if tree_flag else
+                                 weights, test_val_loss[1])
+        visualize_network(
+            weights=add_original_input(input_size, output_size, mlp_weights) if tree_flag else _weights[0],
+            acc=test_val_loss[1],
+            comment=("[{} vs other]".format(binary_target) if binary_flag else "full classes test")
+                    + " pruned <{:.4f}\n".format(pruning_rate)
+                    + "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0]
+                                               if sum(g_mask_1) > 0 else "None")
+                                              if binary_flag else active_nodes_num) if not tree_flag else "")
         ### ネットワーク構造を描画
-        print("saved concated graph to -> {}".format(path))
-        if tree_flag:
+
+        if tree_flag:  # 二分木mlpのうち不要ノードを削除(shrink)
+            masked_mlp_model = masked_mlp(input_size, dense_size, output_size)
+            show_weight(masked_mlp_model.get_weights())
+            masked_mlp_model.set_weights(add_original_input(input_size, output_size, mlp_model.get_weights()))
+            for target_layer in range(1, len(dense_size)):
+                print("shrink {}th layer".format(target_layer))
+                masked_mlp_model = shrink_tree_nodes(masked_mlp_model, target_layer,
+                                                     original_X_train, y_train, X_test, y_test, only_active_list=False)
             print()
         elif binary_flag:
             _X_test = [[] for _ in range(2)]

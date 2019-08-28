@@ -265,7 +265,7 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
 
     for _out in range(output_size):
         for i in range(layer_num):
-            print("i:{}".format(i))
+            # print("i:{}".format(i))
             # print("dense[{}][{}]:{} type:{}".format(_out, i, dense[_out][i], type(dense[_out][i])))
             # print("dense[{}][{}]:{} type:{}".format(_out, i, len(dense[_out][i]), type(dense[_out][i])))
             odd_flag = False
@@ -280,7 +280,7 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
                                 for j in range(hidden_nodes_num[i])])
             if odd_flag:
                 dense[_out][-1].append(odd_node)
-                print("\nadd odd\n")
+                # print("\nadd odd\n")
     output = keras.layers.concatenate([dense[i][-1][0] for i in range(len(dense))]) if len(dense) > 1 else dense[0][-1][
         0]
     output = keras.layers.Activation("softmax")(output)
@@ -305,6 +305,38 @@ def mlp(input_size, hidden_size, output_size):
     for i in range(len(_dense)):
         dense.append(_dense[i](dense[i]))
     _mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
+    _mlp.compile(loss='categorical_crossentropy',
+                 optimizer="adam",
+                 metrics=[metrics.categorical_accuracy])
+    return _mlp
+
+
+def masked_mlp(input_size, hidden_size, output_size):
+    # wineデータセットでは
+    # input_size  : 13
+    # hidden_size : [48, 24, 12, 6]
+    # output_size : 3
+    activation = "relu"
+    _dense = [
+        Dense(hidden_size[j], activation=activation if j != 0 else None, kernel_regularizer=regularizers.l1(0.01),
+              name='dense{}'.format(j),
+              kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        for j in range(len(hidden_size))]
+
+    _dense.append(Dense(output_size, activation="softmax", kernel_regularizer=regularizers.l1(0.01),
+                        name='dense{}'.format(len(_dense)),
+                        kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None)))
+
+    inputs = Input(shape=(input_size,), name='inputs')
+    # 入力層から出力直前層の出力にmaskをmultiplyする
+    mask = [Input(shape=(([input_size]+hidden_size)[i],), name='mask_{}'.format(i))
+            for i in range(len([input_size]+hidden_size))]
+
+    dense = [inputs]
+    for i in range(len(_dense)):
+        dense[-1] = multiply([dense[-1], mask[i]])
+        dense.append(_dense[i](dense[i]))
+    _mlp = Model(inputs=[inputs] + mask, outputs=dense[-1], name='dense_tree')
     _mlp.compile(loss='categorical_crossentropy',
                  optimizer="adam",
                  metrics=[metrics.categorical_accuracy])
