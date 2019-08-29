@@ -653,19 +653,6 @@ class Main_train():
 
             d_loss = 0
             if tree_flag:
-                """
-                print("Xtrain:{}".format(np.shape(X_train)))
-                print("Xtrain[0]:{}".format(np.shape(X_train[0])))
-                print("ytrain:{}".format(np.shape(y_train)))
-                print("ytrain[0]:{}".format(np.shape(y_train[0])))
-                print("_inds:{}".format(_inds))
-                print("Xtrain:{}".format(np.shape(X_train[_inds])))
-                print("Xtrain[0]:{}".format(np.shape(X_train[_inds][0])))
-                print("ytrain:{}".format(np.shape(y_train[_inds])))
-                print("ytrain[0]:{}".format(np.shape(y_train[_inds][0])))
-                print("sep_Xtrain:{}".format(np.shape(separate_inputs_z(X_train[_inds]))))
-                print("sep_Xtrain[0]:{}".format(np.shape(separate_inputs_z(X_train[_inds])[0])))
-                """
                 g_loss = tree_model.train_on_batch(separate_inputs_z(X_train[_inds]), y_train[_inds])
             elif binary_flag:
                 g_loss = binary_classify.train_on_batch(inputs_z(X_train[_inds], g_mask_1), y_train[_inds])
@@ -686,8 +673,8 @@ class Main_train():
                     test_val_loss = freezed_classify_1.evaluate(inputs_z(X_test, g_mask_1), y_test)
                     train_val_loss = freezed_classify_1.evaluate(inputs_z(X_train, g_mask_1), y_train)
                 max_score = max(max_score, test_val_loss[1])
-                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} g: {:.2f}, d: {:.2f}, test_val: loss:{:.6f} acc:{:.6f}".format(
-                    ite, g_loss[0], train_val_loss[1], g_loss[1], d_loss, test_val_loss[0], test_val_loss[1])
+                con += "Ite:{}, catego: loss{:.6f} acc:{:.6f} , test_val: loss:{:.6f} acc:{:.6f}".format(
+                    ite, train_val_loss[0], train_val_loss[1], test_val_loss[0], test_val_loss[1])
                 """
                 if ite % cf.Save_train_step == 0:
                     if dataset == "iris":
@@ -705,7 +692,7 @@ class Main_train():
                                                       decimals=2), testflag=True)
                 """
             else:
-                con += "Ite:{}, catego:{} g:{}, d: {:.6f}".format(ite, g_loss[0], g_loss[1], d_loss)
+                con += "Ite:{}, catego:{} loss:{}".format(ite, g_loss[0], g_loss[1])
 
             sys.stdout.write("\r" + con)
 
