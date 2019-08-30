@@ -142,20 +142,6 @@ def iris_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 
-def stringToList(_string, split=" "):
-    str_list = []
-    temp = ''
-    for x in _string:
-        if x == split:  # 区切り文字
-            str_list.append(temp)
-            temp = ''
-        else:
-            temp += x
-    if temp != '':  # 最後に残った文字列を末尾要素としてリストに追加
-        str_list.append(temp)
-    return str_list
-
-
 def normalize(X_train, X_test):
     # 正規化
     from sklearn.preprocessing import MinMaxScaler
@@ -1000,6 +986,7 @@ def _weight_pruning(model, X_test, y_test):
     _weights = [model.get_weights(), model.get_weights()]
     pruned_test_val_loss = model.evaluate(X_test, y_test)
     test_val_loss = copy.deepcopy(pruned_test_val_loss)
+    global pruning_rate
     pruning_rate = 0.
     while (pruned_test_val_loss[1] > test_val_loss[1] * 0.95) and pruning_rate < 10:
         ### 精度98%以上となる重みを_weights[0]に確保
@@ -1027,7 +1014,7 @@ def _weight_pruning(model, X_test, y_test):
                 break
         model.set_weights(_weights[1])
         pruned_test_val_loss = model.evaluate(X_test, y_test)
-        print("pruning is done")
+        print("pruning is done : magnitude < {} discard".format(pruning_rate))
         ### プルーニング率を微上昇させ性能検証
         model.set_weights(_weights[0])
     return _weights[0]
@@ -1126,7 +1113,7 @@ class Main_test():
                 weights=add_original_input(input_size, output_size, mlp_weights) if tree_flag else _weights[0],
                 acc=test_val_loss[1],
                 comment=("[{} vs other]".format(binary_target) if binary_flag else "")
-                        + " pruned <{:.4f}\n".format(0.)
+                        + " pruned <{:.6f}\n".format(0.)
                         + "active_node:{}".format(active_nodes_num if not binary_flag else "-1"),
                 non_active_neurons=non_active_neurons)
             ### プルーニングなしのネットワーク構造を描画
@@ -1175,16 +1162,19 @@ class Main_test():
         if binary_flag:
             print("g_mask_in_binary\n{}".format(np.array(np.nonzero(load_concate_masks(active_true=True))).tolist()[0]))
 
-        ### ネットワーク構造を描画
+        ### magnitudeプルーニング後のネットワーク構造を描画
+        global pruning_rate
+        print("pruning_rate:{}".format(pruning_rate))
+        _comment = "[{} vs other]\n".format(binary_target) if binary_flag else "full classes test\n"
+        _comment += " pruned <{:.4f} ".format(pruning_rate)
+        _comment += "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0]
+                                               if sum(g_mask_1) > 0 else "None")
+                                              if binary_flag else active_nodes_num) if not tree_flag else ""
         visualize_network(
             weights=add_original_input(input_size, output_size, mlp_weights) if tree_flag else _weights[0],
             acc=test_val_loss[1],
-            comment=("[{} vs other]".format(binary_target) if binary_flag else "full classes test")
-                    + " pruned <{:.4f}\n".format(pruning_rate)
-                    + "active_node:{}".format((np.array(np.nonzero(g_mask_1)).tolist()[0]
-                                               if sum(g_mask_1) > 0 else "None")
-                                              if binary_flag else active_nodes_num) if not tree_flag else "")
-        ### ネットワーク構造を描画
+            comment=_comment)
+        ### magnitudeプルーニング後のネットワーク構造を描画
 
         if tree_flag:  # 二分木mlpのうち不要ノードを削除(shrink)
             masked_mlp_model = masked_mlp(input_size, dense_size, output_size)
@@ -1200,7 +1190,7 @@ class Main_test():
             _mlp_shape = [sorted_weights[0].shape[0]] + \
                          [sorted_weights[2 * i + 1].shape[0] for i in range(len(sorted_weights) // 2)]
             _mask = [np.array([1 for _ in range(_mlp_shape[i])]) for i in range(len(_mlp_shape))]
-            
+
             # visualize_network(sorted_weights, masked_mlp_model.evaluate(inputs_z(original_X_test, _mask), y_test)[1],
                               # comment="shrinking all layer")
 
