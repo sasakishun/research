@@ -163,7 +163,6 @@ def standardize(X_train, X_test):
 def wine_data():
     ### .dataファイルを読み込む
     _data = open(os.getcwd() + r"\wine.data", "r")
-    # _data = open(r"C:\Users\papap\Documents\research\DCGAN_keras-master\wine.data", "r")
     lines = _data.readlines()
     ### .dataファイルを読み込む
 
@@ -176,9 +175,13 @@ def wine_data():
         _train.append([float(i) for i in line[1:]])  # それ以外は訓練データ
     ### .dataファイルから","をsplitとして、1行ずつリストとして読み込む
 
+    # _train, _target = augumentaton(_train, _target)
     X_train, X_test, y_train, y_test = \
         train_test_split(np.array(_train), np.array(_target), test_size=0.1, train_size=0.9, shuffle=True,
                          random_state=1)
+    ### 全クラスでデータ数そろえる
+    X_train, y_train = augumentaton(list(X_train), y_train)
+    X_test, y_test = augumentaton(list(X_test), y_test)
 
     ### 各列で正規化
     # X_train, X_test = normalize(X_train, X_test)
@@ -192,16 +195,17 @@ def wine_data():
     data_inds = np.arange(train_num)
     max_ite = cf.Minibatch * train_num_per_step
     print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
-    print("X_train:\n{} \nX_test:\n{}".format(X_train, X_test))
+    # print("X_train:\n{} \nX_test:\n{}".format(X_train, X_test))
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     print("-> X_max in train :{}".format(np.amax(X_train, axis=0)))
     print("-> X_max in test  : {}".format(np.amax(X_test, axis=0)))
     # print("X_train:\n{}".format(X_train))
-    # exit()
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 
 def augumentaton(train, target):
+    # train : リスト
+    # target : スカラー値
     samples = [[[], []] for _ in range(dataset_category)]
     for i in range(len(train)):
         samples[target[i]][0].append(train[i])
@@ -524,8 +528,6 @@ def generate_syncro_weights(binary_classify, size_only=False):
 
 
 def inputs_z(X_test, g_mask_1):
-    # print("\nlist(np.array([X_test])) + mask(g_mask_1, len(X_test)):{}"
-    # .format([np.shape(i) for i in list(np.array([X_test])) + mask(g_mask_1, len(X_test))]))
     return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
 
 
@@ -618,12 +620,10 @@ class Main_train():
                                                                                            binary_flag=binary_flag)
         if tree_flag:
             tree_model = tree(input_size, 1)
-            # tree_model = mlp(input_size)
             tree_model.summary()
             from keras.utils import plot_model
             import pydot_ng as pydot
             path = os.getcwd() + r"\visualized_iris\network_architecture\triple"
-            # path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\triple"
             plot_model(tree_model, to_file=path + '\model.png', show_shapes=True)
             tree_model = tree(input_size, dataset_category)
 
