@@ -1224,6 +1224,7 @@ class Main_test():
                 incorrect_data = [[] for _ in range(output_size)]
                 incorrect_target = [[] for _ in range(output_size)]
                 output = [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
+                ### 正解データと不正解データに分割
                 for i in range(output_size):
                     for _data, _target, _output in zip(data[i], target[i], output[i]):
                         if np.argmax(_output) == np.argmax(_target):
@@ -1232,22 +1233,33 @@ class Main_test():
                         else:
                             incorrect_data[i].append(_data)
                             incorrect_target[i].append(_target)
-
-                intermediate_output = [[list(intermediate_layer_model[i].predict(inputs_z(data[j], _mask)))
-                                        for j in range(len(data))]
-                                       for i in range(len(masked_mlp_model.get_weights())//2)]
-                for i in range(len(intermediate_output)):
-                    print("dense[{}]:{}".format(i, np.shape(intermediate_output[i])))
-                    print("dense[{}]:{}".format(i, np.shape(intermediate_output[i][0])))
-                    for j in range(len(intermediate_output[i])):
-                        print("i:{} j:{}".format(i, j))
-                        for k in range(np.shape(intermediate_output[i][j])[0]):
-                            print(intermediate_output[i][j][k])
-                import time
-                for i in range(len(masked_mlp_model.get_weights())//2):
-                    time.sleep(1)
-                    visualize(intermediate_output[i], None, None, ite=cf.Iteration,
-                              testflag=True, showflag=True if name=="test" else False, comment="layer:{}".format(i+1))
+                ### 正解データと不正解データに分割
+                print(name)
+                print("correct_data:{}".format([np.shape(correct_data), [np.shape(correct_data[j]) for j in range(output_size)]]))
+                print("correct_target:{}".format([np.shape(correct_target), [np.shape(correct_target[j]) for j in range(output_size)]]))
+                print("incorrect_data:{}".format([np.shape(incorrect_data), [np.shape(incorrect_data[j]) for j in range(output_size)]]))
+                print("incorrect_target:{}".format([np.shape(incorrect_target), [np.shape(incorrect_target[j]) for j in range(output_size)]]))
+                for _data, _target, _name in zip([correct_data, incorrect_data], [correct_target, incorrect_target],
+                                                 ["correct", "incorrect"]):
+                    intermediate_output = [[list(intermediate_layer_model[i].predict(inputs_z(_data[j], _mask)))
+                                            if len(_data[j]) > 0 else []
+                                            for j in range(len(_data))]
+                                           for i in range(len(masked_mlp_model.get_weights())//2)]
+                    """
+                    for i in range(len(intermediate_output)):
+                        print("dense[{}]:{}".format(i, np.shape(intermediate_output[i])))
+                        print("dense[{}]:{}".format(i, np.shape(intermediate_output[i][0])))
+                        for j in range(len(intermediate_output[i])):
+                            print("i:{} j:{}".format(i, j))
+                            for k in range(np.shape(intermediate_output[i][j])[0]):
+                                print(intermediate_output[i][j][k])
+                    """
+                    import time
+                    for i in range(len(masked_mlp_model.get_weights())//2):
+                        time.sleep(1)
+                        visualize(intermediate_output[i], None, None, ite=cf.Iteration,
+                                  testflag=True if name=="test" else False, showflag=False,
+                                  comment="layer:{} {}".format(i+1, _name))
                 for i in range(dataset_category):
                     print("acc class[{}]:{}".format(i, masked_mlp_model.evaluate(inputs_z(data[i], _mask), target[i])[1]))
                 ### 各層出力を可視化
