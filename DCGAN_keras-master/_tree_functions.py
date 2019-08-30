@@ -4,7 +4,7 @@ from time import *
 import datetime
 from draw_architecture import *
 from _tree_main_mnist import divide_data
-
+import copy
 
 def convert_weigths_tree2mlp(tree_weights, mlp_weights, input_size, output_size, dense_size):
     ### tree構造の重みを全結合モデルにセット
@@ -132,6 +132,9 @@ def shrink_tree_nodes(model, target_layer, X_train, y_train, X_test, y_test, onl
 
 
 def visualize_network(weights, acc, comment="", non_active_neurons=None):
+    from time import sleep
+    sleep(1)
+    # return
     im_architecture = mydraw(weights, acc, comment, non_active_neurons)
     im_h_resize = im_architecture
     path = os.getcwd() + r"\visualized_iris\network_architecture\triple\{}".format(
@@ -139,3 +142,36 @@ def visualize_network(weights, acc, comment="", non_active_neurons=None):
     cv2.imwrite(path, im_h_resize)
     print("saved concated graph to -> {}".format(path))
     return
+
+def sort_weights(_weights, target_layer=-1):
+    weights = [_weights[2*i] for i in range(len(_weights)//2)]
+    bias = [_weights[2*i+1] for i in range(len(_weights)//2)]
+    sorted_weights = [np.zeros(_weights[2 * i].shape) for i in range(len(_weights) // 2)]
+    sorted_bias = [np.zeros(_weights[2*i+1].shape) for i in range(len(_weights)//2)]
+
+    # weights[i][j][k] : i層j番ノードからi+1層k番ノードへの重み結合
+    for i in range(len(weights)-1):
+        if target_layer >= 0:
+            i = target_layer
+        first_connect = [[float("inf"), None] for k in range(weights[i].shape[1])]
+        for j in range(weights[i].shape[0]):
+            for k in range(weights[i].shape[1]):
+                if weights[i][j][k] != 0.:
+                    if first_connect[k][1] is None:
+                        first_connect[k] = [j, k]
+        first_connect.sort()
+        print("i:{} first_connect:{}".format(i, first_connect))
+        ### first_connectを基にsorted_weightsを作成
+        for k in range(weights[i].shape[1]):
+            sorted_weights[i].T[k] = weights[i].T[first_connect[k][1]]
+            sorted_bias[i][k] = bias[i][first_connect[k][1]]
+            sorted_weights[i+1][k] = weights[i+1][first_connect[k][1]]
+        ### weightsをソート済みweightで置換
+        weights[i] = copy.deepcopy(sorted_weights[i])
+        bias[i] = copy.deepcopy(sorted_bias[i])
+        weights[i+1] = copy.deepcopy(sorted_weights[i+1])
+        _weights = [weights[i // 2] if i % 2 == 0 else bias[i // 2] for i in range(len(_weights))]
+        if target_layer >= 0:
+            return _weights
+    visualize_network(_weights, acc=-1, comment="sort all layer", non_active_neurons=None)
+    return _weights

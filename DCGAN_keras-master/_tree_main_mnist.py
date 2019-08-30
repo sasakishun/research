@@ -1194,6 +1194,31 @@ class Main_test():
                 print("shrink {}th layer".format(target_layer))
                 masked_mlp_model = shrink_tree_nodes(masked_mlp_model, target_layer,
                                                      original_X_train, y_train, original_X_test, y_test, only_active_list=False)
+
+            ### 見やすいようにノードをソート
+            sorted_weights = masked_mlp_model.get_weights()
+            _mlp_shape = [sorted_weights[0].shape[0]] + \
+                         [sorted_weights[2 * i + 1].shape[0] for i in range(len(sorted_weights) // 2)]
+            _mask = [np.array([1 for _ in range(_mlp_shape[i])]) for i in range(len(_mlp_shape))]
+            
+            # visualize_network(sorted_weights, masked_mlp_model.evaluate(inputs_z(original_X_test, _mask), y_test)[1],
+                              # comment="shrinking all layer")
+
+            # _mlp_model = mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape[-1])
+            # _mlp_model.set_weights(sorted_weights)
+            # visualize_network(sorted_weights, acc=_mlp_model.evaluate(original_X_test, y_test)[1],
+                              # comment="not sorted any layers", non_active_neurons=None)
+            for i in range(len(dense_size)):
+                sorted_weights = sort_weights(sorted_weights, target_layer=i)
+                masked_mlp_model.set_weights(sorted_weights)
+                visualize_network(masked_mlp_model.get_weights(),
+                                  masked_mlp_model.evaluate(inputs_z(original_X_test, _mask), y_test)[1],
+                                  comment="sorted layer:{}".format(i))
+                # _mlp_model.set_weights(sorted_weights)
+                # print("_mlp_shape:{}".format(_mlp_shape))
+                # visualize_network(sorted_weights, acc=_mlp_model.evaluate(original_X_test, y_test)[1],
+                                  # comment="sorted layer:{}".format(i), non_active_neurons=None)
+
         elif binary_flag:
             _X_test = [[] for _ in range(2)]
             _y_test = [[] for _ in range(2)]
