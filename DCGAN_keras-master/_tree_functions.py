@@ -6,6 +6,19 @@ from draw_architecture import *
 from _tree_main_mnist import divide_data
 import copy
 
+def stringToList(_string, split=" "):
+    str_list = []
+    temp = ''
+    for x in _string:
+        if x == split:  # 区切り文字
+            str_list.append(temp)
+            temp = ''
+        else:
+            temp += x
+    if temp != '':  # 最後に残った文字列を末尾要素としてリストに追加
+        str_list.append(temp)
+    return str_list
+
 def convert_weigths_tree2mlp(tree_weights, mlp_weights, input_size, output_size, dense_size):
     ### tree構造の重みを全結合モデルにセット
     tree_shape = tree(input_size, output_size, get_hidden_flag=True)
