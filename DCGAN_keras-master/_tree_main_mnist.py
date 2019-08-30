@@ -1063,11 +1063,11 @@ class Main_test():
                 for _weights in _tree_weights:
                     for i in range(2):
                         tree_weights.append(_weights[1][i])
-                print(len(tree_weights))
+                # tree_weights = [np.ones(i.shape) for i in tree_weights]
                 mlp_weights = mlp_model.get_weights()
-                # show_weight(mlp_weights)
                 mlp_weights = convert_weigths_tree2mlp(tree_weights, [np.zeros(_mlp.shape) for _mlp in mlp_weights],
                                                        input_size, output_size, dense_size)
+                # visualize_network(mlp_weights, comment="tree architecuture")
                 mlp_model.set_weights(mlp_weights)
                 show_weight(mlp_model.get_weights())
                 test_val_loss = mlp_model.evaluate(X_test, y_test)
@@ -1171,7 +1171,7 @@ class Main_test():
                                                if sum(g_mask_1) > 0 else "None")
                                               if binary_flag else active_nodes_num) if not tree_flag else ""
         visualize_network(
-            weights=add_original_input(input_size, output_size, mlp_weights) if tree_flag else _weights[0],
+            weights=add_original_input(input_size, output_size, mlp_model.get_weights()) if tree_flag else _weights[0],
             acc=test_val_loss[1],
             comment=_comment)
         ### magnitudeプルーニング後のネットワーク構造を描画
@@ -1208,6 +1208,18 @@ class Main_test():
                 # print("_mlp_shape:{}".format(_mlp_shape))
                 # visualize_network(sorted_weights, acc=_mlp_model.evaluate(original_X_test, y_test)[1],
                                   # comment="sorted layer:{}".format(i), non_active_neurons=None)
+            ### 各層出力を可視化 -> 実装中
+            _mlp = masked_mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape)
+            intermediate_layer_model = [Model(inputs=_mlp.input,
+                                              outputs=_mlp.get_layer("dense{}".format(i)).output) for i in
+                                        range(len(dense_size) - 1)]
+            intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in
+                                   range(len(dense_size) - 1)]
+            for i in range(len(intermediate_output)):
+                print("dense[{}]:{}".format(i, intermediate_output[i]))
+            for i in range(len(masked_mlp_model.get_weights())//2):
+                visualize(original_X_test, y_test, y_test, ite, testflag=True, showflag=False, comment="")
+            ### 各層出力を可視化
 
         elif binary_flag:
             _X_test = [[] for _ in range(2)]
