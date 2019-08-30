@@ -145,6 +145,7 @@ def shrink_tree_nodes(model, target_layer, X_train, y_train, X_test, y_test, onl
 
 
 def visualize_network(weights, acc=-1, comment="", non_active_neurons=None):
+    return
     from time import sleep
     sleep(1)
     # return

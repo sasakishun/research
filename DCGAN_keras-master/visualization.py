@@ -8,6 +8,7 @@ import cv2
 
 
 def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
+    # x : [[クラス0の訓練データ], [クラス1..]...., []]
     _max_list_size = 0
     xtick_flag = False
     for i in range(len(x)):
@@ -16,7 +17,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
             plt.xticks(range(len(x[i][0])))
             xtick_flag = True
     _max_list_size = min(100, _max_list_size)
-    plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
+    # plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
+    plt.figure(figsize=(8, 8), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
@@ -60,13 +62,15 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
     pylab.subplots_adjust(right=0.7)
 
     # save as png
-    path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris"
+    import os
+    path = os.getcwd() + r"\visualized_iris"
     print("saved to -> " + path + "\{}{}".format("test" if testflag else "train", ite))
     if ite % cf.Iteration == 0:
         plt.savefig(path + "{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite,
                                             datetime.now().strftime("%Y%m%d%H%M%S")))
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
+    return
     if showflag:
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
         import os
@@ -84,7 +88,6 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
     path += ".png"
     print("path_real:{}".format(path))
     img = cv2.imread(path)
-    # print("path_fake:{}".format(r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture\train"))
     print("\n\nimg:{}\n\n".format(type(img)))
     return img
 

@@ -1209,17 +1209,48 @@ class Main_test():
                 # visualize_network(sorted_weights, acc=_mlp_model.evaluate(original_X_test, y_test)[1],
                                   # comment="sorted layer:{}".format(i), non_active_neurons=None)
             ### 各層出力を可視化 -> 実装中
-            _mlp = masked_mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape)
-            intermediate_layer_model = [Model(inputs=_mlp.input,
-                                              outputs=_mlp.get_layer("dense{}".format(i)).output) for i in
-                                        range(len(dense_size) - 1)]
-            intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in
-                                   range(len(dense_size) - 1)]
-            for i in range(len(intermediate_output)):
-                print("dense[{}]:{}".format(i, intermediate_output[i]))
-            for i in range(len(masked_mlp_model.get_weights())//2):
-                visualize(original_X_test, y_test, y_test, ite, testflag=True, showflag=False, comment="")
-            ### 各層出力を可視化
+            print("_mlp_shape:{}".format(_mlp_shape))
+            _mlp = masked_mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape[-1])
+            _mlp.set_weights(sorted_weights)
+            intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
+                                        for i in range(len(masked_mlp_model.get_weights())//2)]
+            for data, target, name in zip([original_X_train, original_X_test], [y_train, y_test], ["train", "test"]):
+                # X_test, y_test = divide_data(original_X_train, y_train, dataset_category)
+                data, target = divide_data(data, target, dataset_category)
+                for i in range(len(data)):
+                    print("data[{}]:{}".format(i, np.shape(data[i])))
+                correct_data = [[] for _ in range(output_size)]
+                correct_target = [[] for _ in range(output_size)]
+                incorrect_data = [[] for _ in range(output_size)]
+                incorrect_target = [[] for _ in range(output_size)]
+                output = [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
+                for i in range(output_size):
+                    for _data, _target, _output in zip(data[i], target[i], output[i]):
+                        if np.argmax(_output) == np.argmax(_target):
+                            correct_data[i].append(_data)
+                            correct_target[i].append(_target)
+                        else:
+                            incorrect_data[i].append(_data)
+                            incorrect_target[i].append(_target)
+
+                intermediate_output = [[list(intermediate_layer_model[i].predict(inputs_z(data[j], _mask)))
+                                        for j in range(len(data))]
+                                       for i in range(len(masked_mlp_model.get_weights())//2)]
+                for i in range(len(intermediate_output)):
+                    print("dense[{}]:{}".format(i, np.shape(intermediate_output[i])))
+                    print("dense[{}]:{}".format(i, np.shape(intermediate_output[i][0])))
+                    for j in range(len(intermediate_output[i])):
+                        print("i:{} j:{}".format(i, j))
+                        for k in range(np.shape(intermediate_output[i][j])[0]):
+                            print(intermediate_output[i][j][k])
+                import time
+                for i in range(len(masked_mlp_model.get_weights())//2):
+                    time.sleep(1)
+                    visualize(intermediate_output[i], None, None, ite=cf.Iteration,
+                              testflag=True, showflag=True if name=="test" else False, comment="layer:{}".format(i+1))
+                for i in range(dataset_category):
+                    print("acc class[{}]:{}".format(i, masked_mlp_model.evaluate(inputs_z(data[i], _mask), target[i])[1]))
+                ### 各層出力を可視化
 
         elif binary_flag:
             _X_test = [[] for _ in range(2)]
