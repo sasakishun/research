@@ -7,7 +7,7 @@ from keras import backend as K
 from keras import metrics, regularizers
 from keras.layers.core import Lambda, Activation
 from keras.models import Model
-from keras.layers import Input, Dense, Reshape, multiply
+from keras.layers import Input, Dense, Reshape, multiply, Dropout
 from keras.layers.normalization import BatchNormalization
 import numpy as np
 
@@ -254,7 +254,8 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
 
     ### 中間層定義 入力列の隣合う要素同士を木の入力とする
     _dense = [[[Dense(1, activation=activation if i != layer_num - 1 else None,
-                      kernel_regularizer=regularizers.l1(0.01), name='dense{}_{}_{}'.format(output, i, j),
+                      # kernel_regularizer=regularizers.l1(0.01),
+                      name='dense{}_{}_{}'.format(output, i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                 for j in range(hidden_nodes_num[i])]
                for i in range(layer_num)]
@@ -275,6 +276,8 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
             ### dense[_out][i]の各要素を次層入力のためにconcatenate
             dense[_out][i] = [keras.layers.concatenate([dense[_out][i][j * 2], dense[_out][i][j * 2 + 1]])
                               for j in range(len(dense[_out][i]) // 2)]
+            # dense[_out][i] = [Dropout(rate=0.1)(dense[_out][i][j]) for j in range(hidden_nodes_num[i])]
+
             ### dense[_out][i+1]に入力を伝播
             dense[_out].append([_dense[_out][i][j](dense[_out][i][j])
                                 for j in range(hidden_nodes_num[i])])
