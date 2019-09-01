@@ -254,7 +254,7 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
 
     ### 中間層定義 入力列の隣合う要素同士を木の入力とする
     _dense = [[[Dense(1, activation=activation if i != layer_num - 1 else None,
-                      # kernel_regularizer=regularizers.l1(0.01),
+                      kernel_regularizer=regularizers.l1(0.01),
                       name='dense{}_{}_{}'.format(output, i, j),
                       kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
                 for j in range(hidden_nodes_num[i])]

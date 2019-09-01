@@ -131,6 +131,8 @@ def krkopt_data():
 def iris_data():
     X_train, X_test, y_train, y_test = \
         train_test_split(iris.data, iris.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
+    X_train, y_train = augumentaton(X_train, y_train)
+    X_test, y_test = augumentaton(X_test, y_test)
     y_train = np_utils.to_categorical(y_train, 3)
     y_test = np_utils.to_categorical(y_test, 3)
     train_num = X_train.shape[0]
