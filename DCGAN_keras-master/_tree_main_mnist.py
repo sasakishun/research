@@ -1274,13 +1274,14 @@ class Main_test():
                           testflag=True if name == "test" else False, showflag=False,
                           comment="layer:{}".format(0))
                 ###入力を可視化
+                ###中間層出力を可視化
                 for i in range(len(masked_mlp_model.get_weights())//2):
                     time.sleep(1)
                     visualize(correct_intermediate_output[i]+incorrect_intermediate_output[i],
                               None, labels, ite=cf.Iteration,
                               testflag=True if name=="test" else False, showflag=False,
                               comment="layer:{}".format(i+1))
-                ###
+                ###中間層出力を可視化
                 for i in range(dataset_category):
                     print("acc class[{}]:{}".format(i, masked_mlp_model.evaluate(inputs_z(data[i], _mask), target[i])[1]))
                 ### 各層出力を可視化
@@ -1500,6 +1501,8 @@ if __name__ == '__main__':
         output_size = 3
         dataset_category = 3
         import config_mnist as cf
+        cf.Dataset = "iris_"
+        cf.reload_path()
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         from sklearn.datasets import load_iris
@@ -1513,6 +1516,8 @@ if __name__ == '__main__':
         input_size = Height * Width * Channel
         output_size = 10
         import config_mnist as cf
+        cf.Dataset = "digits_"
+        cf.reload_path()
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
@@ -1542,6 +1547,8 @@ if __name__ == '__main__':
         output_size = 3
         dataset_category = 3
         import config_mnist as cf
+        cf.Dataset = "wine_"
+        cf.reload_path()
         from _model_iris import *
 
         dataset = "wine"

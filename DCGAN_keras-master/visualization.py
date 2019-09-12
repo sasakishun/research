@@ -38,18 +38,20 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
             for j in range(min(500, len(x[i][0]))):
                 ### 正解入力をプロット
                 if i < len(labels) // 2:
-                    plt.scatter([j + 0.04 * (i - len(labels)//2)
-                                 for _ in range(len(x[i]))], np.array(x[i])[:, j],
-                                color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
+                    _x = [j + 0.04 * (i - len(labels)//2) for _ in range(len(x[i]))]
+                    _y = np.array(x[i])[:, j]
+                    plt.scatter(_x, _y, color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
                                 marker=".")
                 ### 正解入力をプロット
                 ### 不正解入力をプロット
                 else:
-                    plt.scatter([j + 0.04 * (i - len(labels) // 2 + 1)
-                                 for _ in range(len(x[i]))], np.array(x[i])[:, j],
-                                color=colors[i%(len(labels)//2)], label=(i if not labels else labels[i]) if j == 0 else None,
-                                marker="x")
-                ### 不正解入力をプロット
+                    _x = [j + 0.04 * (i - len(labels) // 2 + 1) for _ in range(len(x[i]))]
+                    _y = np.array(x[i])[:, j]
+                    plt.scatter(_x, _y, color=colors[i%(len(labels)//2)],
+                                label=(i if not labels else labels[i]) if j == 0 else None, marker="x")
+                    for k, t in enumerate(range(len(_x))):
+                        plt.annotate(k, (_x[k], _y[k]), size=10)
+                    ### 不正解入力をプロット
 
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
