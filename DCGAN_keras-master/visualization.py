@@ -7,7 +7,7 @@ import config_mnist as cf
 import cv2
 
 
-def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
+def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None):
     # x : [[クラス0の訓練データ], [クラス1..]...., []]
     _max_list_size = 0
     xtick_flag = False
@@ -35,27 +35,39 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment=""):
     for i in range(len(x)):
         print("x[{}]:{}".format(i, np.shape(x[i])))
         if x[i]:
-            for j in range(min(300, len(x[i][0]))):
-                if j == 0:
-                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j],
-                                color=colors[i],
-                                s=5, label=i)
-                    if testflag:
-                        plt.legend(loc='uppper right', bbox_to_anchor=(0.62, 0.5, 0.5, .100),
-                                   # borderaxespad=0.,
-                                   facecolor="white")  # colors[i])
-                        # plt.legend(loc='lower right', facecolor=colors[i])
+            ### 正解入力をプロット
+            for j in range(min(500, len(x[i][0]))):
+                if i < len(labels) // 2:
+                    if j == 0:
+                        plt.scatter([j + 0.04 * (i - len(labels)//2)
+                                     for _ in range(len(x[i]))], np.array(x[i])[:, j],
+                                    color=colors[i], s=5, label=i if not labels else labels[i],
+                                    marker=".")
+                        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
+                    else:
+                        plt.scatter([j + 0.04 * (i - len(labels)//2)
+                                     for _ in range(len(x[i]))], np.array(x[i])[:, j], marker=".")
+                ### 正解入力をプロット
+                ### 不正解入力をプロット
                 else:
-                    plt.scatter([j + 0.025 * i - 0.025 for _ in range(len(x[i]))], np.array(x[i])[:, j],
-                                color=colors[i],
-                                s=5, alpha=j / len(x[i][0] + 0.1))
+                    if j == 0:
+                        plt.scatter([j + 0.04 * (i - len(labels) // 2 + 1)
+                                     for _ in range(len(x[i]))], np.array(x[i])[:, j],
+                                    color=colors[i], s=5, label=i if not labels else labels[i],
+                                    marker="x")
+                        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
+                    else:
+                        plt.scatter([j + 0.04 * (i - len(labels)//2 + 1)
+                                     for _ in range(len(x[i]))], np.array(x[i])[:, j], marker="x")
+            ### 不正解入力をプロット
+
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("{} node".format(comment))
     if not testflag:
         plt.ylabel("output")
-
     # y軸に1刻みにで小目盛り(minor locator)表示
     plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(1))
+    plt.gca().xaxis.set_major_locator(tick.MultipleLocator(1))
     # 小目盛りに対してグリッド表示
     plt.grid(which='minor')
     # 右側の余白を調整
