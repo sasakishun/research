@@ -35,32 +35,23 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     for i in range(len(x)):
         print("x[{}]:{}".format(i, np.shape(x[i])))
         if x[i]:
-            ### 正解入力をプロット
             for j in range(min(500, len(x[i][0]))):
+                ### 正解入力をプロット
                 if i < len(labels) // 2:
-                    if j == 0:
-                        plt.scatter([j + 0.04 * (i - len(labels)//2)
-                                     for _ in range(len(x[i]))], np.array(x[i])[:, j],
-                                    color=colors[i], s=5, label=i if not labels else labels[i],
-                                    marker=".")
-                        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
-                    else:
-                        plt.scatter([j + 0.04 * (i - len(labels)//2)
-                                     for _ in range(len(x[i]))], np.array(x[i])[:, j], marker=".")
+                    plt.scatter([j + 0.04 * (i - len(labels)//2)
+                                 for _ in range(len(x[i]))], np.array(x[i])[:, j],
+                                color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
+                                marker=".")
                 ### 正解入力をプロット
                 ### 不正解入力をプロット
                 else:
-                    if j == 0:
-                        plt.scatter([j + 0.04 * (i - len(labels) // 2 + 1)
-                                     for _ in range(len(x[i]))], np.array(x[i])[:, j],
-                                    color=colors[i], s=5, label=i if not labels else labels[i],
-                                    marker="x")
-                        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
-                    else:
-                        plt.scatter([j + 0.04 * (i - len(labels)//2 + 1)
-                                     for _ in range(len(x[i]))], np.array(x[i])[:, j], marker="x")
-            ### 不正解入力をプロット
+                    plt.scatter([j + 0.04 * (i - len(labels) // 2 + 1)
+                                 for _ in range(len(x[i]))], np.array(x[i])[:, j],
+                                color=colors[i%(len(labels)//2)], label=(i if not labels else labels[i]) if j == 0 else None,
+                                marker="x")
+                ### 不正解入力をプロット
 
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
     plt.xlabel("{} node".format(comment))
     if not testflag:
