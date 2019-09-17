@@ -30,12 +30,29 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
               colors[5],
               colors[6],
               colors[7],
-              colors[9]]
+              colors[9]]# 色指定
+
     # プロット
+    print("x:{}".format(len(x)))
+    for i in range(len(x)):
+        print("x[{}]:{}".format(i, len(x[i])))
+        if len(x[i]) > 0:
+            print("x[{}][0]:{}".format(i, len(x[i][0])))
+        else:
+            print("None")
+    correct_range = [[[0., 0.] for _ in range(len(x[i][0]))] for i in range(len(x)//2)]
+    for i in range(len(x)//2):
+        print("len(x[{}]):{}".format(i, len(x[i])))
+        if len(x[i]) > 0:
+            correct_range[i] = [[float("{:.2f}".format(min([x[i][k][j] for k in range(len(x[i]))]))),
+                                 float("{:.2f}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
+                                for j in range(len(x[i][0]))]
+        print("correct_range[{}]:{}".format(i, correct_range[i]))
+
     for i in range(len(x)):
         print("x[{}]:{}".format(i, np.shape(x[i])))
         if x[i]:
-            for j in range(min(500, len(x[i][0]))):
+            for j in range(min(500, len(x[i][0]))): # j列目(13次元入力ならj<13)
                 ### 正解入力をプロット
                 if i < len(labels) // 2:
                     _x = [j + 0.04 * (i - len(labels)//2) for _ in range(len(x[i]))]
@@ -43,19 +60,33 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                     plt.scatter(_x, _y, color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
                                 marker=".")
                 ### 正解入力をプロット
+
                 ### 不正解入力をプロット
                 else:
-                    _x = [j + 0.04 * (i - len(labels) // 2 + 1) for _ in range(len(x[i]))]
-                    _y = np.array(x[i])[:, j]
+                    _x = [j + 0.04 * (i - len(labels) // 2 + 1) for _ in range(len(x[i]))] # j番目サンプルの横軸座標
+                    _y = np.array(x[i])[:, j] # j番目のサンプルの縦軸座標
                     plt.scatter(_x, _y, color=colors[i%(len(labels)//2)],
                                 label=(i if not labels else labels[i]) if j == 0 else None, marker="x")
-                    for k, t in enumerate(range(len(_x))):
-                        plt.annotate(k, (_x[k], _y[k]), size=10)
-                    ### 不正解入力をプロット
+                    print("_y:{}".format(_y))
+                    for k in range(len(_x)):
+                        ### 正解範囲に入っていたらo,それ以外はx
+                        print("_x:{}".format(_x))
+                        print("_y[k={}]:{}".format(k, _y[k]))
+                        print("correct_range[k%(len(labels)//2)][0]:{}".format(correct_range[k%(len(labels)//2)][0]))
+                        if _y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][0]\
+                                or correct_range[i%(len(labels)//2)][int(_x[k])][1] < _y[k]:
+                            plt.annotate("  " + str(k)+" miss", (_x[k], _y[k]), size=10)
+                        else:
+                            plt.annotate(k, (_x[k], _y[k]), size=10)
+                        ### 正解範囲に入っていたらo,それ以外はx
+                ### 不正解入力をプロット
 
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
-    plt.xlabel("{} node".format(comment))
+    correct_range_str = ""
+    for i in range(len(correct_range)):
+        correct_range_str += "correct_range[{}]:{}".format(i, correct_range[i]) + "\n"
+    plt.xlabel("{} node\n{}".format(comment, correct_range_str))
     if not testflag:
         plt.ylabel("output")
     # y軸に1刻みにで小目盛り(minor locator)表示

@@ -1272,8 +1272,9 @@ class Main_test():
                 visualize(correct_data+incorrect_data,
                           None, labels, ite=cf.Iteration,
                           testflag=True if name == "test" else False, showflag=False,
-                          comment="layer:{}".format(0))
+                          comment="layer:{} input".format(0))
                 ###入力を可視化
+
                 ###中間層出力を可視化
                 for i in range(len(masked_mlp_model.get_weights())//2):
                     time.sleep(1)
