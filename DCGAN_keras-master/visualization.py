@@ -7,8 +7,9 @@ import config_mnist as cf
 import cv2
 
 
-def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None):
+def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None):
     # x : [[クラス0の訓練データ], [クラス1..]...., []]
+    """
     _max_list_size = 0
     xtick_flag = False
     for i in range(len(x)):
@@ -16,7 +17,9 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
         if (not xtick_flag) and _max_list_size > 0:
             plt.xticks(range(len(x[i][0])))
             xtick_flag = True
-    _max_list_size = min(100, _max_list_size)
+    # _max_list_size = min(100, _max_list_size)
+    """
+
     # plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
     plt.figure(figsize=(8, 8), dpi=100)
     # colors = ["tomato", "black", "lightgreen"]
@@ -35,11 +38,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     # プロット
     print("x:{}".format(len(x)))
     for i in range(len(x)):
-        print("x[{}]:{}".format(i, len(x[i])))
-        if len(x[i]) > 0:
-            print("x[{}][0]:{}".format(i, len(x[i][0])))
-        else:
-            print("None")
+        print("x[{}]:{}".format(i, np.shape(x[i])))
     correct_range = [[[0., 0.] for _ in range(len(x[i][0]))] for i in range(len(x)//2)]
     for i in range(len(x)//2):
         print("len(x[{}]):{}".format(i, len(x[i])))
@@ -48,7 +47,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                  float("{:.2f}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
                                 for j in range(len(x[i][0]))]
         print("correct_range[{}]:{}".format(i, correct_range[i]))
-
+    out_of_range=[[] for _ in range(len(labels)//2)]
     for i in range(len(x)):
         print("x[{}]:{}".format(i, np.shape(x[i])))
         if x[i]:
@@ -65,28 +64,43 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                 else:
                     _x = [j + 0.04 * (i - len(labels) // 2 + 1) for _ in range(len(x[i]))] # j番目サンプルの横軸座標
                     _y = np.array(x[i])[:, j] # j番目のサンプルの縦軸座標
-                    plt.scatter(_x, _y, color=colors[i%(len(labels)//2)],
-                                label=(i if not labels else labels[i]) if j == 0 else None, marker="x")
+                    _in = [[], []]
+                    _out = [[], []]
                     print("_y:{}".format(_y))
                     for k in range(len(_x)):
                         ### 正解範囲に入っていたらo,それ以外はx
                         print("_x:{}".format(_x))
                         print("_y[k={}]:{}".format(k, _y[k]))
-                        print("correct_range[k%(len(labels)//2)][0]:{}".format(correct_range[k%(len(labels)//2)][0]))
-                        if _y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][0]\
-                                or correct_range[i%(len(labels)//2)][int(_x[k])][1] < _y[k]:
-                            plt.annotate("  " + str(k)+" miss", (_x[k], _y[k]), size=10)
-                        else:
+                        print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
+                        # 範囲外クラス
+                        if (_y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][0]\
+                                or correct_range[i%(len(labels)//2)][int(_x[k])][1] < _y[k]):# \
+                                # and _y[k] > 0:# そのクラスの分類に不要ノードはrelu出力=0に集中するため
+                            _out[0].append(_x[k])
+                            _out[1].append(_y[k])
                             plt.annotate(k, (_x[k], _y[k]), size=10)
+                            out_of_range[i%(len(labels)//2)].append(k)
+                        else:
+                            _in[0].append(_x[k])
+                            _in[1].append(_y[k])
+                        # plt.annotate(k, (_x[k], _y[k]), size=10)
                         ### 正解範囲に入っていたらo,それ以外はx
-                ### 不正解入力をプロット
+
+                    plt.scatter(_in[0], _in[1], color=colors[i % (len(labels) // 2)],
+                                label=(i if not labels else labels[i]) if j == 0 else None, marker=".")
+                    plt.scatter(_out[0], _out[1], color=colors[i % (len(labels) // 2)],
+                                label=(i if not labels else labels[i]) if j == 0 else None, marker="x")
+                    ### 不正解入力をプロット
+
+    correct_range_str = ""
+    for i in range(len(out_of_range)):
+        correct_range_str += "out_of_range[{}]:{}\n".format(i, set(out_of_range[i]))
+    # for i in range(len(correct_range)):
+    # "correct_range[{}]:{}".format(i, correct_range[i]) + "\n"
+    plt.xlabel("{} node\n{}".format(comment, correct_range_str))
 
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
     plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
-    correct_range_str = ""
-    for i in range(len(correct_range)):
-        correct_range_str += "correct_range[{}]:{}".format(i, correct_range[i]) + "\n"
-    plt.xlabel("{} node\n{}".format(comment, correct_range_str))
     if not testflag:
         plt.ylabel("output")
     # y軸に1刻みにで小目盛り(minor locator)表示
@@ -141,3 +155,4 @@ def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
                       for im in im_list]
     return cv2.vconcat(im_list_resize)
+

@@ -297,7 +297,7 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
 def mlp(input_size, hidden_size, output_size):
     activation = "relu"
     _dense = [
-        Dense(hidden_size[j], activation=activation, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
+        Dense(hidden_size[j], activation=activation if j != 0 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
               kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
         for j in range(len(hidden_size))]
     _dense.append(Dense(output_size, activation="softmax", kernel_regularizer=regularizers.l1(0.01),

@@ -162,7 +162,7 @@ def standardize(X_train, X_test):
     return X_train, X_test
 
 
-def wine_data():
+def wine_data(train_flag=True):
     ### .dataファイルを読み込む
     _data = open(os.getcwd() + r"\wine.data", "r")
     lines = _data.readlines()
@@ -181,9 +181,11 @@ def wine_data():
     X_train, X_test, y_train, y_test = \
         train_test_split(np.array(_train), np.array(_target), test_size=0.1, train_size=0.9, shuffle=True,
                          random_state=1)
+    ### 訓練時は全クラスでデータ数そろえる
+    if train_flag:
+        X_train, y_train = augumentaton(list(X_train), y_train)
+        X_test, y_test = augumentaton(list(X_test), y_test)
     ### 全クラスでデータ数そろえる
-    X_train, y_train = augumentaton(list(X_train), y_train)
-    X_test, y_test = augumentaton(list(X_test), y_test)
 
     ### 各列で正規化
     # X_train, X_test = normalize(X_train, X_test)
@@ -290,7 +292,7 @@ def balance_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 
-def digits_data(binary_flag=False):
+def digits_data(binary_flag=False, train_flag=True):
     usable = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # random.sample([int(i) for i in range(10)], 2)
     # X_train, X_test, y_train, y_test = \
     # train_test_split(digits.data, digits.target, test_size=0.2, train_size=0.8, shuffle=True, random_state=1)
@@ -307,8 +309,9 @@ def digits_data(binary_flag=False):
     X_train, X_test, y_train, y_test = \
         train_test_split(X_train, y_train, test_size=0.2, train_size=0.8, shuffle=True, random_state=2)
     ### データ数偏り補正
-    X_train, y_train = augumentaton(X_train, y_train)
-    X_test, y_test = augumentaton(X_test, y_test)
+    if tree_flag:
+        X_train, y_train = augumentaton(X_train, y_train)
+        X_test, y_test = augumentaton(X_test, y_test)
     ### データ数偏り補正
 
     X_train, X_test = normalize(X_train, X_test)
@@ -435,15 +438,15 @@ def my_tqdm(ite):
     return con
 
 
-def getdata(dataset, binary_flag):
+def getdata(dataset, binary_flag, train_frag=True):
     if dataset == "iris":
         return iris_data()
     elif dataset == "mnist":
         return mnist_data()
     elif dataset == "digits":
-        return digits_data(binary_flag=binary_flag)
+        return digits_data(binary_flag=binary_flag, train_flag=train_frag)
     elif dataset == "wine":
-        return wine_data()
+        return wine_data(train_flag=train_frag)
     elif dataset == "balance":
         return balance_data()
     elif dataset == "parity":
@@ -1030,8 +1033,8 @@ class Main_test():
         print("\n\n-----test-----\n\n")
         global dense_size
         ite = 0
-        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite = getdata(dataset,
-                                                                                           binary_flag=binary_flag)
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite\
+            = getdata(dataset, binary_flag=binary_flag, train_frag=False)
         if tree_flag:
             tree_model = tree(input_size, dataset_category)
             tree_model.load_weights(cf.Save_tree_path)
@@ -1210,82 +1213,31 @@ class Main_test():
                 # print("_mlp_shape:{}".format(_mlp_shape))
                 # visualize_network(sorted_weights, acc=_mlp_model.evaluate(original_X_test, y_test)[1],
                                   # comment="sorted layer:{}".format(i), non_active_neurons=None)
-            ### 各層出力を可視化 -> 実装中
+            ### 各層出力を可視化
             print("_mlp_shape:{}".format(_mlp_shape))
-            _mlp = masked_mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape[-1])
+            # _mlp = masked_mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape[-1])
+            _mlp = mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape[-1])
             _mlp.set_weights(sorted_weights)
-            intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
-                                        for i in range(len(masked_mlp_model.get_weights())//2)]
-            for data, target, name in zip([original_X_train, original_X_test], [y_train, y_test], ["train", "test"]):
-                # X_test, y_test = divide_data(original_X_train, y_train, dataset_category)
-                data, target = divide_data(data, target, dataset_category)
-                for i in range(len(data)):
-                    print("data[{}]:{}".format(i, np.shape(data[i])))
-                correct_data = [[] for _ in range(output_size)]
-                correct_target = [[] for _ in range(output_size)]
-                incorrect_data = [[] for _ in range(output_size)]
-                incorrect_target = [[] for _ in range(output_size)]
-                output = [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
-                ### 正解データと不正解データに分割
-                for i in range(output_size):
-                    for _data, _target, _output in zip(data[i], target[i], output[i]):
-                        if np.argmax(_output) == np.argmax(_target):
-                            correct_data[i].append(_data)
-                            correct_target[i].append(_target)
-                        else:
-                            incorrect_data[i].append(_data)
-                            incorrect_target[i].append(_target)
-                ### 正解データと不正解データに分割
+            correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train\
+                = show_intermidate_output(original_X_train, y_train, "train", _mlp)
+            correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
+                = show_intermidate_output(original_X_test, y_test, "test", _mlp)
 
-                print(name)
-                print("correct_data:{}".format([np.shape(correct_data), [np.shape(correct_data[j]) for j in range(output_size)]]))
-                print("correct_target:{}".format([np.shape(correct_target), [np.shape(correct_target[j]) for j in range(output_size)]]))
-                print("incorrect_data:{}".format([np.shape(incorrect_data), [np.shape(incorrect_data[j]) for j in range(output_size)]]))
-                print("incorrect_target:{}".format([np.shape(incorrect_target), [np.shape(incorrect_target[j]) for j in range(output_size)]]))
-                """
-                for _data, _target, _name in zip([correct_data, incorrect_data], [correct_target, incorrect_target],
-                                                 ["correct", "incorrect"]):
-                    intermediate_output = [[list(intermediate_layer_model[i].predict(inputs_z(_data[j], _mask)))
-                                            if len(_data[j]) > 0 else []
-                                            for j in range(len(_data))]
-                                           for i in range(len(masked_mlp_model.get_weights())//2)]
-                    import time
-                    for i in range(len(masked_mlp_model.get_weights())//2):
-                        time.sleep(1)
-                        visualize(intermediate_output[i], None, None, ite=cf.Iteration,
-                                  testflag=True if name=="test" else False, showflag=False,
-                                  comment="layer:{} {}".format(i+1, _name))
-                """
-                ###
-                correct_intermediate_output = [[list(intermediate_layer_model[i].predict(inputs_z(correct_data[j], _mask)))
-                                        if len(correct_data[j]) > 0 else []
-                                        for j in range(len(correct_data))]
-                                       for i in range(len(masked_mlp_model.get_weights())//2)]
-                incorrect_intermediate_output = [[list(intermediate_layer_model[i].predict(inputs_z(incorrect_data[j], _mask)))
-                                                if len(incorrect_data[j]) > 0 else []
-                                                for j in range(len(incorrect_data))]
-                                               for i in range(len(masked_mlp_model.get_weights()) // 2)]
-                import time
-                ###入力を可視化
-                labels = ["class:{}".format(i) for i in range(output_size)] \
-                         + ["missed_class:{}".format(i) for i in range(output_size)]
-                visualize(correct_data+incorrect_data,
-                          None, labels, ite=cf.Iteration,
-                          testflag=True if name == "test" else False, showflag=False,
-                          comment="layer:{} input".format(0))
-                ###入力を可視化
-
-                ###中間層出力を可視化
-                for i in range(len(masked_mlp_model.get_weights())//2):
-                    time.sleep(1)
-                    visualize(correct_intermediate_output[i]+incorrect_intermediate_output[i],
-                              None, labels, ite=cf.Iteration,
-                              testflag=True if name=="test" else False, showflag=False,
-                              comment="layer:{}".format(i+1))
-                ###中間層出力を可視化
-                for i in range(dataset_category):
-                    print("acc class[{}]:{}".format(i, masked_mlp_model.evaluate(inputs_z(data[i], _mask), target[i])[1]))
-                ### 各層出力を可視化
+            # show_intermidate_output(correct_data_train + correct_data_test + incorrect_data_train + incorrect_data_test,
+            # correct_target_train + correct_target_test + incorrect_target_train + incorrect_target_test, "test", _mlp)
+            show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                            correct_data_test, correct_target_test,
+                                            _mlp, name=["correct_train", "correct_test"])
+            show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                            incorrect_data_test, incorrect_target_test,
+                                            _mlp, name=["correct_train", "miss_test"])
+            show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                            incorrect_data_train, incorrect_target_train,
+                                            _mlp, name=["correct_train", "miss_train"])
+            original_X_train, y_train = divide_data(original_X_train, y_train, dataset_category)
+            original_X_test, y_test = divide_data(original_X_test, y_test, dataset_category)
+            print("x_train:{}".format([len(i) for i in original_X_train]))
+            print("x_test:{}".format([len(i) for i in original_X_test]))
 
         elif binary_flag:
             _X_test = [[] for _ in range(2)]
