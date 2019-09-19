@@ -261,7 +261,7 @@ def show_intermidate_output(data, target, name, _mlp):
     ###中間層出力を可視化
     for i in range(dataset_category):
         print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
-        ### 各層出力を可視化
+    ### 各層出力を可視化
 
     return concate_elements(correct_data), concate_elements(correct_target), \
            concate_elements(incorrect_data), concate_elements(incorrect_target)

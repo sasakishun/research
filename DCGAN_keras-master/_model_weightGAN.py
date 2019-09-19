@@ -18,6 +18,8 @@ np.set_printoptions(linewidth=2000)
 import keras.callbacks
 import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
+import MyDenseLayer
+from MyLayer import *
 
 old_session = KTF.get_session()
 
@@ -343,3 +345,40 @@ def masked_mlp(input_size, hidden_size, output_size):
                  optimizer="adam",
                  metrics=[metrics.categorical_accuracy])
     return _mlp
+
+
+def myMLP(input_size, hidden_size, output_size, kernel_mask=None, bias_mask=None):
+    activation = "relu"
+    print("input:{}".format(input_size))
+    print("hidden_size:{}".format(hidden_size))
+    print("output_size:{}".format(output_size))
+    _dense = [
+        MyLayer(hidden_size[j], activation=activation,
+                kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
+                kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+        for j in range(len(hidden_size))
+    ]
+    _dense.append(MyLayer(output_size, activation="softmax",
+                          kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(len(_dense)),
+                          kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None)
+                          ))
+    inputs = Input(shape=(input_size,), name='inputs')
+    dense = [inputs]
+
+    for i in range(len(_dense)):
+        dense.append(_dense[i](dense[i],
+                               kernel_mask=kernel_mask[i] if kernel_mask else None,
+                               bias_mask=bias_mask[i] if bias_mask else None)
+                     )
+
+    mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
+    mlp.compile(loss='categorical_crossentropy',
+                 optimizer="adam",
+                 metrics=[metrics.categorical_accuracy])
+    return mlp
+
+def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None):
+    print("input:{}".format(input_size))
+    print("output_size:{}".format(output_size))
+    
+    return

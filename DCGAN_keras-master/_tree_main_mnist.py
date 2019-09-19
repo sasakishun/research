@@ -1003,7 +1003,7 @@ def _weight_pruning(model, X_test, y_test):
         non_zero_num = 0
         for i in range(np.shape(_weights[1])[0]):
             if _weights[1][i].ndim == 2:  # 重みプルーニング
-                print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
+                # print("np.shape(_weights[1][{}]):{}".format(i, np.shape(_weights[1][i])))
                 for j in range(np.shape(_weights[1][i])[0]):
                     for k in range(np.shape(_weights[1][i])[1]):
                         if abs(_weights[1][i][j][k]) < pruning_rate:
@@ -1014,7 +1014,7 @@ def _weight_pruning(model, X_test, y_test):
                     if abs(_weights[1][i][j]) < pruning_rate:
                         _weights[1][i][j] = 0.
             non_zero_num += np.count_nonzero(_weights[1][i] > 0)
-            print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
+            # print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
             if non_zero_num == 0:
                 break
         model.set_weights(_weights[1])
@@ -1025,11 +1025,42 @@ def _weight_pruning(model, X_test, y_test):
     return _weights[0]
 
 
+def separate_kernel_and_bias(weights):
+    return [weights[i] for i in range(len(weights)) if i % 2 == 0], \
+           [weights[i] for i in range(len(weights)) if i % 2 == 1]
+
+def weight2mask(weights):
+    # 入力 : np.arrayのリスト　ex) [(13, 5), (5,), (5, 4), (4,), (4, 2), (2,), (2, 3), (3,)]
+    return separate_kernel_and_bias([np.where(weight != 0, 1, 0) for weight in weights])
+
+
 class Main_test():
     def __init__(self):
         pass
 
     def test(self, loadflag=True):
+        ###全結合mlpとの比較
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
+            = getdata(dataset, binary_flag=binary_flag, train_frag=True)
+        _mlp = myMLP(13, [5, 4, 2], 3)
+        for i in range(10):
+            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10000) # 学習
+            visualize_network(
+                weights=_mlp.get_weights(), acc=_mlp.evaluate(X_test, y_test)[1], comment="pruning_stage:{}".format(i))
+            pruned_weight = _weight_pruning(_mlp, X_test, y_test) # pruning重み取得
+            # _mlp.set_weights(pruned_weight)
+            # print("acc non mask:{}".format(_mlp.evaluate(X_test, y_test)[1]))
+            kernel_mask, bias_mask = weight2mask(pruned_weight) # mask取得
+            _mlp = myMLP(13, [5, 4, 2], 3, kernel_mask=kernel_mask, bias_mask=bias_mask)# mask付きモデル宣言
+            _mlp.set_weights(pruned_weight) # 学習済みモデルの重みセット
+            # print("acc use mask:{}".format(_mlp.evaluate(X_test, y_test)[1]))
+            for _kernel_mask in kernel_mask:
+                print("kernel_mask:{}".format(_kernel_mask))
+
+        print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
+        exit()
+        ###
+
         print("\n\n-----test-----\n\n")
         global dense_size
         ite = 0
@@ -1125,7 +1156,7 @@ class Main_test():
 
             ### magnitude プルーニング
             if tree_flag:
-                _weights = _weight_pruning(mlp_model, X_test, y_test)
+                _weights = _weight_pruning(mlp_model, X_train, y_train)
                 mlp_model.set_weights(_weights)
             else:
                 _weights, test_val_loss, binary_classify, g_mask_1, freezed_classify_1, classify, hidden_layers, pruned_test_val_loss \
@@ -1239,6 +1270,38 @@ class Main_test():
             print("x_train:{}".format([len(i) for i in original_X_train]))
             print("x_test:{}".format([len(i) for i in original_X_test]))
 
+            ###全結合mlpとの比較
+            X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
+                = getdata(dataset, binary_flag=binary_flag, train_frag=True)
+            _mlp = mlp(_mlp_shape[0], _mlp_shape[1:-1], _mlp_shape[-1])
+            _mlp.set_weights(sorted_weights)
+            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=4000)
+            correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train \
+                = show_intermidate_output(X_train, y_train, "train", _mlp)
+            correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
+                = show_intermidate_output(X_test, y_test, "test", _mlp)
+            original_X_train, original_X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
+                = getdata(dataset, binary_flag=binary_flag, train_frag=False)
+            visualize_network(_mlp.get_weights(), _mlp.evaluate(original_X_test,  y_test)[1],
+                              comment="mlp")
+            show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                            correct_data_test, correct_target_test,
+                                            _mlp, name=["mlp_correct_train", "mlp_correct_test"])
+            show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                            incorrect_data_test, incorrect_target_test,
+                                            _mlp, name=["mlp_correct_train", "mlp_miss_test"])
+            show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                            incorrect_data_train, incorrect_target_train,
+                                            _mlp, name=["mlp_correct_train", "mlp_miss_train"])
+            original_X_train, y_train = divide_data(original_X_train, y_train, dataset_category)
+            original_X_test, y_test = divide_data(original_X_test, y_test, dataset_category)
+            print("x_train:{}".format([len(i) for i in original_X_train]))
+            print("x_test:{}".format([len(i) for i in original_X_test]))
+            for i in range(dataset_category):
+                print("mlp_train_acc:{}".format(_mlp.evaluate(original_X_train[i], y_train[i])[1]))
+            for i in range(dataset_category):
+                print("mlp_test_acc:{}".format(_mlp.evaluate(original_X_test[i], y_test[i])[1]))
+            ###全結合mlpとの比較
         elif binary_flag:
             _X_test = [[] for _ in range(2)]
             _y_test = [[] for _ in range(2)]

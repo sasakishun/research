@@ -41,15 +41,15 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
         print("x[{}]:{}".format(i, np.shape(x[i])))
     correct_range = [[[0., 0.] for _ in range(len(x[i][0]))] for i in range(len(x)//2)]
     for i in range(len(x)//2):
-        print("len(x[{}]):{}".format(i, len(x[i])))
+        # print("len(x[{}]):{}".format(i, len(x[i])))
         if len(x[i]) > 0:
             correct_range[i] = [[float("{:.2f}".format(min([x[i][k][j] for k in range(len(x[i]))]))),
                                  float("{:.2f}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
                                 for j in range(len(x[i][0]))]
-        print("correct_range[{}]:{}".format(i, correct_range[i]))
+        # print("correct_range[{}]:{}".format(i, correct_range[i]))
     out_of_range=[[] for _ in range(len(labels)//2)]
     for i in range(len(x)):
-        print("x[{}]:{}".format(i, np.shape(x[i])))
+        # print("x[{}]:{}".format(i, np.shape(x[i])))
         if x[i]:
             for j in range(min(500, len(x[i][0]))): # j列目(13次元入力ならj<13)
                 ### 正解入力をプロット
@@ -66,12 +66,12 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                     _y = np.array(x[i])[:, j] # j番目のサンプルの縦軸座標
                     _in = [[], []]
                     _out = [[], []]
-                    print("_y:{}".format(_y))
+                    # print("_y:{}".format(_y))
                     for k in range(len(_x)):
                         ### 正解範囲に入っていたらo,それ以外はx
-                        print("_x:{}".format(_x))
-                        print("_y[k={}]:{}".format(k, _y[k]))
-                        print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
+                        # print("_x:{}".format(_x))
+                        # print("_y[k={}]:{}".format(k, _y[k]))
+                        # print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
                         # 範囲外クラス
                         if (_y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][0]\
                                 or correct_range[i%(len(labels)//2)][int(_x[k])][1] < _y[k]):# \
@@ -120,6 +120,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                             datetime.now().strftime("%Y%m%d%H%M%S")))
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
+    plt.close()
     return
     if showflag:
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
