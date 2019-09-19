@@ -20,6 +20,7 @@ import keras.backend.tensorflow_backend as KTF
 import tensorflow as tf
 import MyDenseLayer
 from MyLayer import *
+from _tree_functions import *
 
 old_session = KTF.get_session()
 
@@ -380,5 +381,29 @@ def myMLP(input_size, hidden_size, output_size, kernel_mask=None, bias_mask=None
 def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None):
     print("input:{}".format(input_size))
     print("output_size:{}".format(output_size))
-    
-    return
+    hidden_size = calculate_tree_shape(input_size)
+    for i in range(1, len(hidden_size)):
+        hidden_size[i] *= output_size
+    print("tree_shape:{}".format([i for i in hidden_size]))
+    if kernel_mask is None:
+        # [13->21->12->6->3]のmlpのmaskを作成
+        kernel_mask = [np.zeros((hidden_size[i - 1], hidden_size[i])) for i in range(1, len(hidden_size))]
+        for i in range(len(kernel_mask)):
+            for j in range(hidden_size[i]):
+                if i == 0:
+                    for _class in range(output_size):
+                        kernel_mask[i][j][j//2 + (hidden_size[i+1]//output_size)*_class] = 1
+                else:
+                    _class = j // (hidden_size[i] // output_size)
+                    print("_class:{}".format(_class))
+                    kernel_mask[i][j][(j%(hidden_size[i] // output_size)) // 2
+                                      + (hidden_size[i+1] // output_size) * _class] = 1
+
+    for i in range(len(kernel_mask)):
+        print("kernel_mask[{}]:{}".format(i, kernel_mask[i]))
+    # visualize_network(kernel_mask, )
+    return myMLP(input_size, hidden_size[1:-1], output_size, kernel_mask, bias_mask)
+
+if __name__ == '__main__':
+    tree_mlp(13, 3)
+    # tree_mlp(60, 2)

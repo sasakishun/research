@@ -318,3 +318,10 @@ def concate_elements(_list):
     for i in _list:
         concated += i
     return concated
+
+def calculate_tree_shape(input_size):
+    import math
+    shape = [input_size]
+    while shape[-1] > 1:
+        shape.append(math.ceil(shape[-1]/2))
+    return copy.deepcopy(shape)

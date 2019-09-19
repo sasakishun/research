@@ -1042,7 +1042,7 @@ class Main_test():
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
-        _mlp = myMLP(13, [5, 4, 2], 3)
+        _mlp = tree_mlp(input_size, dataset_category) # myMLP(13, [5, 4, 2], 3)
         for i in range(10):
             _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10000) # 学習
             visualize_network(
@@ -1051,6 +1051,7 @@ class Main_test():
             # _mlp.set_weights(pruned_weight)
             # print("acc non mask:{}".format(_mlp.evaluate(X_test, y_test)[1]))
             kernel_mask, bias_mask = weight2mask(pruned_weight) # mask取得
+            
             _mlp = myMLP(13, [5, 4, 2], 3, kernel_mask=kernel_mask, bias_mask=bias_mask)# mask付きモデル宣言
             _mlp.set_weights(pruned_weight) # 学習済みモデルの重みセット
             # print("acc use mask:{}".format(_mlp.evaluate(X_test, y_test)[1]))
