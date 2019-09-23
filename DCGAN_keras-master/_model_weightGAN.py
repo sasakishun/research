@@ -348,8 +348,11 @@ def masked_mlp(input_size, hidden_size, output_size):
     return _mlp
 
 
-def myMLP(input_size, hidden_size, output_size, kernel_mask=None, bias_mask=None):
+def myMLP(model_shape, kernel_mask=None, bias_mask=None):
     activation = "relu"
+    input_size = model_shape[0]
+    hidden_size = model_shape[1:-1]
+    output_size = model_shape[-1]
     print("input:{}".format(input_size))
     print("hidden_size:{}".format(hidden_size))
     print("output_size:{}".format(output_size))
@@ -368,8 +371,8 @@ def myMLP(input_size, hidden_size, output_size, kernel_mask=None, bias_mask=None
 
     for i in range(len(_dense)):
         dense.append(_dense[i](dense[i],
-                               kernel_mask=kernel_mask[i] if kernel_mask else None,
-                               bias_mask=bias_mask[i] if bias_mask else None)
+                               kernel_mask=kernel_mask[i] if kernel_mask is not None else None,
+                               bias_mask=bias_mask[i] if bias_mask is not None else None)
                      )
 
     mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
@@ -379,31 +382,32 @@ def myMLP(input_size, hidden_size, output_size, kernel_mask=None, bias_mask=None
     return mlp
 
 def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None):
+    from _tree_functions import calculate_tree_shape
     print("input:{}".format(input_size))
     print("output_size:{}".format(output_size))
-    hidden_size = calculate_tree_shape(input_size)
-    for i in range(1, len(hidden_size)):
-        hidden_size[i] *= output_size
+    hidden_size = calculate_tree_shape(input_size, output_size)
     print("tree_shape:{}".format([i for i in hidden_size]))
     if kernel_mask is None:
         # [13->21->12->6->3]のmlpのmaskを作成
-        kernel_mask = [np.zeros((hidden_size[i - 1], hidden_size[i])) for i in range(1, len(hidden_size))]
-        for i in range(len(kernel_mask)):
-            for j in range(hidden_size[i]):
-                if i == 0:
-                    for _class in range(output_size):
-                        kernel_mask[i][j][j//2 + (hidden_size[i+1]//output_size)*_class] = 1
-                else:
-                    _class = j // (hidden_size[i] // output_size)
-                    print("_class:{}".format(_class))
-                    kernel_mask[i][j][(j%(hidden_size[i] // output_size)) // 2
-                                      + (hidden_size[i+1] // output_size) * _class] = 1
+        kernel_mask = get_tree_kernel_mask(hidden_size)
+    # visualize_network(kernel_mask, )
+    return myMLP(hidden_size, kernel_mask, bias_mask)
 
+def get_tree_kernel_mask(hidden_size):
+    kernel_mask = [np.zeros((hidden_size[i - 1], hidden_size[i])) for i in range(1, len(hidden_size))]
+    output_size = hidden_size[-1]
+    for i in range(len(kernel_mask)):
+        for j in range(hidden_size[i]):
+            if i == 0:
+                for _class in range(output_size):
+                    kernel_mask[i][j][j // 2 + (hidden_size[i + 1] // output_size) * _class] = 1
+            else:
+                _class = j // (hidden_size[i] // output_size)
+                kernel_mask[i][j][(j % (hidden_size[i] // output_size)) // 2
+                                  + (hidden_size[i + 1] // output_size) * _class] = 1
     for i in range(len(kernel_mask)):
         print("kernel_mask[{}]:{}".format(i, kernel_mask[i]))
-    # visualize_network(kernel_mask, )
-    return myMLP(input_size, hidden_size[1:-1], output_size, kernel_mask, bias_mask)
+    return kernel_mask
 
 if __name__ == '__main__':
-    tree_mlp(13, 3)
-    # tree_mlp(60, 2)
+    mlp = tree_mlp(13, 3)

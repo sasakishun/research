@@ -1042,23 +1042,58 @@ class Main_test():
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
-        _mlp = tree_mlp(input_size, dataset_category) # myMLP(13, [5, 4, 2], 3)
+        kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
+        _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
         for i in range(10):
-            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10000) # 学習
+            # for j in range(cf.Iteration):
+                # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
+            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=100000) # 学習
+            _weight = _mlp.get_weights()
+            for j in range(len(_weight)//2):
+                _weight[j*2] *= kernel_mask[j]
+            _mlp.set_weights(_weight)
+            for j in range(len(_weight)):
+                print("weight[{}]\n{}".format(j, _weight[j]))
             visualize_network(
-                weights=_mlp.get_weights(), acc=_mlp.evaluate(X_test, y_test)[1], comment="pruning_stage:{}".format(i))
-            pruned_weight = _weight_pruning(_mlp, X_test, y_test) # pruning重み取得
-            # _mlp.set_weights(pruned_weight)
-            # print("acc non mask:{}".format(_mlp.evaluate(X_test, y_test)[1]))
+                weights=_mlp.get_weights(),
+                comment="just before pruning_stage:{}\n".format(i)
+                        + "train:{} test:{}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                    _mlp.evaluate(X_test, y_test)[1]))
+            pruned_weight = _weight_pruning(_mlp, X_train, y_train) # pruning重み取得
             kernel_mask, bias_mask = weight2mask(pruned_weight) # mask取得
-            
-            _mlp = myMLP(13, [5, 4, 2], 3, kernel_mask=kernel_mask, bias_mask=bias_mask)# mask付きモデル宣言
+            _mlp = myMLP(calculate_tree_shape(input_size, output_size), kernel_mask=kernel_mask, bias_mask=bias_mask)# mask付きモデル宣言
             _mlp.set_weights(pruned_weight) # 学習済みモデルの重みセット
-            # print("acc use mask:{}".format(_mlp.evaluate(X_test, y_test)[1]))
+            sleep(1)
+            visualize_network(
+                weights=_mlp.get_weights(),
+                comment="pruning_stage:{}\n".format(i)
+                        + "train:{} test:{}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                    _mlp.evaluate(X_test, y_test)[1]))
             for _kernel_mask in kernel_mask:
                 print("kernel_mask:{}".format(_kernel_mask))
-
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
+        hidden_size = calculate_tree_shape(input_size, output_size)
+        from _model_weightGAN import masked_mlp
+        masked_mlp_model = masked_mlp(hidden_size[0], hidden_size[1:-1], hidden_size[-1])
+        masked_mlp_model.set_weights(_mlp.get_weights())
+        for target_layer in range(1, len(_mlp.get_weights()) // 2 - 1):
+            print("shrink {}th layer".format(target_layer))
+            masked_mlp_model = shrink_tree_nodes(masked_mlp_model, target_layer,
+                                                 X_train, y_train, X_test, y_test,
+                                                 only_active_list=False)
+        # masked_mlpとshrinkした箇所、kernel_maskが違うため性能が変化する->要実装9/23～
+        _mlp = myMLP([input_size]+[np.shape(i)[0] for i in masked_mlp_model.get_weights() if i.ndim == 1])
+        _mlp.set_weights(masked_mlp_model.get_weights())
+        visualize_network(_mlp.get_weights(),
+                          _mlp.evaluate(X_test, y_test)[1],
+                          comment="unsorted")
+        sorted_weights = _mlp.get_weights()
+        for i in range(len(sorted_weights)//2):
+            sorted_weights = sort_weights(sorted_weights, target_layer=i)
+            _mlp.set_weights(sorted_weights)
+            visualize_network(_mlp.get_weights(),
+                              _mlp.evaluate(X_test, y_test)[1],
+                              comment="sorted layer:{}".format(i))
         exit()
         ###
 

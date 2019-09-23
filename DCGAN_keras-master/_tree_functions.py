@@ -87,6 +87,7 @@ def inputs_z(X_test, g_mask_1):
     return list(np.array([X_test])) + mask(g_mask_1, len(X_test))
 
 
+# 入力: masked_mlpモデル 出力:不要ノードを削除したmasked_mlpモデル
 def shrink_tree_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_active_list=False):
     # model: maskd_mlp
     # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
@@ -158,15 +159,18 @@ def visualize_network(weights, acc=-1, comment="", non_active_neurons=None):
     print("saved concated graph to -> {}".format(path))
     return
 
-def sort_weights(_weights, target_layer=-1):
+def sort_weights(_weights, target_layer=None):
     weights = [_weights[2*i] for i in range(len(_weights)//2)]
     bias = [_weights[2*i+1] for i in range(len(_weights)//2)]
     sorted_weights = [np.zeros(_weights[2 * i].shape) for i in range(len(_weights) // 2)]
     sorted_bias = [np.zeros(_weights[2*i+1].shape) for i in range(len(_weights)//2)]
 
+    # 入力層の入れ替え->独立した二分木構造を見せるため
+    if target_layer == -1:
+        return
     # weights[i][j][k] : i層j番ノードからi+1層k番ノードへの重み結合
     for i in range(len(weights)-1):
-        if target_layer >= 0:
+        if target_layer is not None:
             i = target_layer
         first_connect = [[float("inf"), None] for k in range(weights[i].shape[1])]
         for j in range(weights[i].shape[0]):
@@ -175,16 +179,22 @@ def sort_weights(_weights, target_layer=-1):
                     if first_connect[k][1] is None:
                         first_connect[k] = [j, k]
         first_connect.sort()
-        print("i:{} first_connect:{}".format(i, first_connect))
+        print("\ni:{} first_connect:{}".format(i, first_connect))
         ### first_connectを基にsorted_weightsを作成
+        print("weights:{}".format([np.shape(i) for i in weights]))
+        print("seorted_weights:{}".format([np.shape(i) for i in sorted_weights]))
         for k in range(weights[i].shape[1]):
+            if first_connect[k][1] is None:
+                break
             sorted_weights[i].T[k] = weights[i].T[first_connect[k][1]]
             sorted_bias[i][k] = bias[i][first_connect[k][1]]
-            sorted_weights[i+1][k] = weights[i+1][first_connect[k][1]]
+            if i + 1 < len(sorted_weights):
+                sorted_weights[i+1][k] = weights[i+1][first_connect[k][1]]
         ### weightsをソート済みweightで置換
         weights[i] = copy.deepcopy(sorted_weights[i])
         bias[i] = copy.deepcopy(sorted_bias[i])
-        weights[i+1] = copy.deepcopy(sorted_weights[i+1])
+        if i + 1 < len(weights):
+            weights[i+1] = copy.deepcopy(sorted_weights[i+1])
         _weights = [weights[i // 2] if i % 2 == 0 else bias[i // 2] for i in range(len(_weights))]
         if target_layer >= 0:
             return _weights
@@ -319,9 +329,9 @@ def concate_elements(_list):
         concated += i
     return concated
 
-def calculate_tree_shape(input_size):
+def calculate_tree_shape(input_size, output_size=1):
     import math
     shape = [input_size]
     while shape[-1] > 1:
         shape.append(math.ceil(shape[-1]/2))
-    return copy.deepcopy(shape)
+    return [shape[i]*(output_size if i != 0 else 1) for i in range(len(shape))]

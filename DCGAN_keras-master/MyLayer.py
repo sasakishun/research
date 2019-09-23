@@ -40,22 +40,11 @@ class MyLayer(Layer):
 
 
     def call(self, x, kernel_mask=None, bias_mask=None):
-        kernel = self.kernel
-        bias = self.bias
         if kernel_mask is not None:
-            kernel = kernel * kernel_mask
+            self.kernel = self.kernel * kernel_mask
         if bias_mask is not None:
-            bias = bias * bias_mask
-        return self.activation(K.dot(x, kernel) + bias)
-        """
-        if self.activation == 'relu':
-            return K.relu(K.dot(x, kernel) + bias)
-        elif self.activation == 'sigmoid':
-            return K.sigmoid(K.dot(x, kernel) + bias)
-        elif self.activation == 'softmax':
-            return K.softmax(K.dot(x, kernel) + bias)
-        else:
-            return K.dot(x, kernel) + bias
-        """
+            self.bias = self.bias * bias_mask
+        return self.activation(K.dot(x, self.kernel) + self.bias)
+
     def compute_output_shape(self, input_shape):
         return input_shape[0], self.output_dim
