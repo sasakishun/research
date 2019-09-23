@@ -374,6 +374,7 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None):
                                kernel_mask=kernel_mask[i] if kernel_mask is not None else None,
                                bias_mask=bias_mask[i] if bias_mask is not None else None)
                      )
+        # dense[i+1] = Dropout(rate=0.0001)(dense[i+1])
 
     mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
     mlp.compile(loss='categorical_crossentropy',

@@ -36,11 +36,12 @@ class Layer():
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
 
-    def __intialise_neurons(self, number_of_neurons):
+    def __intialise_neurons(self, number_of_neurons, image_flag = False):
+        # image_flag == Trueだと入力:64を8*8にして可視化
         neurons = []
         x = self.__calculate_left_margin_so_layer_is_centered(number_of_neurons)
         for iteration in range(number_of_neurons):
-            if number_of_neurons == 64:
+            if image_flag and number_of_neurons == 64:
                 if iteration % 8 == 0:
                     x = self.__calculate_left_margin_so_layer_is_centered(number_of_neurons // 8)
                 neuron = Neuron(x, self.y - 64 * (iteration // 8) - 40)

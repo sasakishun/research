@@ -145,6 +145,69 @@ def shrink_tree_nodes(model, target_layer, X_train, y_train, X_test, y_test, onl
                       comment="shrinking layer[{}]".format(target_layer // 2))
     return _mlp
 
+def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_active_list=False):
+    # model: _mlp
+    # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
+    # 出力 : 不要ノードを削除したモデル(model)
+    target_layer *= 2  # weigthsリストが[重み、バイアス....]となっているため
+    weights = model.get_weights()
+    dense_size = [weights[0].shape[0]] + [weights[i * 2 + 1].shape[0] for i in
+                                          range(len(weights) // 2)]  # [13, 48, 24, 12, 6, 3]
+    output_size = weights[-1].shape[0]
+    _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
+    active_nodes = [[] for _ in range(output_size)]
+    X_trains, y_trains = divide_data(X_train, y_train, dataset_category=output_size)  # クラス別に訓練データを分割
+    for i in range(output_size):  # for i in range(クラス数):
+        print("inputs_z(X_trains[{}], _mask):{}".format(i, [np.shape(j) for j in inputs_z(X_trains[i], _mask)]))
+        # i クラスで使用するactiveノード検出 -> active_nodes=[[] for _ in range(len(クラス数))]
+        pruned_train_val_acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
+        for j in range(len(_mask[target_layer // 2])):
+            _mask[target_layer // 2][j] = 0
+            _acc = model.evaluate(inputs_z(X_trains[i], _mask), y_trains[i])[1]
+            if _acc < pruned_train_val_acc * 0.999:
+                active_nodes[i].append(j)  # activeノードの番号を保存 -> active_nodes[i].append(activeノード)
+            _mask[target_layer // 2][j] = 1
+    print("active_nodes:{}".format(active_nodes))
+    if only_active_list:
+        return active_nodes
+    usable = [True for _ in range(len(_mask[target_layer // 2]))]  # ソートに使用済みのノード番号リスト
+    altered_weights = [[], [], []]  # [np.zeros((weights[target_layer]).shape),
+
+    for i in range(1, len(active_nodes)):
+        active_nodes[0] += active_nodes[i]
+        active_nodes[i] = []
+    active_nodes[0] = sorted(set(active_nodes[0]))
+    if len(active_nodes[0]) == 0:
+        return model
+    for i in range(output_size):
+        for j in range(len(active_nodes[i])):
+            if usable[active_nodes[i][j]]:
+                altered_weights[0].append(weights[target_layer - 2][:, active_nodes[i][j]])
+                altered_weights[1].append(weights[target_layer - 1][active_nodes[i][j]])
+                altered_weights[2].append(weights[target_layer][active_nodes[i][j]])
+            usable[active_nodes[i][j]] = False
+    for i in range(len(altered_weights)):
+        altered_weights[i] = np.array(altered_weights[i])
+        if i == 0:
+            altered_weights[0] = altered_weights[0].T
+    weights[target_layer - 2] = altered_weights[0][:, :sum(1 for x in usable if not x)]
+    weights[target_layer - 1] = altered_weights[1][:sum(1 for x in usable if not x)]
+    weights[target_layer] = altered_weights[2][:sum(1 for x in usable if not x)]
+    # ここで第[target_layer // 2]中間層のノード数を変更し
+    # モデルを再定義
+    dense_size[target_layer // 2] = sum(1 for x in usable if not x)
+    _mlp = masked_mlp(dense_size[0], dense_size[1:-1], output_size)
+    _mlp.set_weights(weights)
+
+    _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
+    intermediate_layer_model = [Model(inputs=_mlp.input,
+                                     outputs=_mlp.get_layer("dense{}".format(i)).output) for i in range(len(dense_size)-1)]
+    intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in range(len(dense_size)-1)]
+    for i in range(len(intermediate_output)):
+        print("dense[{}]:{}".format(i, intermediate_output[i]))
+    visualize_network(weights, _mlp.evaluate(inputs_z(X_test, _mask), y_test)[1],
+                      comment="shrinking layer[{}]".format(target_layer // 2))
+    return _mlp
 
 def visualize_network(weights, acc=-1, comment="", non_active_neurons=None):
     # return
