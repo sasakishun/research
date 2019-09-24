@@ -62,6 +62,7 @@ Save_freezed_classify_1_path = os.path.join(Save_dir, Save_freezed_classify_1_na
 Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
 Save_tree_path = os.path.join(Save_dir, Save_tree_name)
 Save_mlp_path = os.path.join(Save_dir, Save_mlp_name)
+Save_np_mlp_path = os.path.join(Save_dir, Save_mlp_name[:-3]+".npy")
 Save_hidden_layers_path = []
 for i in range(5):
     Save_hidden_layers_path.append(os.path.join(Save_dir, Dataset + 'hidden_layers{}.h5'.format(i)))

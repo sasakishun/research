@@ -7,7 +7,7 @@ from keras import backend as K
 from keras import metrics, regularizers
 from keras.layers.core import Lambda, Activation
 from keras.models import Model
-from keras.layers import Input, Dense, Reshape, multiply, Dropout
+from keras.layers import Input, Dense, Reshape, multiply, Dropout, BatchNormalization
 from keras.layers.normalization import BatchNormalization
 import numpy as np
 
@@ -370,6 +370,7 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None):
     dense = [inputs]
 
     for i in range(len(_dense)):
+        dense[i] = BatchNormalization()(dense[i])
         dense.append(_dense[i](dense[i],
                                kernel_mask=kernel_mask[i] if kernel_mask is not None else None,
                                bias_mask=bias_mask[i] if bias_mask is not None else None)

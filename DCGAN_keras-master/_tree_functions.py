@@ -275,6 +275,8 @@ def show_intermidate_output(data, target, name, _mlp):
     output_size = np.shape(intermediate_layer_model[-1].get_weights()[-1])[0]
     dataset_category = output_size
 
+    original_data = copy.deepcopy(data)
+    original_target = copy.deepcopy(target)
     data, target = divide_data(data, target, dataset_category)
     print("dataset_category:{}".format(dataset_category))
 
@@ -320,8 +322,7 @@ def show_intermidate_output(data, target, name, _mlp):
     visualize(correct_data + incorrect_data,
               None, labels, ite=cf.Iteration,
               testflag=True if name == "test" else False, showflag=False,
-              comment="layer:{} input".format(0))
-    ###入力を可視化
+              comment="layer:{} {}_acc:{:.4f}".format(0, name, _mlp.evaluate(original_data, original_target)[1]))    ###入力を可視化
 
     ###中間層出力を可視化
     import time
@@ -330,7 +331,7 @@ def show_intermidate_output(data, target, name, _mlp):
         visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
                   None, labels, ite=cf.Iteration,
                   testflag=True if name == "test" else False, showflag=False,
-                  comment="layer:{}".format(i + 1))
+                  comment="layer:{} {}_acc:{:.4f}".format(i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
     ###中間層出力を可視化
     for i in range(dataset_category):
         print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
