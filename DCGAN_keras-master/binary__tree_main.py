@@ -559,7 +559,7 @@ def shuffle_data(X_data, y_data):
 def multiple_mask_to_model(_mlp, kernel_mask=None, bias_mask=None):
     _weight = get_kernel_and_bias(_mlp)# _mlp.get_weights()
     _mlp.summary()
-    print("_weight:{}".format([np.shape(i) for i in _weight]))
+    print("_weight in multiple_mask_to_model:{}".format([np.shape(i) for i in _weight]))
     if kernel_mask is not None:
         for i in range(len(_weight) // 2):
             print("multiple num :{}".format(i))
@@ -568,6 +568,9 @@ def multiple_mask_to_model(_mlp, kernel_mask=None, bias_mask=None):
         for i in range(len(_weight) // 2):
             print("multiple num :{}".format(i))
             _weight[i * 2 + 1] *= bias_mask[i]
+    # print("_weight in multiple_mask_to_model")
+    # for i, weight in enumerate(_weight):
+        # print("_weight[{}]:{}".format(i, weight))
     _mlp = set_weights(_mlp, _weight) # _mlp.set_weights(_weight)
     return _mlp
 
@@ -630,17 +633,19 @@ def get_kernel_and_bias(_mlp, _weights=None):
         return _weights
 
 # _mlpモデルに重みをセット(BNパラメータ有り無し両対応)
-# 正しくset出来ていない
 def set_weights(_mlp, _weights):
     kernel_and_bias = _mlp.get_weights()
     div = 6
     remain = 4
     # set元でBN使用
     if batchNormalization_is_used(_weights):
+        print("set元でBN使用")
         # set先でBN使用
         if batchNormalization_is_used(_mlp.get_weights):
+            print("set先でBN使用")
             _mlp.set_weights(_weights)
         else:# set先でBNなし
+            print("set先でBNなし")
             div = 6
             remain = 4
             for i in range(len(_weights) // div):
@@ -648,15 +653,21 @@ def set_weights(_mlp, _weights):
                 kernel_and_bias[2 * i+1] = _weights[i * div + remain + 1]
             _mlp.set_weigths(kernel_and_bias)
     else:# set元でBNなし
+        print("set元でBNなし")
         # set先でBN使用
         if batchNormalization_is_used(_mlp.get_weights()):
-            for i in range(len(_weights) // div):
+            print("set先でBN使用")
+            for i in range(len(_weights) // 2):
+                print("kernel_and_bias[{}]:{} = _weights[{}]:{}".format(
+                    i * div + remain, kernel_and_bias[i * div + remain], 2*i, _weights[2 * i]))
+                print("kernel_and_bias[{}]:{} = _weights[{}]:{}".format(
+                    i * div + remain + 1, kernel_and_bias[i * div + remain + 1], 2*i+1, _weights[2 * i + 1]))
                 kernel_and_bias[i * div + remain] = _weights[2 * i]
                 kernel_and_bias[i * div + remain + 1] = _weights[2 * i+1]
             _mlp.set_weights(kernel_and_bias)
         else:# set先でBNなし
+            print("set先でBNなし")
             _mlp.set_weights(get_kernel_and_bias(_mlp, _weights))
-
     return _mlp
 
 
@@ -669,25 +680,24 @@ class Main_train():
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
-        for i in range(1):
+        for i in range(5):
             X_train, y_train = shuffle_data(X_train, y_train)
             # for j in range(cf.Iteration):
                 # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
-            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10) # 学習
+            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=1000) # 学習
             _mlp = multiple_mask_to_model(_mlp, kernel_mask=kernel_mask)
             print("get_kernel_and_bias(_mlp):{}".format(get_kernel_and_bias(_mlp)))
-            for i, _kernel in enumerate(kernel_mask):
-                print("kernel_mask[{}]\n{}".format(i, _kernel))
+            for j, _kernel in enumerate(kernel_mask):
+                print("kernel_mask[{}]\n{}".format(j, _kernel))
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="just before pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))
-            exit()
             _mlp = prune_and_update_mask(_mlp, X_train, y_train)
             sleep(1)
             visualize_network(
-                weights=_mlp.get_weights(),
+                weights=get_kernel_and_bias(_mlp),# _mlp.get_weights(),
                 comment="pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))
@@ -981,7 +991,8 @@ def tree_inputs2mlp(X_data, input_size, output_size):
 
 # 重みプルーニングし、モデルを返す
 def _weight_pruning(model, X_test, y_test):
-    _weights = [model.get_weights(), model.get_weights()]
+    # _weights = [model.get_weights(), model.get_weights()]
+    _weights = [get_kernel_and_bias(model), get_kernel_and_bias(model)]
     pruned_test_val_loss = model.evaluate(X_test, y_test)
     test_val_loss = copy.deepcopy(pruned_test_val_loss)
     global pruning_rate
@@ -1010,11 +1021,13 @@ def _weight_pruning(model, X_test, y_test):
             # print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
             if non_zero_num == 0:
                 break
-        model.set_weights(_weights[1])
+        # model.set_weights(_weights[1])
+        model = set_weights(model, _weights[1])
         pruned_test_val_loss = model.evaluate(X_test, y_test)
         print("pruning is done : magnitude < {} discard".format(pruning_rate))
         ### プルーニング率を微上昇させ性能検証
-        model.set_weights(_weights[0])
+        # model.set_weights(_weights[0])
+        model = set_weights(model, _weights[0])
     return model # _weights[0]
 
 
