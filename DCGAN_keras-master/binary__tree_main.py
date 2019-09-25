@@ -4,7 +4,7 @@ import os
 os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # import tensorflow as tf
-# from keras import backend as K
+from keras import backend as K
 # import numpy as np
 # from keras.utils import np_utils
 import argparse
@@ -16,14 +16,14 @@ from sklearn.model_selection import train_test_split
 import random
 from visualization import visualize, hconcat_resize_min, vconcat_resize_min
 from _tree_functions import *
-import keras.backend.tensorflow_backend as KTF
-import tensorflow as tf
+# import keras.backend.tensorflow_backend as KTF
+# import tensorflow as tf
 from draw_architecture import *
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.Session(config=config)
-K.set_session(sess)
+# config = tf.ConfigProto()
+# config.gpu_options.allow_growth = True
+# sess = tf.Session(config=config)
+# K.set_session(sess)
 
 np.set_printoptions(threshold=np.inf)
 np.set_printoptions(linewidth=2000)
@@ -32,10 +32,10 @@ np.set_printoptions(linewidth=2000)
 # from keras.models import load_model
 # from keras_compressor.compressor import compress
 ### モデル量子化
-old_session = KTF.get_session()
-session = tf.Session('')
-KTF.set_session(session)
-KTF.set_learning_phase(1)
+# old_session = KTF.get_session()
+# session = tf.Session('')
+# KTF.set_session(session)
+# KTF.set_learning_phase(1)
 ###
 
 Height, Width = 28, 28
@@ -181,10 +181,10 @@ def wine_data(train_flag=True):
     X_train, X_test, y_train, y_test = \
         train_test_split(np.array(_train), np.array(_target), test_size=0.1, train_size=0.9, shuffle=True,
                          random_state=1)
-    ### 訓練時は全クラスでデータ数そろえる
-    if train_flag:
-        X_train, y_train = augumentaton(list(X_train), y_train)
-        X_test, y_test = augumentaton(list(X_test), y_test)
+    ### 訓練時は全クラスでデータ数そろえる -> BatchNormalixationするときには外すべき？
+    # if train_flag:
+    # X_train, y_train = augumentaton(list(X_train), y_train)
+    # X_test, y_test = augumentaton(list(X_test), y_test)
     ### 全クラスでデータ数そろえる
 
     ### 各列で正規化
@@ -474,9 +474,7 @@ def mask(masks, batch_size):
 
 
 def show_weight(weights):
-    for i in range(len(weights)):
-        print("\nweights[{}]:{}".format(i, np.shape(weights[i])))
-        # print(weights[i])
+    print("weights:{}".format([np.shape(i) for i in weights]))
 
 
 def load_concate_masks(active_true=False):
@@ -574,15 +572,36 @@ def multiple_mask_to_model(_mlp, kernel_mask=None, bias_mask=None):
     _mlp = set_weights(_mlp, _weight) # _mlp.set_weights(_weight)
     return _mlp
 
+# _weightsの重みリストの二次元配列の出現間隔が3以上ならBN使用と判別
 def batchNormalization_is_used(_weights):
-    if np.shape(_weights[0]) == np.shape(_weights[1]):
+    kernel_start = None
+    kernel_span = None
+    for i in range(len(_weights)):
+        if _weights[i].ndim == 2:
+            if kernel_start is None:
+                kernel_start = i
+            else:
+                kernel_span = i - kernel_start
+                break
+    if kernel_span != 2:
         return True
     else:
         return False
 
+# BN使用可において,kernel始まりのインデックスと,[BN,kernel,bias]の1層あたりの重み長さを返す
+def get_kernel_start_index_and_set_size(_mlp):
+    kernel_start = 0
+    set_size = 6
+    _weights = _mlp.get_weights()
+    for i, _weight in enumerate(_weights):
+        if _weight.ndim == 2:
+            kernel_start = i
+            break
+    return kernel_start, set_size
+
 # mlpのmaskを再計算・更新
 def update_mask_of_model(_mlp):
-    kernel_mask, bias_mask = weight2mask(get_kernel_and_bias(_mlp, _mlp.get_weights()))  # mask取得
+    kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)  # mask取得
     _weight = _mlp.get_weights()
     _mlp = myMLP(get_layer_size_from_weight(_weight), kernel_mask=kernel_mask,
                  bias_mask=bias_mask)  # mask付きモデル宣言
@@ -596,7 +615,7 @@ def get_layer_size_from_weight(_weights=None):
         print("np.load(cf.Save_np_mlp_path):{}".format(d))
         return get_layer_size_from_weight(np.load(cf.Save_np_mlp_path))
     else:
-        print("_weights:{}".format(_weights))
+        # print("_weights:{}".format(_weights))
         return [np.shape(_weights[0])[0]] + [np.shape(i)[1] for i in _weights if i.ndim==2]
 
 # プルーニングしmaskも更新
@@ -617,17 +636,18 @@ def sort_all_layer(_mlp, X_data=None, y_data=None):
                               comment="sorted layer:{}".format(i))
     return _mlp
 
-# mlpモデルから、kernelとバイアス(BNパラメータ抜き)を返す
-def get_kernel_and_bias(_mlp, _weights=None):
-    if _weights is None:
-        _weights = _mlp.get_weights()
+# mlpモデル or weightsリストから、kernelとバイアス(BNパラメータ抜き)を返す
+def get_kernel_and_bias(_mlp):
+    _weights = model2weights(_mlp)
+    # print("\n\n\nget_kernel_and_bias")
+    show_weight(_weights)
     if batchNormalization_is_used(_weights):
-        div = 6
-        remain = 4
+        kernel_start, set_size = get_kernel_start_index_and_set_size(_mlp)
+        # print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
         kernel_and_bias = []
-        for i in range(len(_weights) // div):
-            kernel_and_bias.append(_weights[i * div + remain])
-            kernel_and_bias.append(_weights[i * div + remain + 1])
+        for i in range(len(_weights) // set_size):
+            kernel_and_bias.append(_weights[i * set_size + kernel_start])
+            kernel_and_bias.append(_weights[i * set_size + kernel_start + 1])
         return kernel_and_bias
     else:
         return _weights
@@ -635,49 +655,57 @@ def get_kernel_and_bias(_mlp, _weights=None):
 # _mlpモデルに重みをセット(BNパラメータ有り無し両対応)
 def set_weights(_mlp, _weights):
     kernel_and_bias = _mlp.get_weights()
-    div = 6
-    remain = 4
+    kernel_start, set_size = get_kernel_start_index_and_set_size(_mlp)
     # set元でBN使用
     if batchNormalization_is_used(_weights):
-        print("set元でBN使用")
-        # set先でBN使用
+        # print("set元でBN使用")
         if batchNormalization_is_used(_mlp.get_weights):
-            print("set先でBN使用")
+            # print("set先でBN使用")
             _mlp.set_weights(_weights)
-        else:# set先でBNなし
-            print("set先でBNなし")
-            div = 6
-            remain = 4
-            for i in range(len(_weights) // div):
-                kernel_and_bias[2 * i] = _weights[i * div + remain]
-                kernel_and_bias[2 * i+1] = _weights[i * div + remain + 1]
+        else:
+            # print("set先でBNなし")
+            for i in range(len(_weights) // set_size):
+                kernel_and_bias[2 * i] = _weights[i * set_size + kernel_start]
+                kernel_and_bias[2 * i+1] = _weights[i * set_size + kernel_start + 1]
             _mlp.set_weigths(kernel_and_bias)
-    else:# set元でBNなし
-        print("set元でBNなし")
-        # set先でBN使用
+    else:
+        # print("set元でBNなし")
         if batchNormalization_is_used(_mlp.get_weights()):
-            print("set先でBN使用")
+            # print("set先でBN使用")
             for i in range(len(_weights) // 2):
-                print("kernel_and_bias[{}]:{} = _weights[{}]:{}".format(
-                    i * div + remain, kernel_and_bias[i * div + remain], 2*i, _weights[2 * i]))
-                print("kernel_and_bias[{}]:{} = _weights[{}]:{}".format(
-                    i * div + remain + 1, kernel_and_bias[i * div + remain + 1], 2*i+1, _weights[2 * i + 1]))
-                kernel_and_bias[i * div + remain] = _weights[2 * i]
-                kernel_and_bias[i * div + remain + 1] = _weights[2 * i+1]
+                # print("kernel_and_bias[{}]:{} = _weights[{}]:{}".format(
+                    # i * set_size + kernel_span, kernel_and_bias[i * set_size + kernel_span], 2*i, _weights[2 * i]))
+                # print("kernel_and_bias[{}]:{} = _weights[{}]:{}".format(
+                    # i * set_size + kernel_span + 1, kernel_and_bias[i * set_size + kernel_span + 1], 2*i+1, _weights[2 * i + 1]))
+                kernel_and_bias[i * set_size + kernel_start] = _weights[2 * i]
+                kernel_and_bias[i * set_size + kernel_start + 1] = _weights[2 * i+1]
             _mlp.set_weights(kernel_and_bias)
-        else:# set先でBNなし
-            print("set先でBNなし")
-            _mlp.set_weights(get_kernel_and_bias(_mlp, _weights))
+        else:
+            # print("set先でBNなし")
+            _mlp.set_weights(get_kernel_and_bias(_weights))
     return _mlp
 
+# 入力:mlpオブジェクト->重みを返す,入力:weightsリスト->そのまま返す
+def model2weights(_mlp):
+    if str(type(_mlp)) == "<class 'keras.engine.training.Model'>":
+        return _mlp.get_weights()
+    elif str(type(_mlp)) != "list":
+        return _mlp
+    else:
+        print("Error in model2weight : input_type must be Model or weight_list")
+        exit()
 
 class Main_train():
     def __init__(self):
         pass
 
     def train(self, load_model=False, use_mbd=False):
-        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite\
+        X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
+        ### これだとBNが正しく機能するが、内部処理不明 -> 要分析
+        K.set_learning_phase(0)
+        ### これだとBNが正しく機能する
+
         kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
         for i in range(5):
@@ -685,10 +713,21 @@ class Main_train():
             # for j in range(cf.Iteration):
                 # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
             _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=1000) # 学習
+
+            data, target = divide_data(X_train, y_train, dataset_category)
+            for _class in range(dataset_category):
+                _predict = _mlp.predict(data[_class])
+                print("\nclass[{}] acc:{}\n{}".format(
+                    _class, _mlp.evaluate(data[_class], target[_class]),[np.argmax(k) for k in _predict]))
+            total_data = list(data[0])
+            for j in range(1, dataset_category):
+                total_data += list(data[j])
+            print("\ntotal acc:{}\npredict:{}".
+                  format(_mlp.evaluate(X_train, y_train, batch_size=1),[np.argmax(j) for j in _mlp.predict(np.array(total_data))]))
+            print("\ntotal acc_test:{}".
+                  format(_mlp.evaluate(X_test, y_test, batch_size=1)))
+            # exit()
             _mlp = multiple_mask_to_model(_mlp, kernel_mask=kernel_mask)
-            print("get_kernel_and_bias(_mlp):{}".format(get_kernel_and_bias(_mlp)))
-            for j, _kernel in enumerate(kernel_mask):
-                print("kernel_mask[{}]\n{}".format(j, _kernel))
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="just before pruning_stage:{}\n".format(i)
@@ -701,23 +740,30 @@ class Main_train():
                 comment="pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))
-            for _kernel_mask in kernel_mask:
-                print("kernel_mask:{}".format(_kernel_mask))
 
+            # モデル保存
+            _mlp.save_weights(cf.Save_mlp_path)
+            np.save(cf.Save_np_mlp_path, _mlp.get_weights())
+            _mlp.load_weights(cf.Save_mlp_path)
+            print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
+            print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
-        hidden_size = get_layer_size_from_weight(_mlp.get_weights())
+        exit()
 
+        hidden_size = get_layer_size_from_weight(_mlp.get_weights())
         from _model_weightGAN import masked_mlp
         masked_mlp_model = masked_mlp(hidden_size[0], hidden_size[1:-1], hidden_size[-1])
-        masked_mlp_model.set_weights(get_kernel_and_bias(_mlp, _mlp.get_weights()))
-        for target_layer in range(1, len(_mlp.get_weights()) // 2):
+        masked_mlp_model.set_weights(get_kernel_and_bias(_mlp))
+        for target_layer in range(1, len(masked_mlp_model.get_weights()) // 2):
             print("shrink {}th layer".format(target_layer))
             masked_mlp_model = shrink_mlp_nodes(masked_mlp_model, target_layer,
                                                  X_train, y_train, X_test, y_test,
                                                  only_active_list=False)
         # masked_mlpとshrinkした箇所、kernel_maskが違うため性能が変化する->要実装9/23～
-        _mlp = myMLP(get_layer_size_from_weight(masked_mlp_model.get_weights()))
-        _mlp.set_weights(masked_mlp_model.get_weights())
+        kernel_mask, bias_mask = get_kernel_bias_mask(masked_mlp_model.get_weights())
+        _mlp = myMLP(get_layer_size_from_weight(masked_mlp_model.get_weights()),
+                     kernel_mask=kernel_mask, bias_mask=bias_mask)
+        set_weights(_mlp, masked_mlp_model.get_weights())
         _mlp = prune_and_update_mask(_mlp, X_train, y_train)
         _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=1000)  # 学習
         _mlp = update_mask_of_model(_mlp)
@@ -990,14 +1036,14 @@ def tree_inputs2mlp(X_data, input_size, output_size):
     return np.array(_X_data)
 
 # 重みプルーニングし、モデルを返す
-def _weight_pruning(model, X_test, y_test):
+def _weight_pruning(model, X_test, y_test, margin_acc=0.95):
     # _weights = [model.get_weights(), model.get_weights()]
     _weights = [get_kernel_and_bias(model), get_kernel_and_bias(model)]
     pruned_test_val_loss = model.evaluate(X_test, y_test)
     test_val_loss = copy.deepcopy(pruned_test_val_loss)
     global pruning_rate
     pruning_rate = 0.
-    while (pruned_test_val_loss[1] > test_val_loss[1] * 0.99) and pruning_rate < 10:
+    while (pruned_test_val_loss[1] > test_val_loss[1] * margin_acc) and pruning_rate < 10:
         ### 精度98%以上となる重みを_weights[0]に確保
         _weights[0] = copy.deepcopy(_weights[1])
         ### 精度98%以上となる重みを_weights[0]に確保
@@ -1030,12 +1076,14 @@ def _weight_pruning(model, X_test, y_test):
         model = set_weights(model, _weights[0])
     return model # _weights[0]
 
-
+# weightsのうちkernelとbiasを分けて返す
 def separate_kernel_and_bias(weights):
     return [weights[i] for i in range(len(weights)) if i % 2 == 0], \
            [weights[i] for i in range(len(weights)) if i % 2 == 1]
 
-def weight2mask(weights):
+# mlpオブジェクトor重みリストからkernel_maskとbiasマスクを返す
+def get_kernel_bias_mask(_mlp):
+    weights = get_kernel_and_bias(_mlp)
     # 入力 : np.arrayのリスト　ex) [(13, 5), (5,), (5, 4), (4,), (4, 2), (2,), (2, 3), (3,)]
     return separate_kernel_and_bias([np.where(weight != 0, 1, 0) for weight in weights])
 
@@ -1044,34 +1092,58 @@ def load_weights_and_generate_mlp():
     _mlp.load_weights(cf.Save_mlp_path)
     return _mlp
 
+# 中間層出力を訓練テスト、正誤データごとに可視化
+def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test):
+    correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train \
+        = show_intermidate_output(X_train, y_train, "train", _mlp)
+    correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
+        = show_intermidate_output(X_test, y_test, "test", _mlp)
+    show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                    correct_data_test, correct_target_test,
+                                    _mlp, name=["correct_train", "correct_test"])
+    show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                    incorrect_data_test, incorrect_target_test,
+                                    _mlp, name=["correct_train", "miss_test"])
+    show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                    incorrect_data_train, incorrect_target_train,
+                                    _mlp, name=["correct_train", "miss_train"])
+    return
+
 class Main_test():
     def __init__(self):
         pass
 
     def test(self, loadflag=True):
+        ### これだとBNが正しく機能するが、内部処理不明 -> 要分析
+        K.set_learning_phase(0)
+        ### これだとBNが正しく機能する
+
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
+        print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
+        print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
+        print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
+        print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         _mlp = prune_and_update_mask(_mlp, X_train, y_train)
-        _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10000)  # 学習
-        _mlp = update_mask_of_model(_mlp)
-
-        correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train \
-            = show_intermidate_output(X_train, y_train, "train", _mlp)
-        correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
-            = show_intermidate_output(X_test, y_test, "test", _mlp)
-        show_intermidate_train_and_test(correct_data_train, correct_target_train,
-                                        correct_data_test, correct_target_test,
-                                        _mlp, name=["correct_train", "correct_test"])
-        show_intermidate_train_and_test(correct_data_train, correct_target_train,
-                                        incorrect_data_test, incorrect_target_test,
-                                        _mlp, name=["correct_train", "miss_test"])
-        show_intermidate_train_and_test(correct_data_train, correct_target_train,
-                                        incorrect_data_train, incorrect_target_train,
-                                        _mlp, name=["correct_train", "miss_train"])
+        # _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=100)  # 学習
+        # _mlp = update_mask_of_model(_mlp) # mask取得・セット
+        data, target = divide_data(X_train, y_train, dataset_category)
+        for i in range(dataset_category):
+            _predict = _mlp.predict(data[i])
+            print("\nclass[{}]:{}".format(i, [np.argmax(j) for j in _predict]))
+        total_data = list(data[0])
+        for j in range(1, dataset_category):
+            total_data += list(data[j])
+        print("\ntotal acc:{}\npredict:{}".
+              format(_mlp.evaluate(X_train, y_train, batch_size=1),
+                     [np.argmax(j) for j in _mlp.predict(np.array(total_data))]))
+        print("\ntotal acc_test:{}".
+              format(_mlp.evaluate(X_test, y_test, batch_size=1)))
+        # exit()
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
         exit()
-
 
 
         ###全結合mlpとの比較
@@ -1103,7 +1175,7 @@ class Main_test():
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))
             pruned_weight = _weight_pruning(_mlp, X_train, y_train) # pruning重み取得
-            kernel_mask, bias_mask = weight2mask(pruned_weight) # mask取得
+            kernel_mask, bias_mask = get_kernel_bias_mask(pruned_weight) # mask取得
             _mlp = myMLP(calculate_tree_shape(input_size, output_size), kernel_mask=kernel_mask, bias_mask=bias_mask)# mask付きモデル宣言
             _mlp.set_weights(pruned_weight) # 学習済みモデルの重みセット
             sleep(1)
@@ -1126,7 +1198,7 @@ class Main_test():
                                                  only_active_list=False)
         # masked_mlpとshrinkした箇所、kernel_maskが違うため性能が変化する->要実装9/23～
         pruned_weight = _weight_pruning(masked_mlp_model.get_weights(), X_train, y_train)  # pruning重み取得
-        kernel_mask, bias_mask = weight2mask(pruned_weight)  # mask取得
+        kernel_mask, bias_mask = get_kernel_bias_mask(pruned_weight)  # mask取得
         _mlp = myMLP([input_size]+[np.shape(i)[0] for i in pruned_weight if i.ndim == 1],
                      kernel_mask=kernel_mask, bias_mask=bias_mask)
         _mlp.set_weights(pruned_weight)

@@ -15,7 +15,7 @@ class MyLayer(Layer):
                  bias_constraint=None,
                  **kwargs):
         self.output_dim = output_dim
-        # self.activation = activation
+        self.activation = activation
         self.activation = activations.get(activation)
         self.use_bias = use_bias
         self.kernel_initializer = initializers.get(kernel_initializer)
@@ -25,7 +25,8 @@ class MyLayer(Layer):
         self.activity_regularizer = regularizers.get(activity_regularizer)
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
-        self.supports_masking = True
+
+        # self.supports_masking = True
 
         super(MyLayer, self).__init__(**kwargs)
 
@@ -44,7 +45,10 @@ class MyLayer(Layer):
             self.kernel = self.kernel * kernel_mask
         if bias_mask is not None:
             self.bias = self.bias * bias_mask
-        return self.activation(K.dot(x, self.kernel) + self.bias)
+        if self.activation is not None:
+            return self.activation(K.dot(x, self.kernel) + self.bias)
+        else:
+            return K.dot(x, self.kernel) + self.bias
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], self.output_dim

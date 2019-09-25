@@ -3,7 +3,7 @@ import cv2
 from time import *
 import datetime
 from draw_architecture import *
-from _tree_main_mnist import divide_data
+from binary__tree_main import divide_data
 import copy
 from visualization import *
 
@@ -210,6 +210,7 @@ def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only
     return _mlp
 
 def visualize_network(weights, acc=-1, comment="", non_active_neurons=None):
+    print("visualising_start")
     # return
     from time import sleep
     sleep(1)
@@ -264,22 +265,23 @@ def sort_weights(_weights, target_layer=None):
     visualize_network(_weights, acc=-1, comment="sort all layer", non_active_neurons=None)
     return _weights
 
+
+from binary__tree_main import get_kernel_and_bias
 def show_intermidate_output(data, target, name, _mlp):
     np.set_printoptions(precision=3)
-    for i in range(len(_mlp.get_weights())):
-        print("_mlp[{}]:{}".format(i, np.shape(_mlp.get_weights()[i])))
+    # for i in range(len(get_kernel_and_bias(_mlp))):
+        # print("_mlp[{}]:{}".format(i, np.shape(get_kernel_and_bias(_mlp)[i])))
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
-                                for i in range(len(_mlp.get_weights()) // 2)]
-    for i in range(len(intermediate_layer_model[-1].get_weights())):
-        print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
-    output_size = np.shape(intermediate_layer_model[-1].get_weights()[-1])[0]
+                                for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+    # for i in range(len(intermediate_layer_model[-1].get_weights())):
+        # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
+    output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
     dataset_category = output_size
 
     original_data = copy.deepcopy(data)
     original_target = copy.deepcopy(target)
     data, target = divide_data(data, target, dataset_category)
     print("dataset_category:{}".format(dataset_category))
-
     for i in range(len(data)):
         print("data[{}]:{}".format(i, np.shape(data[i])))
     correct_data = [[] for _ in range(output_size)]
@@ -287,10 +289,10 @@ def show_intermidate_output(data, target, name, _mlp):
     incorrect_data = [[] for _ in range(output_size)]
     incorrect_target = [[] for _ in range(output_size)]
     output = [intermediate_layer_model[-1].predict(data[i]) for i in range(output_size)]
-    for i in range(output_size):
-        print("\n\noutput[{}]:{}".format(i, np.shape(output[i])))
-        for j in range(len(output[i])):
-            print(output[i][j])
+    # for i in range(output_size):
+        # print("\n\noutput[{}]:{}".format(i, np.shape(output[i])))
+        # for j in range(len(output[i])):
+            # print(output[i][j])
     # [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
     ### 正解データと不正解データに分割
     for i in range(output_size):
@@ -310,11 +312,11 @@ def show_intermidate_output(data, target, name, _mlp):
     correct_intermediate_output = [[list(intermediate_layer_model[i].predict([correct_data[j]]))
                                     if len(correct_data[j]) > 0 else []
                                     for j in range(len(correct_data))]
-                                   for i in range(len(_mlp.get_weights()) // 2)]
+                                   for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     incorrect_intermediate_output = [[list(intermediate_layer_model[i].predict([incorrect_data[j]]))
                                       if len(incorrect_data[j]) > 0 else []
                                       for j in range(len(incorrect_data))]
-                                     for i in range(len(_mlp.get_weights()) // 2)]
+                                     for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
 
     ###入力を可視化
     labels = ["class:{}".format(i) for i in range(output_size)] \
@@ -326,15 +328,16 @@ def show_intermidate_output(data, target, name, _mlp):
 
     ###中間層出力を可視化
     import time
-    for i in range(len(_mlp.get_weights()) // 2):
+    for i in range(len(get_kernel_and_bias(_mlp)) // 2):
         time.sleep(1)
         visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
                   None, labels, ite=cf.Iteration,
                   testflag=True if name == "test" else False, showflag=False,
-                  comment="layer:{} {}_acc:{:.4f}".format(i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
+                  comment="layer:{} {}_acc:{:.2f}".format(i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
     ###中間層出力を可視化
     for i in range(dataset_category):
         print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
+    print("toral acc: {}\n\n".format(_mlp.evaluate(original_data, original_target)[1]))
     ### 各層出力を可視化
 
     return concate_elements(correct_data), concate_elements(correct_target), \
@@ -343,26 +346,26 @@ def show_intermidate_output(data, target, name, _mlp):
 def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"]):
     np.set_printoptions(precision=3)
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
-                                for i in range(len(_mlp.get_weights()) // 2)]
-    output_size = np.shape(intermediate_layer_model[-1].get_weights()[-1])[0]
+                                for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+    output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
     dataset_category = output_size
 
     train_data, train_target = divide_data(train_data, train_target, dataset_category)
     test_data, test_target = divide_data(test_data, test_target, dataset_category)
     train_data = [list(i) for i in list(train_data)]
     test_data = [list(i) for i in list(test_data)]
-    print("dataset_category:{}".format(dataset_category))
+    # print("dataset_category:{}".format(dataset_category))
 
 
     ### 正解データと不正解データに分割
     train_intermediate_output = [[list(intermediate_layer_model[i].predict([train_data[j]]))
                                     if len(train_data[j]) > 0 else []
                                     for j in range(len(train_data))]
-                                   for i in range(len(_mlp.get_weights()) // 2)]
+                                   for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     test_intermediate_output = [[list(intermediate_layer_model[i].predict([test_data[j]]))
                                       if len(test_data[j]) > 0 else []
                                       for j in range(len(test_data))]
-                                     for i in range(len(_mlp.get_weights()) // 2)]
+                                     for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
 
     ###入力を可視化
     labels = [name[0]+"_class:{}".format(i) for i in range(output_size)] \
@@ -375,7 +378,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
 
     ###中間層出力を可視化
     import time
-    for i in range(len(_mlp.get_weights()) // 2):
+    for i in range(len(get_kernel_and_bias(_mlp)) // 2):
         time.sleep(1)
         visualize(train_intermediate_output[i] + test_intermediate_output[i],
                   None, labels, ite=cf.Iteration,

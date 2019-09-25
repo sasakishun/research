@@ -5,6 +5,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from keras import backend as K
 from keras import metrics, regularizers
+from keras import activations, regularizers, initializers, constraints
 from keras.layers.core import Lambda, Activation
 from keras.models import Model
 from keras.layers import Input, Dense, Reshape, multiply, Dropout, BatchNormalization
@@ -348,7 +349,7 @@ def masked_mlp(input_size, hidden_size, output_size):
     return _mlp
 
 
-def myMLP(model_shape, kernel_mask=None, bias_mask=None):
+def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True):
     activation = "relu"
     input_size = model_shape[0]
     hidden_size = model_shape[1:-1]
@@ -357,7 +358,7 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None):
     print("hidden_size:{}".format(hidden_size))
     print("output_size:{}".format(output_size))
     _dense = [
-        MyLayer(hidden_size[j], activation=activation,
+        MyLayer(hidden_size[j], activation=activation, # None,
                 kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
                 kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
         for j in range(len(hidden_size))
@@ -370,11 +371,14 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None):
     dense = [inputs]
 
     for i in range(len(_dense)):
-        dense[i] = BatchNormalization()(dense[i])
+        dense[i] = BatchNormalization(name="BN{}".format(i))(dense[i])
         dense.append(_dense[i](dense[i],
                                kernel_mask=kernel_mask[i] if kernel_mask is not None else None,
                                bias_mask=bias_mask[i] if bias_mask is not None else None)
                      )
+        # if i < len(_dense) - 1:
+            # dense[i + 1] = BatchNormalization(trainable=False)(dense[i + 1])
+            # dense[i+1] = Activation(activation)(dense[i+1])
         # dense[i+1] = Dropout(rate=0.0001)(dense[i+1])
 
     mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
@@ -395,7 +399,7 @@ def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None):
     # visualize_network(kernel_mask, )
     return myMLP(hidden_size, kernel_mask, bias_mask)
 
-def get_tree_kernel_mask(hidden_size):
+def get_tree_kernel_mask(hidden_size, show_mask=False):
     kernel_mask = [np.zeros((hidden_size[i - 1], hidden_size[i])) for i in range(1, len(hidden_size))]
     output_size = hidden_size[-1]
     for i in range(len(kernel_mask)):
@@ -407,8 +411,9 @@ def get_tree_kernel_mask(hidden_size):
                 _class = j // (hidden_size[i] // output_size)
                 kernel_mask[i][j][(j % (hidden_size[i] // output_size)) // 2
                                   + (hidden_size[i + 1] // output_size) * _class] = 1
-    for i in range(len(kernel_mask)):
-        print("kernel_mask[{}]:{}".format(i, kernel_mask[i]))
+    if show_mask:
+        for i in range(len(kernel_mask)):
+            print("kernel_mask[{}]:{}".format(i, kernel_mask[i]))
     return kernel_mask
 
 if __name__ == '__main__':

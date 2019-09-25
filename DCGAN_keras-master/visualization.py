@@ -36,9 +36,9 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
               colors[9]]# 色指定
 
     # プロット
-    print("x:{}".format(len(x)))
-    for i in range(len(x)):
-        print("x[{}]:{}".format(i, np.shape(x[i])))
+    # print("x:{}".format(len(x)))
+    # for i in range(len(x)):
+        # print("x[{}]:{}".format(i, np.shape(x[i])))
     correct_range = [[[0., 0.] for _ in range(len(x[i][0]))] for i in range(len(x)//2)]
     for i in range(len(x)//2):
         # print("len(x[{}]):{}".format(i, len(x[i])))
@@ -49,7 +49,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
         # print("correct_range[{}]:{}".format(i, correct_range[i]))
     out_of_range=[[] for _ in range(len(labels)//2)]
     for i in range(len(x)):
-        # print("x[{}]:{}".format(i, np.shape(x[i])))
+        # print("x[{}]:{} --------".format(i, np.shape(x[i])))
         if x[i]:
             for j in range(min(500, len(x[i][0]))): # j列目(13次元入力ならj<13)
                 ### 正解入力をプロット
@@ -72,17 +72,17 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # print("_x:{}".format(_x))
                         # print("_y[k={}]:{}".format(k, _y[k]))
                         # print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
-                        # 範囲外クラス
-                        if (_y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][0]\
-                                or correct_range[i%(len(labels)//2)][int(_x[k])][1] < _y[k]):# \
+                        # 訓練データの出力範囲外となったクラス
+                        if (correct_range[i%(len(labels)//2)][int(_x[k])][0] < _y[k])\
+                                and (_y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][1]):# \
                                 # and _y[k] > 0:# そのクラスの分類に不要ノードはrelu出力=0に集中するため
+                                _in[0].append(_x[k])
+                                _in[1].append(_y[k])
+                        else: # 訓練データの出力範囲内に収まったクラス
                             _out[0].append(_x[k])
                             _out[1].append(_y[k])
                             plt.annotate(k, (_x[k], _y[k]), size=10)
                             out_of_range[i%(len(labels)//2)].append(k)
-                        else:
-                            _in[0].append(_x[k])
-                            _in[1].append(_y[k])
                         # plt.annotate(k, (_x[k], _y[k]), size=10)
                         ### 正解範囲に入っていたらo,それ以外はx
 
