@@ -1101,12 +1101,18 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test):
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     correct_data_test, correct_target_test,
                                     _mlp, name=["correct_train", "correct_test"])
-    show_intermidate_train_and_test(correct_data_train, correct_target_train,
-                                    incorrect_data_test, incorrect_target_test,
-                                    _mlp, name=["correct_train", "miss_test"])
+    out_of_ranges = show_intermidate_train_and_test(correct_data_train, correct_target_train,
+                                                    incorrect_data_test, incorrect_target_test,
+                                                    _mlp, name=["correct_train", "miss_test"])
+    for i, _out_of_range in enumerate(out_of_ranges):
+        print("out_of_ranges[{}]:{}".format(i, _out_of_range))
+    exit()
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     incorrect_data_train, incorrect_target_train,
                                     _mlp, name=["correct_train", "miss_train"])
+    return
+
+def get_miss_nodes():
     return
 
 class Main_test():

@@ -89,6 +89,8 @@ def reload_path():
     global Save_freezed_classify_1_path
     global Save_binary_classify_path
     global Save_tree_path
+    global Save_mlp_path
+
     Save_d_name = Dataset + 'D.h5'
     Save_g_name = Dataset + 'G.h5'
     Save_c_name = Dataset + 'C.h5'
@@ -104,6 +106,7 @@ def reload_path():
     Save_freezed_classify_1_path = os.path.join(Save_dir, Save_freezed_classify_1_name)
     Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
     Save_tree_path = os.path.join(Save_dir, Save_tree_name)
+    Save_mlp_path = os.path.join(Save_dir, Save_mlp_name)
     return
 ## Other config
 ##  Randon_seed is used for seed of dataset shuffle in data_loader.py

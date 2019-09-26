@@ -324,8 +324,7 @@ def show_intermidate_output(data, target, name, _mlp):
     visualize(correct_data + incorrect_data,
               None, labels, ite=cf.Iteration,
               testflag=True if name == "test" else False, showflag=False,
-              comment="layer:{} {}_acc:{:.4f}".format(0, name, _mlp.evaluate(original_data, original_target)[1]))    ###入力を可視化
-
+              comment="layer:{} {}_acc:{:.4f}".format(0, name, _mlp.evaluate(original_data, original_target)[1]))
     ###中間層出力を可視化
     import time
     for i in range(len(get_kernel_and_bias(_mlp)) // 2):
@@ -367,27 +366,30 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                       for j in range(len(test_data))]
                                      for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
 
+    out_of_ranges = []
+
     ###入力を可視化
     labels = [name[0]+"_class:{}".format(i) for i in range(output_size)] \
              + [name[1]+"_class:{}".format(i) for i in range(output_size)]
-    visualize(train_data + test_data,
-              None, labels, ite=cf.Iteration,
-              testflag=True, showflag=False,
-              comment="layer:{} input".format(0))
+    out_of_ranges.append(visualize(train_data + test_data,
+                                   None, labels, ite=cf.Iteration,
+                                   testflag=True, showflag=False,
+                                   comment="layer:{} input".format(0)))
     ###入力を可視化
 
     ###中間層出力を可視化
     import time
     for i in range(len(get_kernel_and_bias(_mlp)) // 2):
         time.sleep(1)
-        visualize(train_intermediate_output[i] + test_intermediate_output[i],
-                  None, labels, ite=cf.Iteration,
-                  testflag=True, showflag=False,
-                  comment="layer:{}".format(i + 1))
+        out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
+                                       None, labels, ite=cf.Iteration,
+                                       testflag=True, showflag=False,
+                                       comment="layer:{}".format(i + 1)))
     ###中間層出力を可視化
     # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))
     ### 各層出力を可視化
+    return out_of_ranges
 
 
 def concate_elements(_list):

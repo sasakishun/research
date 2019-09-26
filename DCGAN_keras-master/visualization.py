@@ -34,7 +34,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
               colors[6],
               colors[7],
               colors[9]]# 色指定
-
+    input_size = len(x[0][0])
     # プロット
     # print("x:{}".format(len(x)))
     # for i in range(len(x)):
@@ -47,11 +47,12 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                  float("{:.2f}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
                                 for j in range(len(x[i][0]))]
         # print("correct_range[{}]:{}".format(i, correct_range[i]))
-    out_of_range=[[] for _ in range(len(labels)//2)]
-    for i in range(len(x)):
+    out_of_range=[[[] for _ in range(input_size)] for _ in range(len(labels)//2)]
+    # out_of_range = [[[[0番ノードミスサンプル番号=2, 3, 4], [1番ノードミス]], [], [] ], [], []]
+    for i in range(len(x)): # 3クラス分類->正解*3,不正解*3でi < 6
         # print("x[{}]:{} --------".format(i, np.shape(x[i])))
-        if x[i]:
-            for j in range(min(500, len(x[i][0]))): # j列目(13次元入力ならj<13)
+        if x[i]: # 各サンプルをプロット
+            for j in range(min(500, input_size)): # j列目(13次元入力ならj<13)
                 ### 正解入力をプロット
                 if i < len(labels) // 2:
                     _x = [j + 0.04 * (i - len(labels)//2) for _ in range(len(x[i]))]
@@ -72,17 +73,18 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # print("_x:{}".format(_x))
                         # print("_y[k={}]:{}".format(k, _y[k]))
                         # print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
-                        # 訓練データの出力範囲外となったクラス
+                        # 訓練データの出力範囲内に収まったクラス
                         if (correct_range[i%(len(labels)//2)][int(_x[k])][0] < _y[k])\
                                 and (_y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][1]):# \
                                 # and _y[k] > 0:# そのクラスの分類に不要ノードはrelu出力=0に集中するため
                                 _in[0].append(_x[k])
                                 _in[1].append(_y[k])
-                        else: # 訓練データの出力範囲内に収まったクラス
+                        else: # 訓練データの出力範囲外となったクラス
                             _out[0].append(_x[k])
                             _out[1].append(_y[k])
                             plt.annotate(k, (_x[k], _y[k]), size=10)
-                            out_of_range[i%(len(labels)//2)].append(k)
+                            out_of_range[i%(len(labels)//2)][int(_x[k])].append(k)
+                            # out_of_range[i%(len(labels)//2)].append(k)
                         # plt.annotate(k, (_x[k], _y[k]), size=10)
                         ### 正解範囲に入っていたらo,それ以外はx
 
@@ -94,7 +96,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
 
     correct_range_str = ""
     for i in range(len(out_of_range)):
-        correct_range_str += "out_of_range[{}]:{}\n".format(i, set(out_of_range[i]))
+        correct_range_str += "out_of_range[{}]:{}\n".format(i, set(concate_elements(out_of_range[i])))
     # for i in range(len(correct_range)):
     # "correct_range[{}]:{}".format(i, correct_range[i]) + "\n"
     plt.xlabel("{} node\n{}".format(comment, correct_range_str))
@@ -121,7 +123,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     else:
         plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     plt.close()
-    return
+    return out_of_range
+
     if showflag:
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
         import os
@@ -157,3 +160,10 @@ def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
                       for im in im_list]
     return cv2.vconcat(im_list_resize)
 
+
+def concate_elements(_list):
+    import copy
+    concated = copy.deepcopy(_list)
+    for i in concated[1:]:
+        concated[0] += i
+    return concated[0]
