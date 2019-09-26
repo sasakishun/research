@@ -708,11 +708,11 @@ class Main_train():
 
         kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
-        for i in range(5):
+        for i in range(1):
             X_train, y_train = shuffle_data(X_train, y_train)
             # for j in range(cf.Iteration):
                 # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
-            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=1000) # 学習
+            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10) # 学習
 
             data, target = divide_data(X_train, y_train, dataset_category)
             for _class in range(dataset_category):
@@ -1106,14 +1106,50 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test):
                                                     _mlp, name=["correct_train", "miss_test"])
     for i, _out_of_range in enumerate(out_of_ranges):
         print("out_of_ranges[{}]:{}".format(i, _out_of_range))
+    miss_nodes = get_miss_nodes(out_of_ranges)
     exit()
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     incorrect_data_train, incorrect_target_train,
                                     _mlp, name=["correct_train", "miss_train"])
     return
 
-def get_miss_nodes():
-    return
+# 各層の間違いノード番号を、サンプルごとにまとめ返す
+# 入力 : shape(層数,ノード数,クラス数)->サンプル番号リスト
+# 出力 : shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
+def get_miss_nodes(out_of_ranges):
+    # 間違いサンプル数を取得
+    class_num = len(out_of_ranges[-1][0])
+    missed = [[] for _ in range(class_num)]
+    # print("missed:{}".format(missed))
+    for i in range(class_num):
+        # print("out_of_ranges[-1][{}]:{}".format(i, out_of_ranges[-1][i]))
+        for j in range(class_num):
+            missed[i] += out_of_ranges[-1][i][j]
+    # print("missed:{}".format(missed))
+    missed = [set(i) for i in missed]
+    miss_nodes = [[[[] for _ in range(len(out_of_ranges))]
+                  for j in range(len(missed[i]))]
+                 for i in range(class_num)]
+    # print("miss_nodes:{}".format(miss_nodes))
+    # shape(クラス数, サンプル番号, 層番号)->その層でのミスノード番号のリスト
+
+    for _layer in range(len(out_of_ranges)): # 層番号
+        for _class in range(len(out_of_ranges[_layer])): # クラス番号
+            for _node in range(len(out_of_ranges[_layer][_class])): # ノード番号
+                for _sample in out_of_ranges[_layer][_class][_node]: # ミスサンプル番号
+                    # print("_layer:{}, _node:{} _class:{} _sample:{}".format(_layer, _node, _class, _sample))
+                    miss_nodes[_class][_sample][_layer].append(_node)
+
+    """
+    print("missed_list")
+    for i in range(len(miss_nodes)):
+        print("class[{}]".format(i))
+        for j in range(len(miss_nodes[i])):
+            print(" sample[{}]".format(j))
+            for k in range(len(miss_nodes[i][j])):
+                print("  layer[{}] : {}".format(k, miss_nodes[i][j][k]))
+    """
+    return miss_nodes
 
 class Main_test():
     def __init__(self):
