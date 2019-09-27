@@ -19,19 +19,22 @@ class Neuron():
         self.y = y
 
     def draw(self, text="", color="black"):
-        circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=color)
+        if color != "black": # ミスニューロンは半径大きく、黒以外で描画
+            circle = pyplot.Circle((self.x, self.y), radius=neuron_radius*10, fill=False, color=color)
+        else:
+            circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=color)
         # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
         # pyplot.gca()._add_text(_text)
         pyplot.gca().add_patch(circle)
 
 
 class Layer():
-    def __init__(self, network, number_of_neurons, weights, non_active_neurons=None):
+    def __init__(self, network, number_of_neurons, weights, non_active_neurons=None, node_color=None):
         self.previous_layer = self.__get_previous_layer(network)
         self.y = self.__calculate_layer_y_position()
         self.neurons = self.__intialise_neurons(number_of_neurons)
         self.weights = weights
-        self.neuron_color = ["black" for _ in range(number_of_neurons)]
+        self.neuron_color = node_color if node_color is not None else ["black" for _ in range(number_of_neurons)]
         if non_active_neurons:
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
@@ -108,8 +111,8 @@ class NeuralNetwork():
     def __init__(self):
         self.layers = []
 
-    def add_layer(self, number_of_neurons, weights=None, non_active_neurons=None):
-        layer = Layer(self, number_of_neurons, weights, non_active_neurons)
+    def add_layer(self, number_of_neurons, weights=None, non_active_neurons=None, node_color=None):
+        layer = Layer(self, number_of_neurons, weights, non_active_neurons, node_color=node_color)
         self.layers.append(layer)
 
     """
@@ -141,7 +144,7 @@ class NeuralNetwork():
         return cv2.imread(path + ".png")
 
 
-def mydraw(_weights, acc, comment="", non_active_neurons=None):
+def mydraw(_weights, acc, comment="", non_active_neurons=None, node_colors=None):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
@@ -172,11 +175,12 @@ def mydraw(_weights, acc, comment="", non_active_neurons=None):
     # weights.append(np.ones((nodes[i+1], nodes[i])))
 
     print("nodes of each layer:{}".format(nodes))
-    print("weights:{}".format([np.shape(weights[i]) for i in range(len(weights))]))
-    print("_weights:{}".format([np.shape(_weights[i]) for i in range(len(_weights))]))
+    # print("weights:{}".format([np.shape(weights[i]) for i in range(len(weights))]))
+    # print("_weights:{}".format([np.shape(_weights[i]) for i in range(len(_weights))]))
 
     for i in range(len(nodes) - 1):
-        network.add_layer(nodes[i], weights[i].T, non_active_neurons[i] if non_active_neurons else None)
+        network.add_layer(nodes[i], weights[i].T, non_active_neurons[i] if non_active_neurons is not None else None,
+                          node_color=node_colors[i] if node_colors is not None else None)
     network.add_layer(nodes[-1])
     # print("weights:\n{}".format(weights))
     path = os.getcwd() + r"\visualized_iris\network_architecture"

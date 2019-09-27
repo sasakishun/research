@@ -7,7 +7,7 @@ import config_mnist as cf
 import cv2
 
 
-def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None):
+def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None, save_fig=True):
     # x : [[クラス0の訓練データ], [クラス1..]...., []]
     """
     _max_list_size = 0
@@ -113,15 +113,16 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     # 右側の余白を調整
     pylab.subplots_adjust(right=0.7)
 
-    # save as png
-    import os
-    path = os.getcwd() + r"\visualized_iris"
-    print("saved to -> " + path + "\{}{}".format("test" if testflag else "train", ite))
-    if ite % cf.Iteration == 0:
-        plt.savefig(path + "{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite,
-                                            datetime.now().strftime("%Y%m%d%H%M%S")))
-    else:
-        plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
+    if save_fig:
+        # save as png
+        import os
+        path = os.getcwd() + r"\visualized_iris"
+        print("saved to -> " + path + "\{}{}".format("test" if testflag else "train", ite))
+        if ite % cf.Iteration == 0:
+            plt.savefig(path + "{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite,
+                                                datetime.now().strftime("%Y%m%d%H%M%S")))
+        else:
+            plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     plt.close()
     return out_of_range
 

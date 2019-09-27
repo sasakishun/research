@@ -209,13 +209,13 @@ def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only
                       comment="shrinking layer[{}]".format(target_layer // 2))
     return _mlp
 
-def visualize_network(weights, acc=-1, comment="", non_active_neurons=None):
+def visualize_network(weights, acc=-1, comment="", non_active_neurons=None, neuron_color=None):
     print("visualising_start")
     # return
     from time import sleep
     sleep(1)
     # return
-    im_architecture = mydraw(weights, acc, comment, non_active_neurons)
+    im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color)
     im_h_resize = im_architecture
     path = os.getcwd() + r"\visualized_iris\network_architecture\triple\{}".format(
         datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
@@ -245,7 +245,7 @@ def sort_weights(_weights, target_layer=None):
         first_connect.sort()
         print("\ni:{} first_connect:{}".format(i, first_connect))
         ### first_connectを基にsorted_weightsを作成
-        print("weights:{}".format([np.shape(i) for i in weights]))
+        # print("weights:{}".format([np.shape(i) for i in weights]))
         print("seorted_weights:{}".format([np.shape(i) for i in sorted_weights]))
         for k in range(weights[i].shape[1]):
             if first_connect[k][1] is None:
@@ -267,7 +267,7 @@ def sort_weights(_weights, target_layer=None):
 
 
 from binary__tree_main import get_kernel_and_bias
-def show_intermidate_output(data, target, name, _mlp):
+def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     np.set_printoptions(precision=3)
     # for i in range(len(get_kernel_and_bias(_mlp))):
         # print("_mlp[{}]:{}".format(i, np.shape(get_kernel_and_bias(_mlp)[i])))
@@ -321,28 +321,29 @@ def show_intermidate_output(data, target, name, _mlp):
     ###入力を可視化
     labels = ["class:{}".format(i) for i in range(output_size)] \
              + ["missed_class:{}".format(i) for i in range(output_size)]
-    visualize(correct_data + incorrect_data,
-              None, labels, ite=cf.Iteration,
-              testflag=True if name == "test" else False, showflag=False,
-              comment="layer:{} {}_acc:{:.4f}".format(0, name, _mlp.evaluate(original_data, original_target)[1]))
-    ###中間層出力を可視化
-    import time
-    for i in range(len(get_kernel_and_bias(_mlp)) // 2):
-        time.sleep(1)
-        visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
+    if save_fig:
+        visualize(correct_data + incorrect_data,
                   None, labels, ite=cf.Iteration,
                   testflag=True if name == "test" else False, showflag=False,
-                  comment="layer:{} {}_acc:{:.2f}".format(i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
-    ###中間層出力を可視化
-    for i in range(dataset_category):
-        print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
-    print("toral acc: {}\n\n".format(_mlp.evaluate(original_data, original_target)[1]))
-    ### 各層出力を可視化
+                  comment="layer:{} {}_acc:{:.4f}".format(0, name, _mlp.evaluate(original_data, original_target)[1]))
+        ###中間層出力を可視化
+        import time
+        for i in range(len(get_kernel_and_bias(_mlp)) // 2):
+            time.sleep(1)
+            visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
+                      None, labels, ite=cf.Iteration,
+                      testflag=True if name == "test" else False, showflag=False,
+                      comment="layer:{} {}_acc:{:.2f}".format(i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
+        ###中間層出力を可視化
+        for i in range(dataset_category):
+            print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
+        print("toral acc: {}\n\n".format(_mlp.evaluate(original_data, original_target)[1]))
+        ### 各層出力を可視化
 
     return concate_elements(correct_data), concate_elements(correct_target), \
            concate_elements(incorrect_data), concate_elements(incorrect_target)
 
-def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"]):
+def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"], save_fig=True):
     np.set_printoptions(precision=3)
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -374,7 +375,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
     out_of_ranges.append(visualize(train_data + test_data,
                                    None, labels, ite=cf.Iteration,
                                    testflag=True, showflag=False,
-                                   comment="layer:{} input".format(0)))
+                                   comment="layer:{} input".format(0), save_fig=save_fig))
     ###入力を可視化
 
     ###中間層出力を可視化
@@ -384,7 +385,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
         out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,
-                                       comment="layer:{}".format(i + 1)))
+                                       comment="layer:{}".format(i + 1), save_fig=save_fig))
     ###中間層出力を可視化
     # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))

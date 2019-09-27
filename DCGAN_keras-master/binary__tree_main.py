@@ -640,7 +640,7 @@ def sort_all_layer(_mlp, X_data=None, y_data=None):
 def get_kernel_and_bias(_mlp):
     _weights = model2weights(_mlp)
     # print("\n\n\nget_kernel_and_bias")
-    show_weight(_weights)
+    # show_weight(_weights)
     if batchNormalization_is_used(_weights):
         kernel_start, set_size = get_kernel_start_index_and_set_size(_mlp)
         # print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
@@ -1094,23 +1094,34 @@ def load_weights_and_generate_mlp():
 
 # 中間層出力を訓練テスト、正誤データごとに可視化
 def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test):
+    save_fig=False
     correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train \
-        = show_intermidate_output(X_train, y_train, "train", _mlp)
+        = show_intermidate_output(X_train, y_train, "train", _mlp, save_fig=save_fig)
     correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
-        = show_intermidate_output(X_test, y_test, "test", _mlp)
+        = show_intermidate_output(X_test, y_test, "test", _mlp, save_fig=save_fig)
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     correct_data_test, correct_target_test,
-                                    _mlp, name=["correct_train", "correct_test"])
+                                    _mlp, name=["correct_train", "correct_test"], save_fig=save_fig)
     out_of_ranges = show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                                     incorrect_data_test, incorrect_target_test,
-                                                    _mlp, name=["correct_train", "miss_test"])
-    for i, _out_of_range in enumerate(out_of_ranges):
-        print("out_of_ranges[{}]:{}".format(i, _out_of_range))
-    miss_nodes = get_miss_nodes(out_of_ranges)
+                                                    _mlp, name=["correct_train", "miss_test"], save_fig=save_fig)
+    # for i, _out_of_range in enumerate(out_of_ranges):
+        # print("out_of_ranges[{}]:{}".format(i, _out_of_range))
+    neuron_colors = get_neuron_color_list_from_out_of_range_nodes(get_miss_nodes(out_of_ranges),
+                                                               get_layer_size_from_weight(_mlp.get_weights()))
+    for _class in range(len(neuron_colors)):
+        for _sample in range(len(neuron_colors[_class])):
+            visualize_network(
+                weights=get_kernel_and_bias(_mlp),
+                comment="colorized_miss_node class:{}\n".format(_class)
+                        + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                            _mlp.evaluate(X_test, y_test)[1]),
+                neuron_color=neuron_colors[_class][_sample])
     exit()
+
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     incorrect_data_train, incorrect_target_train,
-                                    _mlp, name=["correct_train", "miss_train"])
+                                    _mlp, name=["correct_train", "miss_train"], save_fig=save_fig)
     return
 
 # 各層の間違いノード番号を、サンプルごとにまとめ返す
@@ -1150,6 +1161,29 @@ def get_miss_nodes(out_of_ranges):
                 print("  layer[{}] : {}".format(k, miss_nodes[i][j][k]))
     """
     return miss_nodes
+
+def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
+    neuron_coloers = [[[["black" for _ in range(i)] for i in layer_sizes]
+                      for _sample in range(len(out_of_ranges[_class]))]
+                      for _class in range(len(out_of_ranges))]
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = [colors[0],
+              colors[8],
+              colors[3],
+              colors[1],
+              colors[2],
+              colors[4],
+              colors[5],
+              colors[6],
+              colors[7],
+              colors[9]]  # 色指定
+
+    for _class in range(len(out_of_ranges)):
+        for _sample in range(len(out_of_ranges[_class])):
+            for _layer in range(len(out_of_ranges[_class][_sample])):
+                for _neuron in out_of_ranges[_class][_sample][_layer]:
+                    neuron_coloers[_class][_sample][_layer][_neuron] = colors[_class]
+    return neuron_coloers
 
 class Main_test():
     def __init__(self):
