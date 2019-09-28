@@ -74,8 +74,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # print("_y[k={}]:{}".format(k, _y[k]))
                         # print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
                         # 訓練データの出力範囲内に収まったクラス
-                        if (correct_range[i%(len(labels)//2)][int(_x[k])][0] < _y[k])\
-                                and (_y[k] < correct_range[i%(len(labels)//2)][int(_x[k])][1]):# \
+                        if (correct_range[i%(len(labels)//2)][int(_x[k])][0]-0.1 < _y[k])\
+                                and (_y[k] < 0.1+correct_range[i%(len(labels)//2)][int(_x[k])][1]):# \
                                 # and _y[k] > 0:# そのクラスの分類に不要ノードはrelu出力=0に集中するため
                                 _in[0].append(_x[k])
                                 _in[1].append(_y[k])

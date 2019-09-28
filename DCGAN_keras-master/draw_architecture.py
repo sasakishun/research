@@ -20,7 +20,7 @@ class Neuron():
 
     def draw(self, text="", color="black"):
         if color != "black": # ミスニューロンは半径大きく、黒以外で描画
-            circle = pyplot.Circle((self.x, self.y), radius=neuron_radius*10, fill=False, color=color)
+            circle = pyplot.Circle((self.x, self.y), radius=neuron_radius*10, facecolor=color, edgecolor=color)
         else:
             circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=color)
         # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
@@ -123,10 +123,12 @@ class NeuralNetwork():
         pyplot.show()
     """
 
-    def draw(self, path, acc=-1, comment=""):
+    def draw(self, path, acc=None, comment=""):
         for layer in self.layers:
             layer.draw()
-        pyplot.title("{} acc:{:.4f}".format(comment, acc))
+        if acc is not None:
+            comment += " acc:{:.4f}".format(acc)
+        pyplot.title(comment)
         pyplot.axis('scaled')
         pyplot.tick_params(labelbottom=False,
                            labelleft=False,
@@ -181,7 +183,7 @@ def mydraw(_weights, acc, comment="", non_active_neurons=None, node_colors=None)
     for i in range(len(nodes) - 1):
         network.add_layer(nodes[i], weights[i].T, non_active_neurons[i] if non_active_neurons is not None else None,
                           node_color=node_colors[i] if node_colors is not None else None)
-    network.add_layer(nodes[-1])
+    network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None)
     # print("weights:\n{}".format(weights))
     path = os.getcwd() + r"\visualized_iris\network_architecture"
     return network.draw(path=path, acc=acc, comment=comment)
