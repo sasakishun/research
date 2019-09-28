@@ -734,7 +734,7 @@ class Main_train():
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))
             _mlp = prune_and_update_mask(_mlp, X_train, y_train)
-            sleep(1)
+
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),# _mlp.get_weights(),
                 comment="pruning_stage:{}\n".format(i)
@@ -1295,7 +1295,7 @@ class Main_test():
             kernel_mask, bias_mask = get_kernel_bias_mask(pruned_weight) # mask取得
             _mlp = myMLP(calculate_tree_shape(input_size, output_size), kernel_mask=kernel_mask, bias_mask=bias_mask)# mask付きモデル宣言
             _mlp.set_weights(pruned_weight) # 学習済みモデルの重みセット
-            sleep(1)
+
             visualize_network(
                 weights=_mlp.get_weights(),
                 comment="pruning_stage:{}\n".format(i)

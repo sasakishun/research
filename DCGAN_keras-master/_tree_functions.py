@@ -209,12 +209,11 @@ def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only
                       comment="shrinking layer[{}]".format(target_layer // 2))
     return _mlp
 
-def visualize_network(weights, acc=-1, comment="", non_active_neurons=None, neuron_color=None):
+def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None):
     print("visualising_start")
     # return
     from time import sleep
     sleep(1)
-    # return
     im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color)
     im_h_resize = im_architecture
     path = os.getcwd() + r"\visualized_iris\network_architecture\triple\{}".format(
