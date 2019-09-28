@@ -269,8 +269,6 @@ def sort_weights(_weights, target_layer=None):
 from binary__tree_main import get_kernel_and_bias
 def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     np.set_printoptions(precision=3)
-    # for i in range(len(get_kernel_and_bias(_mlp))):
-        # print("_mlp[{}]:{}".format(i, np.shape(get_kernel_and_bias(_mlp)[i])))
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     # for i in range(len(intermediate_layer_model[-1].get_weights())):
