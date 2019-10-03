@@ -349,7 +349,7 @@ def masked_mlp(input_size, hidden_size, output_size):
     return _mlp
 
 
-def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True):
+def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_weights=None):
     activation = "relu"
     input_size = model_shape[0]
     hidden_size = model_shape[1:-1]
@@ -385,6 +385,8 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True):
     mlp.compile(loss='categorical_crossentropy',
                  optimizer="adam",
                  metrics=[metrics.categorical_accuracy])
+    if set_weights:
+        mlp.set_weights(set_weights)
     return mlp
 
 def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None):

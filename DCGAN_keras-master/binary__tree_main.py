@@ -712,7 +712,7 @@ class Main_train():
             X_train, y_train = shuffle_data(X_train, y_train)
             # for j in range(cf.Iteration):
                 # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
-            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=1000) # 学習
+            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10000) # 学習
 
             data, target = divide_data(X_train, y_train, dataset_category)
             for _class in range(dataset_category):
@@ -1244,6 +1244,13 @@ class Main_test():
         print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
         print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         _mlp = prune_and_update_mask(_mlp, X_train, y_train)
+
+        # 中間層不要ノード削除
+        from _tree_functions import _shrink_nodes
+        for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights()))-1):
+            print("shrink {}th layer".format(target_layer))
+            _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test)
+
         # _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=100)  # 学習
         # _mlp = update_mask_of_model(_mlp) # mask取得・セット
         data, target = divide_data(X_train, y_train, dataset_category)
@@ -1258,10 +1265,9 @@ class Main_test():
                      [np.argmax(j) for j in _mlp.predict(np.array(total_data))]))
         print("\ntotal acc_test:{}".
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
-        # exit()
+
         show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
         exit()
-
 
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
@@ -1313,6 +1319,7 @@ class Main_test():
             masked_mlp_model = shrink_mlp_nodes(masked_mlp_model, target_layer,
                                                  X_train, y_train, X_test, y_test,
                                                  only_active_list=False)
+
         # masked_mlpとshrinkした箇所、kernel_maskが違うため性能が変化する->要実装9/23～
         pruned_weight = _weight_pruning(masked_mlp_model.get_weights(), X_train, y_train)  # pruning重み取得
         kernel_mask, bias_mask = get_kernel_bias_mask(pruned_weight)  # mask取得
@@ -1792,7 +1799,6 @@ if __name__ == '__main__':
         dataset_category = 3
         import config_mnist as cf
         cf.Dataset = "iris_"
-        cf.reload_path()
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         from sklearn.datasets import load_iris
@@ -1807,7 +1813,6 @@ if __name__ == '__main__':
         output_size = 10
         import config_mnist as cf
         cf.Dataset = "digits_"
-        cf.reload_path()
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
@@ -1838,9 +1843,7 @@ if __name__ == '__main__':
         dataset_category = 3
         import config_mnist as cf
         cf.Dataset = "wine_"
-        cf.reload_path()
         from _model_iris import *
-
         dataset = "wine"
     elif args.balance:
         Height = 1
@@ -1877,6 +1880,7 @@ if __name__ == '__main__':
             _path = cf.Save_hidden_layers_path[i]
             cf.Save_hidden_layers_path[i] = _path[:-3] + "_" + str(binary_target) + _path[-3:]
             print(_path)
+    cf.reload_path()
     if args.train:
         main = Main_train()
         main.train(use_mbd=use_mbd, load_model=args.load_model)
