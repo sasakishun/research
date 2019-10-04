@@ -703,10 +703,34 @@ def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, 
     # mask付きモデル定義
     model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
                   bias_mask=bias_mask, set_weights=weights)
-    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs)  # 学習
+    # コールバック設定
+    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, verbose=0, mode='auto')
+    # tb_cb = keras.callbacks.TensorBoard(log_dir=".\log", histogram_freq=1) # 謎エラーが発生するため不使用
+    # 学習
+    valid_num = len(X_train)//10
+    model.fit(X_train[:-valid_num], y_train[:-valid_num], batch_size=batch_size, epochs=epochs,
+              validation_data=(X_train[-valid_num:], y_train[-valid_num:]), callbacks=[es_cb])  # 学習
     # maskをmodelの重みに掛け合わせる
     multiple_mask_to_model(model, kernel_mask=kernel_mask, bias_mask=bias_mask)
     return model
+
+# クラスごとに精度を出す
+def evaluate_each_class(model, X_train, y_train, X_test, y_test):
+    # クラスごと性能評価
+    data, target = divide_data(X_train, y_train, dataset_category)
+    for _class in range(dataset_category):
+        _predict = model.predict(data[_class])
+        print("\nclass[{}] acc:{}\n{}".format(
+            _class, model.evaluate(data[_class], target[_class]), [np.argmax(k) for k in _predict]))
+    total_data = list(data[0])
+    for j in range(1, dataset_category):
+        total_data += list(data[j])
+    print("\ntotal acc:{}\npredict:{}".
+          format(model.evaluate(X_train, y_train, batch_size=1),
+                 [np.argmax(j) for j in model.predict(np.array(total_data))]))
+    print("\ntotal acc_test:{}".
+          format(model.evaluate(X_test, y_test, batch_size=1)))
+    return
 
 class Main_train():
     def __init__(self):
@@ -729,20 +753,6 @@ class Main_train():
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
                                      kernel_mask=kernel_mask, bias_mask=None, epochs=1000)
 
-            # クラスごと性能評価
-            data, target = divide_data(X_train, y_train, dataset_category)
-            for _class in range(dataset_category):
-                _predict = _mlp.predict(data[_class])
-                print("\nclass[{}] acc:{}\n{}".format(
-                    _class, _mlp.evaluate(data[_class], target[_class]),[np.argmax(k) for k in _predict]))
-            total_data = list(data[0])
-            for j in range(1, dataset_category):
-                total_data += list(data[j])
-            print("\ntotal acc:{}\npredict:{}".
-                  format(_mlp.evaluate(X_train, y_train, batch_size=1),[np.argmax(j) for j in _mlp.predict(np.array(total_data))]))
-            print("\ntotal acc_test:{}".
-                  format(_mlp.evaluate(X_test, y_test, batch_size=1)))
-
             # ネットワーク可視化
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
@@ -751,6 +761,9 @@ class Main_train():
                                                     _mlp.evaluate(X_test, y_test)[1]))
             # magnitude-basedプルーニング
             _mlp = prune_and_update_mask(_mlp, X_train, y_train)
+
+            # クラスごと精度検証
+            evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
 
             # ネットワーク可視化(プルーニング後)
             visualize_network(
@@ -1059,7 +1072,7 @@ def _weight_pruning(model, X_test, y_test, margin_acc=0.95):
     _weights = [get_kernel_and_bias(model), get_kernel_and_bias(model)]
     pruned_test_val_loss = model.evaluate(X_test, y_test)
     test_val_loss = copy.deepcopy(pruned_test_val_loss)
-    global pruning_rate
+    # global pruning_rate
     pruning_rate = 0.
     while (pruned_test_val_loss[1] > test_val_loss[1] * margin_acc) and pruning_rate < 10:
         ### 精度98%以上となる重みを_weights[0]に確保
@@ -1077,10 +1090,12 @@ def _weight_pruning(model, X_test, y_test, margin_acc=0.95):
                         if abs(_weights[1][i][j][k]) < pruning_rate:
                             _weights[1][i][j][k] = 0.
                 non_zero_num += np.count_nonzero(_weights[1][i] > 0)
-            else:  # バイアスプルーニング
+            """
+            else:  # バイアスプルーニング (BNパラメータもpruningしてしまっている)
                 for j in range(np.shape(_weights[1][i])[0]):
                     if abs(_weights[1][i][j]) < pruning_rate:
                         _weights[1][i][j] = 0.
+            """
             non_zero_num += np.count_nonzero(_weights[1][i] > 0)
             # print("weights[{}]:{} (>0)".format(i, np.count_nonzero(_weights[1][i] > 0)))
             if non_zero_num == 0:

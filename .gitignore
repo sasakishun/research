@@ -17,3 +17,4 @@ DCGAN_keras-master/test_images_mnist/
 DCGAN_keras-master/visualized_iris/
 *.csv
 segm/data/
+DCGAN_keras-master/log/
