@@ -704,7 +704,7 @@ def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, 
     model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
                   bias_mask=bias_mask, set_weights=weights)
     # コールバック設定
-    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, verbose=0, mode='auto')
+    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='auto')
     # tb_cb = keras.callbacks.TensorBoard(log_dir=".\log", histogram_freq=1) # 謎エラーが発生するため不使用
     # 学習
     valid_num = len(X_train)//10
@@ -739,6 +739,8 @@ class Main_train():
     def train(self, load_model=False, use_mbd=False):
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
+        X_train, y_train = shuffle_data(X_train, y_train)
+
         ### これだとBNが正しく機能するが、内部処理不明 -> 要分析
         K.set_learning_phase(0)
         ### これだとBNが正しく機能する
@@ -746,12 +748,10 @@ class Main_train():
         kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
         for i in range(5):
-            X_train, y_train = shuffle_data(X_train, y_train)
-            # for j in range(cf.Iteration):
-                # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
+            # X_train, y_train = shuffle_data(X_train, y_train)
             # モデル学習
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                     kernel_mask=kernel_mask, bias_mask=None, epochs=1000)
+                                     kernel_mask=kernel_mask, bias_mask=None, epochs=100000)
 
             # ネットワーク可視化
             visualize_network(
@@ -796,7 +796,7 @@ class Main_train():
                      kernel_mask=kernel_mask, bias_mask=bias_mask)
         set_weights(_mlp, masked_mlp_model.get_weights())
         _mlp = prune_and_update_mask(_mlp, X_train, y_train)
-        _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=1000)  # 学習
+        _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=100000)  # 学習
         _mlp = update_mask_of_model(_mlp)
         visualize_network(_mlp.get_weights(),
                           _mlp.evaluate(X_test, y_test)[1],
@@ -1277,15 +1277,17 @@ class Main_test():
         print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
         print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         _mlp = prune_and_update_mask(_mlp, X_train, y_train)
-
         # 中間層不要ノード削除
         from _tree_functions import _shrink_nodes
         for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights()))-1):
             print("shrink {}th layer".format(target_layer))
             _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test)
-
-        # _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=100)  # 学習
-        # _mlp = update_mask_of_model(_mlp) # mask取得・セット
+            kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
+            _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                     kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=100000)
+        # 性能評価
+        evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
+        """
         data, target = divide_data(X_train, y_train, dataset_category)
         for i in range(dataset_category):
             _predict = _mlp.predict(data[i])
@@ -1298,7 +1300,7 @@ class Main_test():
                      [np.argmax(j) for j in _mlp.predict(np.array(total_data))]))
         print("\ntotal acc_test:{}".
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
-
+        """
         show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
         exit()
 

@@ -52,7 +52,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     for i in range(len(x)): # 3クラス分類->正解*3,不正解*3でi < 6
         # print("x[{}]:{} --------".format(i, np.shape(x[i])))
         if x[i]: # 各サンプルをプロット
-            for j in range(min(500, input_size)): # j列目(13次元入力ならj<13)
+            # for j in range(min(500, input_size)):
+            for j in range(input_size):  # j列目(13次元入力ならj<13)
                 ### 正解入力をプロット
                 if i < len(labels) // 2:
                     _x = [j + 0.04 * (i - len(labels)//2) for _ in range(len(x[i]))]
@@ -73,6 +74,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # print("_x:{}".format(_x))
                         # print("_y[k={}]:{}".format(k, _y[k]))
                         # print("correct_range[{}][{}]:{}".format(i%(len(labels)//2), int(_x[k]), correct_range[i%(len(labels)//2)][int(_x[k])]))
+
+                        # 正解範囲外=「(-∞, ∞)をクラス数で分割」->要実装10/5～
                         # 訓練データの出力範囲内に収まったクラス
                         mergin = {"under":-0.01, "over":0.01}
                         if (correct_range[i%(len(labels)//2)][int(_x[k])][0] + mergin["under"] < _y[k])\
