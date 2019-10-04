@@ -229,7 +229,7 @@ def delete_node(model, layer, node):
     return _weights
 
 def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
-    from binary__tree_main import show_weight
+    from binary__tree_main import show_weight, keep_mask_and_fit
     # model: _mlp
     # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
     # 出力 : 不要ノードを削除したモデル(model)
@@ -248,12 +248,19 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
             # 子ノードとの結合がある場合
             print("weights[{}].T[{}]\n{}".format(target_layer + kernel_start,
                                                  target_node, weights[target_layer + kernel_start].T[target_node]))
-            if np.any(weights[target_layer + kernel_start].T[target_node] != 0):
+            parent_layer = target_layer + set_size
+            if np.any(weights[target_layer + kernel_start].T[target_node] != 0)\
+                    and np.any(weights[parent_layer + kernel_start][target_node] != 0):
                 target_node += 1
                 continue
             # 子ノードとの結合なし->自身に繋がる子と親ノード重み削除
             else:
                 print("delete node:{} in layer:{}".format(target_node, target_layer))
+                # バイアス×親への重みを親ノードバイアスに伝播
+                for parent_node in range(len(weights[parent_layer+kernel_start+1])):
+                    weights[parent_layer + kernel_start + 1][parent_node] +=\
+                        weights[target_layer + kernel_start +1][target_node]*\
+                        weights[parent_layer + kernel_start][target_node][parent_node]
                 # 子ノードとの結合削除
                 weights[target_layer + kernel_start]\
                     = np.delete(weights[target_layer + kernel_start], target_node, 1)
@@ -261,12 +268,6 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
                 print("target_layer:{} kernel_start:{} set_size:{}".format(target_layer, kernel_start, set_size))
                 weights[target_layer + kernel_start + set_size]\
                     = np.delete(weights[target_layer + kernel_start + set_size], target_node, 0)
-                # バイアス×親への重みを親ノードバイアスに伝播
-                parent_layer = target_layer + set_size
-                for parent_node in range(len(weights[parent_layer+kernel_start+1])):
-                    weights[parent_layer + kernel_start + 1][parent_node] +=\
-                        weights[target_layer + kernel_start +1][target_node]*\
-                        weights[target_layer +kernel_start][target_node][parent_node]
                 # バイアスノード削除
                 weights[target_layer + kernel_start+1] = np.delete(weights[target_layer + kernel_start+1], target_node)
                 # BNノード(x4層)削除
@@ -276,9 +277,9 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
                 for bn_layer in range(target_layer+kernel_start+2, target_layer+kernel_start+set_size): # bn層がkernelの後
                     weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
         print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
+
         model = myMLP(get_layer_size_from_weight(weights), set_weights=weights)
-        from binary__tree_main import update_mask_of_model
-        model = update_mask_of_model(model)
+        model = keep_mask_and_fit(model, X_train, y_train, batch_size=cf.Minibatch)
     else:
         return model
     visualize_network(weights, None,
@@ -286,6 +287,7 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
                       .format(target_layer // set_size, model.evaluate(X_train, y_train)[1], model.evaluate(X_test, y_test)[1]))
 
     return model
+
 
 def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None):
     print("visualising_start")

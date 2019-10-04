@@ -1,3 +1,11 @@
+python binary__tree_main.py --wine --train
+python binary__tree_main.py --wine --test
+
+python binary__tree_main.py --digit --train
+python binary__tree_main.py --digit --test
+
+goto end
+
 for /l %%a in (0, 1, 9) do (
     python _main_mnist_weightGAN.py --digit --train --binary_target %%a --no_mask
     python _main_mnist_weightGAN.py --digit --test --binary_target %%a --pruning_rate 0.

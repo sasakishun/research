@@ -556,8 +556,6 @@ def shuffle_data(X_data, y_data):
 # mlpのweightにmaskをかける
 def multiple_mask_to_model(_mlp, kernel_mask=None, bias_mask=None):
     _weight = get_kernel_and_bias(_mlp)# _mlp.get_weights()
-    _mlp.summary()
-    print("_weight in multiple_mask_to_model:{}".format([np.shape(i) for i in _weight]))
     if kernel_mask is not None:
         for i in range(len(_weight) // 2):
             print("multiple num :{}".format(i))
@@ -566,9 +564,7 @@ def multiple_mask_to_model(_mlp, kernel_mask=None, bias_mask=None):
         for i in range(len(_weight) // 2):
             print("multiple num :{}".format(i))
             _weight[i * 2 + 1] *= bias_mask[i]
-    # print("_weight in multiple_mask_to_model")
-    # for i, weight in enumerate(_weight):
-        # print("_weight[{}]:{}".format(i, weight))
+    # BNを考慮して重みセット
     _mlp = set_weights(_mlp, _weight) # _mlp.set_weights(_weight)
     return _mlp
 
@@ -695,6 +691,23 @@ def model2weights(_mlp):
         print("Error in model2weight : input_type must be Model or weight_list")
         exit()
 
+# maskをキープしたままmodelを学習
+def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, bias_mask=None, epochs=100):
+    weights = model.get_weights()
+    # maskを一時退避
+    _kernel_mask, _bias_mask = get_kernel_bias_mask(model)
+    if kernel_mask is None:
+        kernel_mask = _kernel_mask
+    if bias_mask is None:
+        bias_mask = _bias_mask
+    # mask付きモデル定義
+    model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
+                  bias_mask=bias_mask, set_weights=weights)
+    model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs)  # 学習
+    # maskをmodelの重みに掛け合わせる
+    multiple_mask_to_model(model, kernel_mask=kernel_mask, bias_mask=bias_mask)
+    return model
+
 class Main_train():
     def __init__(self):
         pass
@@ -708,12 +721,15 @@ class Main_train():
 
         kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
-        for i in range(1):
+        for i in range(5):
             X_train, y_train = shuffle_data(X_train, y_train)
             # for j in range(cf.Iteration):
                 # print("ite:{} - {}/{}".format(i, j, cf.Iteration))
-            _mlp.fit(X_train, y_train, batch_size=cf.Minibatch, epochs=10000) # 学習
+            # モデル学習
+            _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                     kernel_mask=kernel_mask, bias_mask=None, epochs=1000)
 
+            # クラスごと性能評価
             data, target = divide_data(X_train, y_train, dataset_category)
             for _class in range(dataset_category):
                 _predict = _mlp.predict(data[_class])
@@ -727,16 +743,18 @@ class Main_train():
             print("\ntotal acc_test:{}".
                   format(_mlp.evaluate(X_test, y_test, batch_size=1)))
 
-            _mlp = multiple_mask_to_model(_mlp, kernel_mask=kernel_mask)
+            # ネットワーク可視化
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="just before pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))
+            # magnitude-basedプルーニング
             _mlp = prune_and_update_mask(_mlp, X_train, y_train)
 
+            # ネットワーク可視化(プルーニング後)
             visualize_network(
-                weights=get_kernel_and_bias(_mlp),# _mlp.get_weights(),
+                weights=get_kernel_and_bias(_mlp),
                 comment="pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                     _mlp.evaluate(X_test, y_test)[1]))

@@ -45,15 +45,15 @@ Save_iteration_disp = True
 ## Save config
 Dataset = ""
 Save_dir = 'models_mnist'
-Save_d_name = Dataset + 'D.h5'
-Save_g_name = Dataset + 'G.h5'
-Save_c_name = Dataset + 'C.h5'
-Save_classify_name = Dataset + 'Classify.h5'
-Save_freezed_classify_1_name = Dataset + 'Freezed_Classify_1.h5'
-Save_binary_classify_name = Dataset + 'Binary_classify.h5'
-Save_tree_name = Dataset + 'Tree.h5'
-Save_mlp_name = Dataset + "MLP.h5"
-Save_syncro_name = Dataset + 'Syncro_layer.h5'
+Save_d_name = 'D.h5'
+Save_g_name = 'G.h5'
+Save_c_name = 'C.h5'
+Save_classify_name = 'Classify.h5'
+Save_freezed_classify_1_name = 'Freezed_Classify_1.h5'
+Save_binary_classify_name = 'Binary_classify.h5'
+Save_tree_name = 'Tree.h5'
+Save_mlp_name = "MLP.h5"
+Save_syncro_name = 'Syncro_layer.h5'
 Save_d_path = os.path.join(Save_dir, Save_d_name)
 Save_g_path = os.path.join(Save_dir, Save_g_name)
 Save_c_path = os.path.join(Save_dir, Save_c_name)
@@ -82,6 +82,8 @@ def reload_path():
     global Save_binary_classify_name
     global Save_tree_name
     global Save_syncro_name
+    global Save_mlp_name
+
     global Save_d_path
     global Save_g_path
     global Save_c_path
@@ -90,6 +92,7 @@ def reload_path():
     global Save_binary_classify_path
     global Save_tree_path
     global Save_mlp_path
+    global Save_np_mlp_path
 
     Save_d_name = Dataset + 'D.h5'
     Save_g_name = Dataset + 'G.h5'
@@ -99,6 +102,8 @@ def reload_path():
     Save_binary_classify_name = Dataset + 'Binary_classify.h5'
     Save_tree_name = Dataset + 'Tree.h5'
     Save_syncro_name = Dataset + 'Syncro_layer.h5'
+    Save_mlp_name = Dataset + "MLP.h5"
+
     Save_d_path = os.path.join(Save_dir, Save_d_name)
     Save_g_path = os.path.join(Save_dir, Save_g_name)
     Save_c_path = os.path.join(Save_dir, Save_c_name)
@@ -107,9 +112,11 @@ def reload_path():
     Save_binary_classify_path = os.path.join(Save_dir, Save_binary_classify_name)
     Save_tree_path = os.path.join(Save_dir, Save_tree_name)
     Save_mlp_path = os.path.join(Save_dir, Save_mlp_name)
+    Save_np_mlp_path = os.path.join(Save_dir, Save_mlp_name[:-3] + ".npy")
     return
+
 ## Other config
-##  Randon_seed is used for seed of dataset shuffle in data_loader.py
+## Randon_seed is used for seed of dataset shuffle in data_loader.py
 Random_seed = 0
 
 ## Check
