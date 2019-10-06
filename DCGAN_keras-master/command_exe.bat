@@ -1,8 +1,28 @@
-python binary__tree_main.py --wine --train
-python binary__tree_main.py --wine --test
+python binary__tree_main.py --iris --train --child_num 4
+python binary__tree_main.py --iris --test --child_num 4
 
-python binary__tree_main.py --digit --train
-python binary__tree_main.py --digit --test
+python binary__tree_main.py --wine --train --child_num 4
+python binary__tree_main.py --wine --test --child_num 4
+python binary__tree_main.py --wine --train --child_num 8
+python binary__tree_main.py --wine --test --child_num 8
+
+python binary__tree_main.py --digit --train --child_num 4
+python binary__tree_main.py --digit --test --child_num 4
+python binary__tree_main.py --digit --train --child_num 8
+python binary__tree_main.py --digit --test --child_num 8
+python binary__tree_main.py --digit --train --child_num 16
+python binary__tree_main.py --digit --test --child_num 16
+python binary__tree_main.py --digit --train --child_num 32
+python binary__tree_main.py --digit --test --child_num 32
+
+python binary__tree_main.py --mnist --train --child_num 14
+python binary__tree_main.py --mnist --test --child_num 14
+python binary__tree_main.py --mnist --train --child_num 28
+python binary__tree_main.py --mnist --test --child_num 28
+python binary__tree_main.py --mnist --train --child_num 56
+python binary__tree_main.py --mnist --test --child_num 56
+python binary__tree_main.py --mnist --train --child_num 112
+python binary__tree_main.py --mnist --test --child_num 112
 
 goto end
 

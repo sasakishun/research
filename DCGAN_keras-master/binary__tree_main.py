@@ -51,7 +51,7 @@ pruning_rate = -1
 dataset_category = 10
 no_mask = False
 dense_size = [64, 60, 32, 16, 10]
-
+CHILD_NUM = 2
 
 def krkopt_data():
     _train = [[], []]
@@ -739,19 +739,21 @@ class Main_train():
     def train(self, load_model=False, use_mbd=False):
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
-        X_train, y_train = shuffle_data(X_train, y_train)
+        # X_train, y_train = shuffle_data(X_train, y_train)
 
         ### これだとBNが正しく機能するが、内部処理不明 -> 要分析
         K.set_learning_phase(0)
         ### これだとBNが正しく機能する
+        kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size, child_num=CHILD_NUM),
+                                           child_num=CHILD_NUM, show_mask=True)
+        # visualize_network(weights=kernel_mask)
 
-        kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size))
-        _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask) # myMLP(13, [5, 4, 2], 3)
+        _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask, child_num=CHILD_NUM) # myMLP(13, [5, 4, 2], 3)
         for i in range(5):
-            # X_train, y_train = shuffle_data(X_train, y_train)
+            X_train, y_train = shuffle_data(X_train, y_train)
             # モデル学習
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                     kernel_mask=kernel_mask, bias_mask=None, epochs=100000)
+                                     kernel_mask=kernel_mask, bias_mask=None, epochs=cf.Iteration)
 
             # ネットワーク可視化
             visualize_network(
@@ -761,6 +763,9 @@ class Main_train():
                                                     _mlp.evaluate(X_test, y_test)[1]))
             # magnitude-basedプルーニング
             _mlp = prune_and_update_mask(_mlp, X_train, y_train)
+            # プルーニング後の再学習
+            _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                     kernel_mask=kernel_mask, bias_mask=None, epochs=cf.Iteration)
 
             # クラスごと精度検証
             evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
@@ -780,7 +785,7 @@ class Main_train():
             print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
         exit()
-
+        """
         hidden_size = get_layer_size_from_weight(_mlp.get_weights())
         from _model_weightGAN import masked_mlp
         masked_mlp_model = masked_mlp(hidden_size[0], hidden_size[1:-1], hidden_size[-1])
@@ -808,7 +813,7 @@ class Main_train():
         _mlp.save_weights(cf.Save_mlp_path)
         np.save(cf.Save_np_mlp_path, _mlp.get_weights())
         return
-
+        """
 def show_result(input, onehot_labels, layer1_out, ite, classify, testflag=False, showflag=False, comment=""):
     print("\n{}".format(" test" if testflag else "train"))
     labels_scalar = np.argmax(onehot_labels, axis=1)
@@ -1231,7 +1236,6 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
     return neuron_coloers
 
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
-# 出力 :
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["correct_train", "miss_test"]):
     out_of_ranges = show_intermidate_train_and_test(correct[0], correct[1],
@@ -1280,11 +1284,12 @@ class Main_test():
         # 中間層不要ノード削除
         from _tree_functions import _shrink_nodes
         for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights()))-1):
+            X_train, y_train = shuffle_data(X_train, y_train)
             print("shrink {}th layer".format(target_layer))
             _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test)
             kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                     kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=100000)
+                                     kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """
@@ -1781,6 +1786,7 @@ def arg_parse():
     parser.add_argument('--tree', dest='tree', action='store_true')
     parser.add_argument('--parity', dest='parity', action='store_true')
     parser.add_argument('--parity_shape', type=int)
+    parser.add_argument('--child_num', type=int)
     args = parser.parse_args()
     return args
 
@@ -1790,6 +1796,8 @@ if __name__ == '__main__':
     use_mbd = False
     if args.tree:
         tree_flag = True
+    if args.child_num:
+        CHILD_NUM=args.child_num
     if args.wSize:
         wSize = args.wSize
     if args.no_mask:

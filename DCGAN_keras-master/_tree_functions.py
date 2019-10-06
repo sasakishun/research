@@ -474,9 +474,9 @@ def concate_elements(_list):
         concated += i
     return concated
 
-def calculate_tree_shape(input_size, output_size=1):
+def calculate_tree_shape(input_size, output_size=1, child_num=2):
     import math
     shape = [input_size]
     while shape[-1] > 1:
-        shape.append(math.ceil(shape[-1]/2))
+        shape.append(math.ceil(shape[-1]/child_num))
     return [shape[i]*(output_size if i != 0 else 1) for i in range(len(shape))]
