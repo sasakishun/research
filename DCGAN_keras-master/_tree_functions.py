@@ -7,6 +7,7 @@ from binary__tree_main import divide_data
 import copy
 from visualization import *
 
+
 def stringToList(_string, split=" "):
     str_list = []
     temp = ''
@@ -19,6 +20,7 @@ def stringToList(_string, split=" "):
     if temp != '':  # 最後に残った文字列を末尾要素としてリストに追加
         str_list.append(temp)
     return str_list
+
 
 def convert_weigths_tree2mlp(tree_weights, mlp_weights, input_size, output_size, dense_size):
     ### tree構造の重みを全結合モデルにセット
@@ -137,13 +139,16 @@ def shrink_tree_nodes(model, target_layer, X_train, y_train, X_test, y_test, onl
 
     _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
     intermediate_layer_model = [Model(inputs=_mlp.input,
-                                     outputs=_mlp.get_layer("dense{}".format(i)).output) for i in range(len(dense_size)-1)]
-    intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in range(len(dense_size)-1)]
+                                      outputs=_mlp.get_layer("dense{}".format(i)).output) for i in
+                                range(len(dense_size) - 1)]
+    intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in
+                           range(len(dense_size) - 1)]
     for i in range(len(intermediate_output)):
         print("dense[{}]:{}".format(i, intermediate_output[i]))
     visualize_network(weights, _mlp.evaluate(inputs_z(X_test, _mask), y_test)[1],
                       comment="shrinking layer[{}]".format(target_layer // 2))
     return _mlp
+
 
 def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only_active_list=False):
     # model: _mlp
@@ -201,8 +206,10 @@ def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only
 
     _mask = [np.array([1 for _ in range(dense_size[i])]) for i in range(len(dense_size))]
     intermediate_layer_model = [Model(inputs=_mlp.input,
-                                     outputs=_mlp.get_layer("dense{}".format(i)).output) for i in range(len(dense_size)-1)]
-    intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in range(len(dense_size)-1)]
+                                      outputs=_mlp.get_layer("dense{}".format(i)).output) for i in
+                                range(len(dense_size) - 1)]
+    intermediate_output = [intermediate_layer_model[i].predict(inputs_z([X_train[0]], _mask)) for i in
+                           range(len(dense_size) - 1)]
     for i in range(len(intermediate_output)):
         print("dense[{}]:{}".format(i, intermediate_output[i]))
     visualize_network(weights, _mlp.evaluate(inputs_z(X_test, _mask), y_test)[1],
@@ -213,21 +220,23 @@ def shrink_mlp_nodes(model, target_layer, X_train, y_train, X_test, y_test, only
 from binary__tree_main import get_layer_size_from_weight, get_kernel_start_index_and_set_size, \
     batchNormalization_is_used
 
+
 # モデルの第layer層、node番目ノードを削除したモデルを返す
 # 未完成&不使用
 def delete_node(model, layer, node):
-    dense_size = get_layer_size_from_weight(_weights=model.get_weights()) # [13, 48, 24, 12, 6, 3]
+    dense_size = get_layer_size_from_weight(_weights=model.get_weights())  # [13, 48, 24, 12, 6, 3]
     kernel_start, set_size = get_kernel_start_index_and_set_size(model)
     _weights = model.get_weights()
     alterd_weights = copy.deepcopy(_weights)
-    alterd_weights[layer*set_size+kernel_start] = []
-    alterd_weights[(layer+1)*set_size+kernel_start] = []
+    alterd_weights[layer * set_size + kernel_start] = []
+    alterd_weights[(layer + 1) * set_size + kernel_start] = []
 
     # バイアスとBNパラメータを削除
     print("delete layer [{}:{}]".format((layer - 1) * set_size + kernel_start + 1, layer * set_size + kernel_start))
-    for i in range((layer-1)*set_size+kernel_start+1, layer*set_size+kernel_start):
+    for i in range((layer - 1) * set_size + kernel_start + 1, layer * set_size + kernel_start):
         del _weights[i][node]
     return _weights
+
 
 # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
 # 出力 : 不要ノードを削除したモデル(model)
@@ -247,7 +256,7 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
             print("weights[{}].T[{}]\n{}".format(target_layer + kernel_start,
                                                  target_node, weights[target_layer + kernel_start].T[target_node]))
             parent_layer = target_layer + set_size
-            if np.any(weights[target_layer + kernel_start].T[target_node] != 0)\
+            if np.any(weights[target_layer + kernel_start].T[target_node] != 0) \
                     and np.any(weights[parent_layer + kernel_start][target_node] != 0):
                 target_node += 1
                 continue
@@ -255,24 +264,26 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
             else:
                 print("delete node:{} in layer:{}".format(target_node, target_layer))
                 # バイアス×親への重みを親ノードバイアスに伝播
-                for parent_node in range(len(weights[parent_layer+kernel_start+1])):
-                    weights[parent_layer + kernel_start + 1][parent_node] +=\
-                        weights[target_layer + kernel_start +1][target_node]*\
+                for parent_node in range(len(weights[parent_layer + kernel_start + 1])):
+                    weights[parent_layer + kernel_start + 1][parent_node] += \
+                        weights[target_layer + kernel_start + 1][target_node] * \
                         weights[parent_layer + kernel_start][target_node][parent_node]
                 # 子ノードとの結合削除
-                weights[target_layer + kernel_start]\
+                weights[target_layer + kernel_start] \
                     = np.delete(weights[target_layer + kernel_start], target_node, 1)
                 # 親ノードとの結合削除
                 print("target_layer:{} kernel_start:{} set_size:{}".format(target_layer, kernel_start, set_size))
-                weights[target_layer + kernel_start + set_size]\
+                weights[target_layer + kernel_start + set_size] \
                     = np.delete(weights[target_layer + kernel_start + set_size], target_node, 0)
                 # バイアスノード削除
-                weights[target_layer + kernel_start+1] = np.delete(weights[target_layer + kernel_start+1], target_node)
+                weights[target_layer + kernel_start + 1] = np.delete(weights[target_layer + kernel_start + 1],
+                                                                     target_node)
                 # BNノード(x4層)削除
                 # for bn_layer in range(target_layer, target_layer+kernel_start): # bn層がkernelの前
-                    # print("weights[bn_layer]:{} vs target_node:{}".format(weights[bn_layer], target_node))
-                    # weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
-                for bn_layer in range(target_layer+kernel_start+2, target_layer+kernel_start+set_size): # bn層がkernelの後
+                # print("weights[bn_layer]:{} vs target_node:{}".format(weights[bn_layer], target_node))
+                # weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+                for bn_layer in range(target_layer + kernel_start + 2,
+                                      target_layer + kernel_start + set_size):  # bn層がkernelの後
                     weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
         print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
 
@@ -282,7 +293,8 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
         return model
     visualize_network(weights, None,
                       comment="shrinking layer[{}] train:{:.4f} test:{:.4f}"
-                      .format(target_layer // set_size, model.evaluate(X_train, y_train)[1], model.evaluate(X_test, y_test)[1]))
+                      .format(target_layer // set_size, model.evaluate(X_train, y_train)[1],
+                              model.evaluate(X_test, y_test)[1]))
 
     return model
 
@@ -300,17 +312,18 @@ def visualize_network(weights, acc=None, comment="", non_active_neurons=None, ne
     print("saved concated graph to -> {}".format(path))
     return
 
+
 def sort_weights(_weights, target_layer=None):
-    weights = [_weights[2*i] for i in range(len(_weights)//2)]
-    bias = [_weights[2*i+1] for i in range(len(_weights)//2)]
+    weights = [_weights[2 * i] for i in range(len(_weights) // 2)]
+    bias = [_weights[2 * i + 1] for i in range(len(_weights) // 2)]
     sorted_weights = [np.zeros(_weights[2 * i].shape) for i in range(len(_weights) // 2)]
-    sorted_bias = [np.zeros(_weights[2*i+1].shape) for i in range(len(_weights)//2)]
+    sorted_bias = [np.zeros(_weights[2 * i + 1].shape) for i in range(len(_weights) // 2)]
 
     # 入力層の入れ替え->独立した二分木構造を見せるため
     if target_layer == -1:
         return
     # weights[i][j][k] : i層j番ノードからi+1層k番ノードへの重み結合
-    for i in range(len(weights)-1):
+    for i in range(len(weights) - 1):
         if target_layer is not None:
             i = target_layer
         first_connect = [[float("inf"), None] for k in range(weights[i].shape[1])]
@@ -330,12 +343,12 @@ def sort_weights(_weights, target_layer=None):
             sorted_weights[i].T[k] = weights[i].T[first_connect[k][1]]
             sorted_bias[i][k] = bias[i][first_connect[k][1]]
             if i + 1 < len(sorted_weights):
-                sorted_weights[i+1][k] = weights[i+1][first_connect[k][1]]
+                sorted_weights[i + 1][k] = weights[i + 1][first_connect[k][1]]
         ### weightsをソート済みweightで置換
         weights[i] = copy.deepcopy(sorted_weights[i])
         bias[i] = copy.deepcopy(sorted_bias[i])
         if i + 1 < len(weights):
-            weights[i+1] = copy.deepcopy(sorted_weights[i+1])
+            weights[i + 1] = copy.deepcopy(sorted_weights[i + 1])
         _weights = [weights[i // 2] if i % 2 == 0 else bias[i // 2] for i in range(len(_weights))]
         if target_layer >= 0:
             return _weights
@@ -344,12 +357,14 @@ def sort_weights(_weights, target_layer=None):
 
 
 from binary__tree_main import get_kernel_and_bias
+
+
 def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     np.set_printoptions(precision=3)
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     # for i in range(len(intermediate_layer_model[-1].get_weights())):
-        # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
+    # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
     output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
     dataset_category = output_size
 
@@ -365,9 +380,9 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     incorrect_target = [[] for _ in range(output_size)]
     output = [intermediate_layer_model[-1].predict(data[i]) for i in range(output_size)]
     # for i in range(output_size):
-        # print("\n\noutput[{}]:{}".format(i, np.shape(output[i])))
-        # for j in range(len(output[i])):
-            # print(output[i][j])
+    # print("\n\noutput[{}]:{}".format(i, np.shape(output[i])))
+    # for j in range(len(output[i])):
+    # print(output[i][j])
     # [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
     ### 正解データと不正解データに分割
     for i in range(output_size):
@@ -408,7 +423,8 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
             visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
                       None, labels, ite=cf.Iteration,
                       testflag=True if name == "test" else False, showflag=False,
-                      comment="layer:{} {}_acc:{:.2f}".format(i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
+                      comment="layer:{} {}_acc:{:.2f}".format(i + 1, name,
+                                                              _mlp.evaluate(original_data, original_target)[1]))
         ###中間層出力を可視化
         for i in range(dataset_category):
             print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
@@ -418,7 +434,10 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     return concate_elements(correct_data), concate_elements(correct_target), \
            concate_elements(incorrect_data), concate_elements(incorrect_target)
 
-def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"], save_fig=True, get_each_color=False):
+
+# 出力: shape(層数, クラス数, ノード数) -> 中身: 間違いノード番号のリスト
+def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"],
+                                    save_fig=True, get_each_color=False):
     np.set_printoptions(precision=3)
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -434,23 +453,24 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
 
     ### 正解データと不正解データに分割
     train_intermediate_output = [[list(intermediate_layer_model[i].predict([train_data[j]]))
-                                    if len(train_data[j]) > 0 else []
-                                    for j in range(len(train_data))]
-                                   for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+                                  if len(train_data[j]) > 0 else []
+                                  for j in range(len(train_data))]
+                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     test_intermediate_output = [[list(intermediate_layer_model[i].predict([test_data[j]]))
-                                      if len(test_data[j]) > 0 else []
-                                      for j in range(len(test_data))]
-                                     for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+                                 if len(test_data[j]) > 0 else []
+                                 for j in range(len(test_data))]
+                                for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
 
     out_of_ranges = []
 
     ###入力を可視化
-    labels = [name[0]+"_class:{}".format(i) for i in range(output_size)] \
-             + [name[1]+"_class:{}".format(i) for i in range(output_size)]
+    labels = [name[0] + "_class:{}".format(i) for i in range(output_size)] \
+             + [name[1] + "_class:{}".format(i) for i in range(output_size)]
     out_of_ranges.append(visualize(train_data + test_data,
                                    None, labels, ite=cf.Iteration,
                                    testflag=True, showflag=False,
-                                   comment="layer:{} input".format(0), save_fig=save_fig, get_each_color=get_each_color))
+                                   comment="layer:{} input".format(0), save_fig=save_fig,
+                                   get_each_color=get_each_color))
     ###入力を可視化
 
     ###中間層出力を可視化
@@ -460,9 +480,10 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
         out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,
-                                       comment="layer:{}".format(i + 1), save_fig=save_fig, get_each_color=get_each_color))
-    ###中間層出力を可視化
-    # for i in range(dataset_category):
+                                       comment="layer:{}".format(i + 1), save_fig=save_fig,
+                                       get_each_color=get_each_color))
+        ###中間層出力を可視化
+        # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))
     ### 各層出力を可視化
     return out_of_ranges
@@ -474,9 +495,10 @@ def concate_elements(_list):
         concated += i
     return concated
 
+
 def calculate_tree_shape(input_size, output_size=1, child_num=2):
     import math
     shape = [input_size]
     while shape[-1] > 1:
-        shape.append(math.ceil(shape[-1]/child_num))
-    return [shape[i]*(output_size if i != 0 else 1) for i in range(len(shape))]
+        shape.append(math.ceil(shape[-1] / child_num))
+    return [shape[i] * (output_size if i != 0 else 1) for i in range(len(shape))]
