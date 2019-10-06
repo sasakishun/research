@@ -1240,7 +1240,25 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["correct_train", "miss_test"]):
     out_of_ranges = show_intermidate_train_and_test(correct[0], correct[1],
                                                     incorrect[0], incorrect[1],
-                                                    _mlp, name=name, save_fig=True)
+                                                    _mlp, name=name, save_fig=False)# True)
+    each_color = show_intermidate_train_and_test(correct[0], correct[1],
+                                                    incorrect[0], incorrect[1],
+                                                        _mlp, name=name, save_fig=False, get_each_color=True)
+    for _class in range(len(each_color)):
+        for _layer in range(len(each_color[_class])):
+            for _node in range(len(each_color[_class][_layer])):
+                print("each_color[{}][{}][{}]:{}".format(_class, _layer, _node, each_color[_class][_layer][_node]))
+    """
+    print("each_color:{}".format(each_color))
+    print("name:{}".format(name))
+    print("correct:{} miss:{}".format(len(correct[0]), len(incorrect[0])))
+    exit()
+    for _class in range(len(each_color)):
+        for _layer in range(len(each_color[_class])):
+            for _node in range(len(each_color[_class][_layer])):
+                print("out_of_ranges[{}][{}][{}]:{}".format(_class, _layer, _node,
+                                                                 out_of_ranges[_class][_layer][_node]))
+    """
     miss_nodes, sample_num_to_index = get_miss_nodes(out_of_ranges)
     neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
                                                                get_layer_size_from_weight(_mlp.get_weights()))

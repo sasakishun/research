@@ -1,6 +1,5 @@
 python binary__tree_main.py --iris --train --child_num 4
 python binary__tree_main.py --iris --test --child_num 4
-
 python binary__tree_main.py --wine --train --child_num 4
 python binary__tree_main.py --wine --test --child_num 4
 python binary__tree_main.py --wine --train --child_num 8

@@ -418,7 +418,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     return concate_elements(correct_data), concate_elements(correct_target), \
            concate_elements(incorrect_data), concate_elements(incorrect_target)
 
-def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"], save_fig=True):
+def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"], save_fig=True, get_each_color=False):
     np.set_printoptions(precision=3)
     intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -450,7 +450,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
     out_of_ranges.append(visualize(train_data + test_data,
                                    None, labels, ite=cf.Iteration,
                                    testflag=True, showflag=False,
-                                   comment="layer:{} input".format(0), save_fig=save_fig))
+                                   comment="layer:{} input".format(0), save_fig=save_fig, get_each_color=get_each_color))
     ###入力を可視化
 
     ###中間層出力を可視化
@@ -460,7 +460,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
         out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,
-                                       comment="layer:{}".format(i + 1), save_fig=save_fig))
+                                       comment="layer:{}".format(i + 1), save_fig=save_fig, get_each_color=get_each_color))
     ###中間層出力を可視化
     # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))

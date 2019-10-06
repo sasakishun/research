@@ -7,7 +7,7 @@ import config_mnist as cf
 import cv2
 
 
-def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None, save_fig=True):
+def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None, save_fig=True, get_each_color=False):
     # x : [[クラス0の訓練データ], [クラス1..]...., []]
     """
     _max_list_size = 0
@@ -47,7 +47,9 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                  float("{:.2f}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
                                 for j in range(len(x[i][0]))]
         # print("correct_range[{}]:{}".format(i, correct_range[i]))
-    out_of_range=[[[] for _ in range(input_size)] for _ in range(len(labels)//2)]
+    out_of_range = [[[] for _ in range(input_size)] for _ in range(len(labels) // 2)]
+    out_of_range_with_color = [[[] for _ in range(input_size)] for _ in range(len(labels) // 2)]
+
     # out_of_range = [[[[0番ノードミスサンプル番号=2, 3, 4], [1番ノードミス]], [], [] ], [], []]
     for i in range(len(x)): # 3クラス分類->正解*3,不正解*3でi < 6
         # print("x[{}]:{} --------".format(i, np.shape(x[i])))
@@ -92,6 +94,18 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # plt.annotate(k, (_x[k], _y[k]), size=10)
                         ### 正解範囲に入っていたらo,それ以外はx
 
+                        # どの分類クラスに入っているか、色を指定して返す
+                        if get_each_color:
+                            belong_no_class = True
+                            for _class in range(len(correct_range)):
+                                if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
+                                        and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
+                                    out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append([k, colors[_class]])
+                                    belong_no_class = False
+                            if belong_no_class:
+                                out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append([k, "white"])
+                                print("white used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
+
                     plt.scatter(_in[0], _in[1], color=colors[i % (len(labels) // 2)],
                                 label=(i if not labels else labels[i]) if j == 0 else None, marker=".")
                     plt.scatter(_out[0], _out[1], color=colors[i % (len(labels) // 2)],
@@ -128,7 +142,10 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
         else:
             plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     plt.close()
-    return out_of_range
+    if get_each_color:
+        return out_of_range_with_color
+    else:
+        return out_of_range
 
     if showflag:
         path = r"C:\Users\papap\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
