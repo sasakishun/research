@@ -22,7 +22,7 @@ class Neuron():
         for i, _color in enumerate(color):
             if _color != "black": # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
-                circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*10, facecolor=_color, edgecolor=_color)
+                circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*5, facecolor=_color, edgecolor=_color)
             else:
                 circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=_color)
             # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
@@ -148,7 +148,7 @@ class NeuralNetwork():
         return cv2.imread(path + ".png")
 
 
-def mydraw(_weights, acc, comment="", non_active_neurons=None, node_colors=None):
+def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5

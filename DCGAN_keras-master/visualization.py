@@ -105,12 +105,13 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                             belong_no_class = True
                             for _class in range(len(correct_range)):
                                 if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
-                                        and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
+                                        and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1])\
+                                        and _y[k] > mergin["over"]:
                                     out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append(
                                         {"sample": k, "color": colors[_class]})
                                     belong_no_class = False
                             if belong_no_class:
-                                out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "gray"})
+                                out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "white"})
                                 print("white used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
 
                     plt.scatter(_in[0], _in[1], color=colors[i % (len(labels) // 2)],

@@ -425,6 +425,24 @@ def mnist_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 
+def cifar10_data():
+    from keras.datasets import cifar10
+    (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+    X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+    X_test = (X_test.astype(np.float32) - 127.5) / 127.5
+    X_train = X_train.reshape((X_train.shape[0], 32 * 32 * 3))
+    X_test = X_test.reshape((X_test.shape[0], 32 * 32 * 3))
+    # クラス分類モデル用に追加
+    y_train = np_utils.to_categorical(y_train, 10)
+    y_test = np_utils.to_categorical(y_test, 10)
+    train_num = X_train.shape[0]
+    train_num_per_step = train_num // cf.Minibatch
+    data_inds = np.arange(train_num)
+    max_ite = cf.Minibatch * train_num_per_step
+    print("X_train:{} X_test:{}".format(X_train.shape, X_test.shape))
+    print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
+    return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
+
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -455,6 +473,8 @@ def getdata(dataset, binary_flag, train_frag=True):
         return balance_data()
     elif dataset == "parity":
         return parity_data()
+    elif dataset == "cifar10":
+        return cifar10_data()
 
 
 def mask(masks, batch_size):
@@ -1884,9 +1904,11 @@ if __name__ == '__main__':
         Channel = 3
         input_size = Height * Width * Channel
         output_size = 10
-        import config_cifar10 as cf
+        # import config_cifar10 as cf
+        import config_mnist as cf
         from keras.datasets import cifar10 as mnist
-        from _model_cifar10 import *
+        # from _model_cifar10 import *
+        from _model_mnist import *
 
         # np.random.seed(cf.Random_seed)
         dataset = "cifar10"

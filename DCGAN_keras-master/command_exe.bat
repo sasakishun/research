@@ -1,3 +1,6 @@
+python binary__tree_main.py --cifar10 --train --child_num 256
+python binary__tree_main.py --cifar10 --test --child_num 256
+
 python binary__tree_main.py --iris --train --child_num 2
 python binary__tree_main.py --iris --test --child_num 2
 python binary__tree_main.py --iris --train --child_num 4
