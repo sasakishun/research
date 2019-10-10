@@ -1360,13 +1360,16 @@ class Main_test():
         _mlp = prune_and_update_mask(_mlp, X_train, y_train)
         # 中間層不要ノード削除
         from _tree_functions import _shrink_nodes
-        for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights())) - 1):
-            X_train, y_train = shuffle_data(X_train, y_train)
-            print("shrink {}th layer".format(target_layer))
-            _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test)
-            kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
-            _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                     kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
+        # 精度が下がらないノードは削除
+        for _shrink_with_acc in [True, False]:
+            for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights())) - 1):
+                X_train, y_train = shuffle_data(X_train, y_train)
+                print("shrink {}th layer".format(target_layer))
+                _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test,
+                                     shrink_with_acc=_shrink_with_acc)
+                kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
+                _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                         kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """

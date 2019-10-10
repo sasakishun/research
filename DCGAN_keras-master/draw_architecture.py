@@ -28,7 +28,7 @@ class Neuron():
             if _color["color"] != "black": # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
                 circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*5, facecolor=_color["color"], edgecolor=_color["color"])
-                _text = pyplot.text(self.x-0.25, self.y-0.25, "{:.2f}".format(_color["value"]) if "value" in _color else None, fontsize=neuron_radius*10)
+                _text = pyplot.text(self.x+4,  self.y-4, "{:.2f}".format(_color["value"]) if "value" in _color else None, fontsize=neuron_radius*10, color="gray")
                 pyplot.gca()._add_text(_text)
             else:
                 circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=_color["color"])
@@ -100,7 +100,7 @@ class Layer():
     def draw(self):
         for this_layer_neuron_index in range(len(self.neurons)):
             neuron = self.neurons[this_layer_neuron_index]
-            neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index])
+            # neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index])
             if self.previous_layer:
                 for previous_layer_neuron_index in range(len(self.previous_layer.neurons)):
                     previous_layer_neuron = self.previous_layer.neurons[previous_layer_neuron_index]
@@ -114,6 +114,7 @@ class Layer():
                     # weightはスカラー値であり、重みの大きさ＝結合の太さ(linewidth)とする
                     # 正の重みは赤、負の重みは青で表示
                     # linewidthだと整数値しか扱えない -> 透明度で結合強度を表現した方がいい
+            neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index])
 
 
 class NeuralNetwork():

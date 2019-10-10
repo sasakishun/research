@@ -129,10 +129,10 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                 for _class in range(len(correct_range)):
                                     if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
                                             and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
-                                        if  _y[k] > mergin["over"]:
-                                            out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append(
-                                                {"sample": k, "color": colors[_class], "value": _y[k]})
-                                            belong_no_class = False
+                                        # if  _y[k] > mergin["over"]: # 0.1以上の場合のみ分布範囲内とみなす
+                                        out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append(
+                                            {"sample": k, "color": colors[_class], "value": _y[k]})
+                                        belong_no_class = False
                                 if belong_no_class: # どのクラス分布にも当てはまらない場合
                                     if _y[k] > mergin["over"]: # 出力0でない
                                         out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "gray", "value": _y[k]})

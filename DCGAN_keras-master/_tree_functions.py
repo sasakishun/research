@@ -223,24 +223,38 @@ from binary__tree_main import get_layer_size_from_weight, get_kernel_start_index
 
 # モデルの第layer層、node番目ノードを削除したモデルを返す
 # 未完成&不使用
-def delete_node(model, layer, node):
-    dense_size = get_layer_size_from_weight(_weights=model.get_weights())  # [13, 48, 24, 12, 6, 3]
+def delete_node(weights, model, target_layer, target_node):
     kernel_start, set_size = get_kernel_start_index_and_set_size(model)
-    _weights = model.get_weights()
-    alterd_weights = copy.deepcopy(_weights)
-    alterd_weights[layer * set_size + kernel_start] = []
-    alterd_weights[(layer + 1) * set_size + kernel_start] = []
+    parent_layer = target_layer + set_size
 
-    # バイアスとBNパラメータを削除
-    print("delete layer [{}:{}]".format((layer - 1) * set_size + kernel_start + 1, layer * set_size + kernel_start))
-    for i in range((layer - 1) * set_size + kernel_start + 1, layer * set_size + kernel_start):
-        del _weights[i][node]
-    return _weights
-
+    print("delete node:{} in layer:{}".format(target_node, target_layer))
+    # バイアス×親への重みを親ノードバイアスに伝播
+    for parent_node in range(len(weights[parent_layer + kernel_start + 1])):
+        weights[parent_layer + kernel_start + 1][parent_node] += \
+            weights[target_layer + kernel_start + 1][target_node] * \
+            weights[parent_layer + kernel_start][target_node][parent_node]
+    # 子ノードとの結合削除
+    weights[target_layer + kernel_start] \
+        = np.delete(weights[target_layer + kernel_start], target_node, 1)
+    # 親ノードとの結合削除
+    print("target_layer:{} kernel_start:{} set_size:{}".format(target_layer, kernel_start, set_size))
+    weights[target_layer + kernel_start + set_size] \
+        = np.delete(weights[target_layer + kernel_start + set_size], target_node, 0)
+    # バイアスノード削除
+    weights[target_layer + kernel_start + 1] = np.delete(weights[target_layer + kernel_start + 1],
+                                                         target_node)
+    # BNノード(x4層)削除
+    # for bn_layer in range(target_layer, target_layer+kernel_start): # bn層がkernelの前
+    # print("weights[bn_layer]:{} vs target_node:{}".format(weights[bn_layer], target_node))
+    # weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+    for bn_layer in range(target_layer + kernel_start + 2,
+                          target_layer + kernel_start + set_size):  # bn層がkernelの後
+        weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+    return weights
 
 # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
 # 出力 : 不要ノードを削除したモデル(model)
-def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
+def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_with_acc=False):
     from binary__tree_main import show_weight, keep_mask_and_fit
     weights = model.get_weights()
     if batchNormalization_is_used(weights):
@@ -251,42 +265,35 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test):
         target_node = 0
         while target_node < np.shape(weights[target_layer + kernel_start])[1]:
             print("target_layer: {} target_node:{}".format(target_layer, target_node))
-            # show_weight(weights)
-            # 子ノードとの結合がある場合
-            print("weights[{}].T[{}]\n{}".format(target_layer + kernel_start,
-                                                 target_node, weights[target_layer + kernel_start].T[target_node]))
             parent_layer = target_layer + set_size
-            if np.any(weights[target_layer + kernel_start].T[target_node] != 0) \
-                    and np.any(weights[parent_layer + kernel_start][target_node] != 0):
-                target_node += 1
-                continue
-            # 子ノードとの結合なし->自身に繋がる子と親ノード重み削除
-            else:
-                print("delete node:{} in layer:{}".format(target_node, target_layer))
-                # バイアス×親への重みを親ノードバイアスに伝播
-                for parent_node in range(len(weights[parent_layer + kernel_start + 1])):
-                    weights[parent_layer + kernel_start + 1][parent_node] += \
-                        weights[target_layer + kernel_start + 1][target_node] * \
-                        weights[parent_layer + kernel_start][target_node][parent_node]
-                # 子ノードとの結合削除
-                weights[target_layer + kernel_start] \
-                    = np.delete(weights[target_layer + kernel_start], target_node, 1)
-                # 親ノードとの結合削除
-                print("target_layer:{} kernel_start:{} set_size:{}".format(target_layer, kernel_start, set_size))
-                weights[target_layer + kernel_start + set_size] \
-                    = np.delete(weights[target_layer + kernel_start + set_size], target_node, 0)
-                # バイアスノード削除
-                weights[target_layer + kernel_start + 1] = np.delete(weights[target_layer + kernel_start + 1],
-                                                                     target_node)
-                # BNノード(x4層)削除
-                # for bn_layer in range(target_layer, target_layer+kernel_start): # bn層がkernelの前
-                # print("weights[bn_layer]:{} vs target_node:{}".format(weights[bn_layer], target_node))
-                # weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
-                for bn_layer in range(target_layer + kernel_start + 2,
-                                      target_layer + kernel_start + set_size):  # bn層がkernelの後
-                    weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
-        print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
 
+            if shrink_with_acc:
+                # target_layerを削除しても性能検証
+                prev_acc = model.evaluate(X_test, y_test)[1]
+                target_deleted_weights = delete_node(copy.deepcopy(weights), model=model, target_layer=target_layer, target_node=target_node)
+                _model = myMLP(get_layer_size_from_weight(target_deleted_weights), set_weights=target_deleted_weights)
+                target_deleted_acc = _model.evaluate(X_train, y_train)[1]
+                print("target_deleted_acc:{:.4f} prev_acc:{:.4f}".format(target_deleted_acc, prev_acc))
+                # 性能減少->ノード削除しない
+                if target_deleted_acc < prev_acc:
+                    target_node += 1
+                    continue
+                # 性能減少しない->自身に繋がる子と親ノード重み削除
+                else:
+                    weights = target_deleted_weights
+            else:
+                # 子ノードとの結合がある場合
+                if np.any(weights[target_layer + kernel_start].T[target_node] != 0) \
+                        and np.any(weights[parent_layer + kernel_start][target_node] != 0):
+                    print("weights[{}].T[{}]\n{}".format(target_layer + kernel_start,
+                                                         target_node, weights[target_layer + kernel_start].T[target_node]))
+                    target_node += 1
+                    continue
+                else:
+                    # 子ノードとの結合なし->自身に繋がる子と親ノード重み削除
+                    # weights = target_deleted_weights
+                    weights = delete_node(weights, model=model, target_layer=target_layer, target_node=target_node)
+        # print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
         model = myMLP(get_layer_size_from_weight(weights), set_weights=weights)
         model = keep_mask_and_fit(model, X_train, y_train, batch_size=cf.Minibatch)
     else:
