@@ -1253,14 +1253,14 @@ def get_miss_nodes(out_of_ranges):
                 for _sample in out_of_ranges[_layer][_class][_node]:  # ミスサンプル番号
                     # print("_class:{}  _sample:{} _layer:{} _node:{}".format(_class, _sample, _layer, _node))
                     miss_nodes[_class][sample_num_to_index[_class][str(_sample["sample"])]][_layer]\
-                        .append({"node": _node, "color": _sample["color"]})
+                        .append({"node": _node, "color": _sample["color"], "value":_sample["value"] if "value" in _sample else None})
     return miss_nodes, sample_num_to_index
 
 
 # 入力 : shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
 # 出力 : shape(クラス数, サンプル数, 層数, ノード数)->色(ミスノードだけクラス色、それ以外は黒)
 def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
-    neuron_coloers = [[[[["black"] for _ in range(i)] for i in layer_sizes]
+    neuron_coloers = [[[[[{"color":"black"}] for _ in range(i)] for i in layer_sizes]
                        for _sample in range(len(out_of_ranges[_class]))]
                       for _class in range(len(out_of_ranges))]
     for _class in range(len(out_of_ranges)):
@@ -1268,7 +1268,7 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
             for _layer in range(len(out_of_ranges[_class][_sample])):
                 for _neuron in out_of_ranges[_class][_sample][_layer]:
                     # neuron_coloers[_class][_sample][_layer][_neuron["node"]] = colors[_class]
-                    neuron_coloers[_class][_sample][_layer][_neuron["node"]].append(_neuron["color"])  # colors[_class]
+                    neuron_coloers[_class][_sample][_layer][_neuron["node"]].append(_neuron) # _neuron["color"])  # colors[_class]
     return neuron_coloers
 
 
@@ -1315,7 +1315,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     print("miss_nodes:{}".format(miss_nodes))
     neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
                                                                   get_layer_size_from_weight(_mlp.get_weights()))
-    print("neuron_colors:{}".format(neuron_colors))
+    print("\nneuron_colors")
+    for i in range(len(neuron_colors)):
+        print(neuron_colors[i])
 
     X_train = original_data[0]
     y_train = original_data[1]
@@ -1382,6 +1384,7 @@ class Main_test():
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
         """
         show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
+        print("finish")
         exit()
 
         ###全結合mlpとの比較

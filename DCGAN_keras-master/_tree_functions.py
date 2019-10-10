@@ -470,7 +470,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                    None, labels, ite=cf.Iteration,
                                    testflag=True, showflag=False,
                                    comment="layer:{} input".format(0), save_fig=save_fig,
-                                   get_each_color=get_each_color))
+                                   get_each_color=get_each_color, layer_type="input"))
     ###入力を可視化
 
     ###中間層出力を可視化
@@ -481,7 +481,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,
                                        comment="layer:{}".format(i + 1), save_fig=save_fig,
-                                       get_each_color=get_each_color))
+                                       get_each_color=get_each_color, layer_type="output" if i == len(get_kernel_and_bias(_mlp)) // 2 - 1 else ""))
         ###中間層出力を可視化
         # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))

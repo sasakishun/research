@@ -18,13 +18,20 @@ class Neuron():
         self.x = x
         self.y = y
 
-    def draw(self, text="", color="black"):
+    def draw(self, text="", color=None):
+        if color is None:
+            color = [{"color": "black"}]
         for i, _color in enumerate(color):
-            if _color != "black": # ミスニューロンは半径大きく、黒以外で描画
+            if "value" in _color:
+                print("_color[\"value\"]".format(_color["value"]))
+            print("_color:{}".format(_color["color"]))
+            if _color["color"] != "black": # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
-                circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*5, facecolor=_color, edgecolor=_color)
+                circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*5, facecolor=_color["color"], edgecolor=_color["color"])
+                _text = pyplot.text(self.x-0.25, self.y-0.25, "{:.2f}".format(_color["value"]) if "value" in _color else None, fontsize=neuron_radius*10)
+                pyplot.gca()._add_text(_text)
             else:
-                circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=_color)
+                circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=_color["color"])
             # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
             # pyplot.gca()._add_text(_text)
             pyplot.gca().add_patch(circle)
@@ -36,7 +43,7 @@ class Layer():
         self.y = self.__calculate_layer_y_position()
         self.neurons = self.__intialise_neurons(number_of_neurons)
         self.weights = weights
-        self.neuron_color = node_color if node_color is not None else [["black"] for _ in range(number_of_neurons)]
+        self.neuron_color = node_color if node_color is not None else [[{"color": "black"}] for _ in range(number_of_neurons)]
         if non_active_neurons:
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
