@@ -737,7 +737,7 @@ def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, 
     model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
                   bias_mask=bias_mask, set_weights=weights)
     # コールバック設定
-    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='auto')
+    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=200, verbose=0, mode='auto')
     # tb_cb = keras.callbacks.TensorBoard(log_dir=".\log", histogram_freq=1) # 謎エラーが発生するため不使用
     # 学習
     valid_num = len(X_train) // 10

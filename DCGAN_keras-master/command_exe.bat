@@ -1,6 +1,3 @@
-python binary__tree_main.py --cifar10 --train --child_num 256
-python binary__tree_main.py --cifar10 --test --child_num 256
-
 python binary__tree_main.py --iris --train --child_num 2
 python binary__tree_main.py --iris --test --child_num 2
 python binary__tree_main.py --iris --train --child_num 4
@@ -32,6 +29,9 @@ python binary__tree_main.py --mnist --train --child_num 56
 python binary__tree_main.py --mnist --test --child_num 56
 python binary__tree_main.py --mnist --train --child_num 112
 python binary__tree_main.py --mnist --test --child_num 112
+
+python binary__tree_main.py --cifar10 --train --child_num 256
+python binary__tree_main.py --cifar10 --test --child_num 256
 
 goto end
 
