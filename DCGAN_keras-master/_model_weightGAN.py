@@ -349,7 +349,7 @@ def masked_mlp(input_size, hidden_size, output_size):
     return _mlp
 
 
-def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_weights=None):
+def _myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_weights=None):
     activation = "relu"
     input_size = model_shape[0]
     hidden_size = model_shape[1:-1]
@@ -388,6 +388,41 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_wei
     if set_weights:
         mlp.set_weights(set_weights)
     return mlp
+
+
+def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_weights=None):
+    mlp = keras.models.Sequential()
+    for layer_number in range(len(model_shape) - 1):
+        input_size = model_shape[layer_number]
+        hidden_size = model_shape[layer_number + 1]
+        # print("layer_number:{} hidden_size:{}".format(layer_number, hidden_size))
+        if layer_number + 1 == len(model_shape) - 1: # 出力層
+            activation = "softmax"
+        else:
+            activation = "relu"
+        mlp.add(dense_layer_model(hidden_size, input_size, activation=activation, layer_number=layer_number,
+                                  kernel_mask=kernel_mask[layer_number] if kernel_mask is not None else None,
+                                  bias_mask=bias_mask[layer_number] if bias_mask is not None else None))
+    mlp.compile(loss='categorical_crossentropy',
+                 optimizer="adam",
+                 metrics=[metrics.categorical_accuracy])
+    print("weights:{}".format([np.shape(i) for i in mlp.get_weights()]))
+    if set_weights:
+        mlp.set_weights(set_weights)
+    return mlp
+
+def dense_layer_model(hidden_size, input_size, activation=None, layer_number=None, kernel_mask=None, bias_mask=None, trainable=True):
+    _dense = MyLayer(hidden_size, activation=activation,
+                kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(layer_number),
+                kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+
+    inputs = Input(shape=(input_size,), name='inputs')
+    dense = BatchNormalization(name="BN_{}".format(layer_number))(inputs)
+    dense = _dense(dense, kernel_mask=kernel_mask, bias_mask=bias_mask)
+
+    dense_model = Model(inputs=inputs, outputs=dense, name='dense_layer_{}'.format(layer_number))
+    # dense_model.summary()
+    return dense_model
 
 def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None, child_num=2):
     from _tree_functions import calculate_tree_shape

@@ -494,8 +494,8 @@ def mask(masks, batch_size):
     ###各maskをミニバッチサイズでそれぞれ複製
 
 
-def show_weight(weights):
-    print("weights:{}".format([np.shape(i) for i in weights]))
+def show_weight(weights, comment=None):
+    print("{} weights:{}".format(comment, [np.shape(i) for i in weights]))
 
 
 def load_concate_masks(active_true=False):
@@ -612,7 +612,7 @@ def batchNormalization_is_used(_weights):
 # BN使用可において,kernel始まりのインデックスと,[BN,kernel,bias]の1層あたりの重み長さを返す
 def get_kernel_start_index_and_set_size(_mlp):
     kernel_start = 0
-    set_size = 6
+    set_size = 6 # 自分で指定（MLPならBNパラメータ4層+kernel+bias=6層）
     _weights = _mlp.get_weights()
     for i, _weight in enumerate(_weights):
         if _weight.ndim == 2:
@@ -715,7 +715,8 @@ def set_weights(_mlp, _weights):
 
 # 入力:mlpオブジェクト->重みを返す,入力:weightsリスト->そのまま返す
 def model2weights(_mlp):
-    if str(type(_mlp)) == "<class 'keras.engine.training.Model'>":
+    if str(type(_mlp)) == "<class 'keras.engine.training.Model'>"\
+            or str(type(_mlp)) == "<class 'keras.engine.sequential.Sequential'>":
         return _mlp.get_weights()
     elif str(type(_mlp)) != "list":
         return _mlp
@@ -1253,7 +1254,9 @@ def get_miss_nodes(out_of_ranges):
                 for _sample in out_of_ranges[_layer][_class][_node]:  # ミスサンプル番号
                     # print("_class:{}  _sample:{} _layer:{} _node:{}".format(_class, _sample, _layer, _node))
                     miss_nodes[_class][sample_num_to_index[_class][str(_sample["sample"])]][_layer]\
-                        .append({"node": _node, "color": _sample["color"], "value":_sample["value"] if "value" in _sample else None})
+                        .append({"node": _node, "color": _sample["color"],
+                                 "value":_sample["value"] if "value" in _sample else None,
+                                 "correct_range":_sample["correct_range"] if "correct_range" in _sample else None})
     return miss_nodes, sample_num_to_index
 
 
@@ -1275,14 +1278,10 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["correct_train", "miss_test"]):
-    """
-    out_of_ranges = show_intermidate_train_and_test(correct[0], correct[1],
-                                                    incorrect[0], incorrect[1],
-                                                    _mlp, name=name, save_fig=False)  # True)
-    """
+    get_each_color = True
     each_color = show_intermidate_train_and_test(correct[0], correct[1],
                                                  incorrect[0], incorrect[1],
-                                                 _mlp, name=name, save_fig=False, get_each_color=True)
+                                                 _mlp, name=name, save_fig=False, get_each_color=get_each_color)
     for _class in range(len(each_color)):
         for _layer in range(len(each_color[_class])):
             for _node in range(len(each_color[_class][_layer])):
@@ -1352,6 +1351,8 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
+        exit()
 
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
         print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
@@ -1368,8 +1369,10 @@ class Main_test():
                 _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test,
                                      shrink_with_acc=_shrink_with_acc)
                 kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
-                _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                         kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
+                # 接続無し重みを削除する際は再学習不要（一応最後だけ再学習）
+                if _shrink_with_acc or target_layer == len(get_layer_size_from_weight(_mlp.get_weights())) - 2:
+                    _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                             kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """
@@ -1389,6 +1392,8 @@ class Main_test():
         show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
         print("finish")
         exit()
+
+
 
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \

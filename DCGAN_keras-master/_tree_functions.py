@@ -244,12 +244,19 @@ def delete_node(weights, model, target_layer, target_node):
     weights[target_layer + kernel_start + 1] = np.delete(weights[target_layer + kernel_start + 1],
                                                          target_node)
     # BNノード(x4層)削除
-    # for bn_layer in range(target_layer, target_layer+kernel_start): # bn層がkernelの前
-    # print("weights[bn_layer]:{} vs target_node:{}".format(weights[bn_layer], target_node))
-    # weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+    bn_layer_index = list(range(target_layer+set_size, target_layer+kernel_start+set_size))\
+                     + list(range(target_layer + set_size + kernel_start + 2, target_layer + set_size + set_size))
+    print("bn_layer_index:{}".format(bn_layer_index))
+    print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
+    for bn_layer in bn_layer_index:
+        weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+        # print("weights[bn_layer = {}]:{} vs target_node:{}".format(bn_layer, weights[bn_layer], target_node))
+    """
+    # SequentialじゃないBNはこっち10/15以前のmyMLP
     for bn_layer in range(target_layer + kernel_start + 2,
                           target_layer + kernel_start + set_size):  # bn層がkernelの後
         weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+    """
     return weights
 
 # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
@@ -268,9 +275,10 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
             parent_layer = target_layer + set_size
 
             if shrink_with_acc:
-                # target_layerを削除しても性能検証
+                # target_layerを削除して性能検証
                 prev_acc = model.evaluate(X_train, y_train)[1]
                 target_deleted_weights = delete_node(copy.deepcopy(weights), model=model, target_layer=target_layer, target_node=target_node)
+                # show_weight(target_deleted_weights, comment="\ntarget_deleted_weigths")
                 _model = myMLP(get_layer_size_from_weight(target_deleted_weights), set_weights=target_deleted_weights)
                 target_deleted_acc = _model.evaluate(X_train, y_train)[1]
                 print("target_deleted_acc:{:.4f} prev_acc:{:.4f}".format(target_deleted_acc, prev_acc))
@@ -365,10 +373,23 @@ def sort_weights(_weights, target_layer=None):
 
 from binary__tree_main import get_kernel_and_bias
 
+def predict_intermidate_output(model, target_layer, data):
+    out = model.layers[0].predict(data)
+    for _layer in range(1, target_layer):
+        out = model.layers[_layer].predict(out)
+    return out
 
 def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     np.set_printoptions(precision=3)
-    intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
+    # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
+                                # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+
+    for _sample, _target in zip(predict_intermidate_output(_mlp, len(_mlp.layers), data), target):
+        print("{} -> {} vs {} ".format(_sample, np.argmax(_sample), np.argmax(_target)))
+    exit()
+
+    intermediate_layer_model = [Model(inputs=_mlp.input,
+                                      outputs=_mlp.get_layer("dense_layer_{}".format(i)).get_output_at(0))
                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     # for i in range(len(intermediate_layer_model[-1].get_weights())):
     # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))

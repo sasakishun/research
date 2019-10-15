@@ -28,8 +28,14 @@ class Neuron():
             if _color["color"] != "black": # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
                 circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*5, facecolor=_color["color"], edgecolor=_color["color"])
-                _text = pyplot.text(self.x+4,  self.y-4, "{:.2f}".format(_color["value"]) if "value" in _color else None, fontsize=neuron_radius*10, color="gray")
-                pyplot.gca()._add_text(_text)
+                _text_value = pyplot.text(self.x+4,  self.y-4, "{:.2f}".format(_color["value"]) if "value" in _color else None,
+                                          fontsize=neuron_radius*10, color="gray")
+                pyplot.gca()._add_text(_text_value)
+                if _color["color"] != "white":  # 異常ノードの場合(白は数値のみ描画するために使用)
+                    _text_correct_range = pyplot.text(self.x+4,  self.y-12, "[{:.2f}, {:.2f}]".format(
+                        _color["correct_range"][0], _color["correct_range"][1]) if "correct_range" in _color else None,
+                                                      fontsize=neuron_radius*10, color="gray")
+                    pyplot.gca()._add_text(_text_correct_range)
             else:
                 circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color=_color["color"])
             # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
