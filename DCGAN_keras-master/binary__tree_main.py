@@ -725,7 +725,7 @@ def model2weights(_mlp):
 
 
 # maskをキープしたままmodelを学習
-def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, bias_mask=None, epochs=100):
+def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, bias_mask=None, epochs=1000):
     weights = model.get_weights()
     # maskを一時退避
     _kernel_mask, _bias_mask = get_kernel_bias_mask(model)

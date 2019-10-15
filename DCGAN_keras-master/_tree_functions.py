@@ -269,7 +269,7 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
 
             if shrink_with_acc:
                 # target_layerを削除しても性能検証
-                prev_acc = model.evaluate(X_test, y_test)[1]
+                prev_acc = model.evaluate(X_train, y_train)[1]
                 target_deleted_weights = delete_node(copy.deepcopy(weights), model=model, target_layer=target_layer, target_node=target_node)
                 _model = myMLP(get_layer_size_from_weight(target_deleted_weights), set_weights=target_deleted_weights)
                 target_deleted_acc = _model.evaluate(X_train, y_train)[1]
