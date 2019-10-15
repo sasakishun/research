@@ -1208,9 +1208,9 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test):
 # 入力 : shape(層数,ノード数,クラス数)->サンプル番号リスト
 # 出力 : shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
 def get_miss_nodes(out_of_ranges):
-    for _layer in range(len(out_of_ranges)):  # 層番号
-        for _class in range(len(out_of_ranges[_layer])):  # クラス番号
-            print("out_of_ranges[{}][{}]:{}".format(_layer, _class, out_of_ranges[_layer][_class]))
+    # for _layer in range(len(out_of_ranges)):  # 層番号
+        # for _class in range(len(out_of_ranges[_layer])):  # クラス番号
+            # print("out_of_ranges[{}][{}]:{}".format(_layer, _class, out_of_ranges[_layer][_class]))
 
     # 間違いサンプル数を取得
     class_num = len(out_of_ranges[-1][0])
@@ -1226,11 +1226,11 @@ def get_miss_nodes(out_of_ranges):
                     # print("out_of_ranges[-1][{}]:{}".format(i, out_of_ranges[-1][i]))
                     # for j in range(class_num):
                     # missed[i] += out_of_ranges[-1][i][j]
-    print("missed:{}".format(missed))
+    # print("missed:{}".format(missed))
     # missed = [sorted(set(_missed), key=_missed.index) if len(i) > 0 else [] for _missed in missed]
     # missed = [list(set(i)) if len(i) > 0 else [] for i in missed]
     missed = [list(set([j["sample"] for j in i])) if len(i) > 0 else [] for i in missed]
-    print("missed:{}".format(missed))
+    # print("missed:{}".format(missed))
 
     miss_nodes = [[[[] for _ in range(len(out_of_ranges))]  # 層数
                    for j in range(len(missed[i]))]  # クラスiのミスサンプル数
@@ -1242,7 +1242,7 @@ def get_miss_nodes(out_of_ranges):
         for _sample in range(len(missed[_class])):
             sample_num_to_index[_class][str(missed[_class][_sample])] = _sample
 
-    print("miss_nodes:{}".format(miss_nodes))
+    # print("miss_nodes:{}".format(miss_nodes))
     print("len(miss_nodes):{}".format(len(miss_nodes)))
     print("sample_to_num_index:{}".format(sample_num_to_index))
     # shape(クラス数, ミスサンプルインデックス(0,1,2), 層番号)->その層でのミスノード番号のリスト
@@ -1263,16 +1263,23 @@ def get_miss_nodes(out_of_ranges):
 # 入力 : shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
 # 出力 : shape(クラス数, サンプル数, 層数, ノード数)->色(ミスノードだけクラス色、それ以外は黒)
 def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
-    neuron_coloers = [[[[[{"color":"black"}] for _ in range(i)] for i in layer_sizes]
+    neuron_colors = [[[[[{"color":"black", "node":_node}] for _node in range(i)] for i in layer_sizes]
                        for _sample in range(len(out_of_ranges[_class]))]
                       for _class in range(len(out_of_ranges))]
+    for _class in range(len(neuron_colors)):
+        print("_class:{}".format(_class))
+        for _sample in range(len(neuron_colors[_class])):
+            print("_sample:{}".format(_sample))
+            for _layer in range(len(neuron_colors[_class][_sample])):
+                print("neuron_colors[_class][_sample][{}]:{}".format(_layer, neuron_colors[_class][_sample][_layer]))
+
     for _class in range(len(out_of_ranges)):
         for _sample in range(len(out_of_ranges[_class])):
             for _layer in range(len(out_of_ranges[_class][_sample])):
                 for _neuron in out_of_ranges[_class][_sample][_layer]:
-                    # neuron_coloers[_class][_sample][_layer][_neuron["node"]] = colors[_class]
-                    neuron_coloers[_class][_sample][_layer][_neuron["node"]].append(_neuron) # _neuron["color"])  # colors[_class]
-    return neuron_coloers
+                    print("\n_class:{} _sample:{} _layer:{} _neuron:{}".format(_class, _sample, _layer, _neuron))
+                    neuron_colors[_class][_sample][_layer][_neuron["node"]].append(_neuron) # _neuron["color"])  # colors[_class]
+    return neuron_colors
 
 
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
@@ -1282,10 +1289,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     each_color = show_intermidate_train_and_test(correct[0], correct[1],
                                                  incorrect[0], incorrect[1],
                                                  _mlp, name=name, save_fig=False, get_each_color=get_each_color)
-    for _class in range(len(each_color)):
-        for _layer in range(len(each_color[_class])):
-            for _node in range(len(each_color[_class][_layer])):
-                print("each_color[{}][{}][{}]:{}".format(_class, _layer, _node, each_color[_class][_layer][_node]))
+
+    # for _class in range(len(each_color)):
+        # for _layer in range(len(each_color[_class])):
+            # for _node in range(len(each_color[_class][_layer])):
+                # print("each_color[{}][{}][{}]:{}".format(_class, _layer, _node, each_color[_class][_layer][_node]))
     """
     print("each_color:{}".format(each_color))
     print("name:{}".format(name))
@@ -1311,7 +1319,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     """
     miss_nodes, sample_num_to_index = get_miss_nodes(each_color)
     print("sample_num_to_index:{}".format(sample_num_to_index))
-    print("miss_nodes:{}".format(miss_nodes))
+    # print("miss_nodes:{}".format(miss_nodes))
     neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
                                                                   get_layer_size_from_weight(_mlp.get_weights()))
     print("\nneuron_colors")
@@ -1351,8 +1359,8 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
-        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
-        exit()
+        # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
+        # exit()
 
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
         print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))

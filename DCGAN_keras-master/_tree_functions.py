@@ -373,27 +373,34 @@ def sort_weights(_weights, target_layer=None):
 
 from binary__tree_main import get_kernel_and_bias
 
-def predict_intermidate_output(model, target_layer, data):
-    out = model.layers[0].predict(data)
-    for _layer in range(1, target_layer):
-        out = model.layers[_layer].predict(out)
-    return out
+# 中間層出力をpredict()
+def predict_intermidate_output(model, data, target_layer=None):
+    if target_layer is None:
+        target_layer = len(model.layers)
+    if target_layer == 0:
+        return data[0]
+    else:
+        out = model.layers[0].predict(data)
+        for _layer in range(1, target_layer):
+            out = model.layers[_layer].predict(out)
+        return out
 
 def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
 
-    for _sample, _target in zip(predict_intermidate_output(_mlp, len(_mlp.layers), data), target):
-        print("{} -> {} vs {} ".format(_sample, np.argmax(_sample), np.argmax(_target)))
-    exit()
-
-    intermediate_layer_model = [Model(inputs=_mlp.input,
-                                      outputs=_mlp.get_layer("dense_layer_{}".format(i)).get_output_at(0))
-                                for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+    # for _sample, _target in zip(predict_intermidate_output(_mlp, len(_mlp.layers), data), target):
+        # print("{} -> {} vs {} ".format(_sample, np.argmax(_sample), np.argmax(_target)))
     # for i in range(len(intermediate_layer_model[-1].get_weights())):
     # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
-    output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
+    print("_mlp.layers:{}".format(len(_mlp.layers)))
+
+    model_shape = get_layer_size_from_weight(_mlp.get_weights())
+    output_size = model_shape[-1]
+    for i in range(len(model_shape)):
+        print("i:{}".format(np.shape(predict_intermidate_output(_mlp, data, i))))
+    # output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
     dataset_category = output_size
 
     original_data = copy.deepcopy(data)
@@ -406,7 +413,9 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     correct_target = [[] for _ in range(output_size)]
     incorrect_data = [[] for _ in range(output_size)]
     incorrect_target = [[] for _ in range(output_size)]
-    output = [intermediate_layer_model[-1].predict(data[i]) for i in range(output_size)]
+    output = [predict_intermidate_output(_mlp, data[i], len(model_shape)-1) for i in range(output_size)]
+
+    # output = [intermediate_layer_model[-1].predict(data[i]) for i in range(output_size)]
     # for i in range(output_size):
     # print("\n\noutput[{}]:{}".format(i, np.shape(output[i])))
     # for j in range(len(output[i])):
@@ -427,26 +436,29 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
         print("incorrect_data[{}]:{}".format(i, np.shape(incorrect_data[i])))
 
     ### 正解データと不正解データに分割
-    correct_intermediate_output = [[list(intermediate_layer_model[i].predict([correct_data[j]]))
+    correct_intermediate_output = [[predict_intermidate_output(_mlp, [correct_data[j]], i) # list(intermediate_layer_model[i].predict([correct_data[j]]))
                                     if len(correct_data[j]) > 0 else []
                                     for j in range(len(correct_data))]
-                                   for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
-    incorrect_intermediate_output = [[list(intermediate_layer_model[i].predict([incorrect_data[j]]))
+                                   for i in range(len(model_shape))]
+    incorrect_intermediate_output = [[predict_intermidate_output(_mlp, [incorrect_data[j]], i)# list(intermediate_layer_model[i].predict([incorrect_data[j]]))
                                       if len(incorrect_data[j]) > 0 else []
                                       for j in range(len(incorrect_data))]
-                                     for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+                                     for i in range(len(model_shape))]
 
     ###入力を可視化
     labels = ["class:{}".format(i) for i in range(output_size)] \
              + ["missed_class:{}".format(i) for i in range(output_size)]
     if save_fig:
+        """
         visualize(correct_data + incorrect_data,
                   None, labels, ite=cf.Iteration,
                   testflag=True if name == "test" else False, showflag=False,
                   comment="layer:{} {}_acc:{:.4f}".format(0, name, _mlp.evaluate(original_data, original_target)[1]))
+        """
         ###中間層出力を可視化
         import time
-        for i in range(len(get_kernel_and_bias(_mlp)) // 2):
+        for i in range(len(model_shape)):
+            print("visualize layer:{}".format(i))
             time.sleep(1)
             visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
                       None, labels, ite=cf.Iteration,
@@ -467,9 +479,11 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
 def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"],
                                     save_fig=True, get_each_color=False):
     np.set_printoptions(precision=3)
-    intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
-                                for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
-    output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
+    # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
+                                # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+    model_shape = get_layer_size_from_weight(_mlp.get_weights())
+    output_size = model_shape[-1]
+    # output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
     dataset_category = output_size
 
     train_data, train_target = divide_data(train_data, train_target, dataset_category)
@@ -480,36 +494,43 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
 
 
     ### 正解データと不正解データに分割
-    train_intermediate_output = [[list(intermediate_layer_model[i].predict([train_data[j]]))
+    train_intermediate_output = [[predict_intermidate_output(_mlp, [train_data[j]], i)# list(intermediate_layer_model[i].predict([train_data[j]]))
                                   if len(train_data[j]) > 0 else []
                                   for j in range(len(train_data))]
-                                 for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
-    test_intermediate_output = [[list(intermediate_layer_model[i].predict([test_data[j]]))
+                                 for i in range(len(model_shape))]
+    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]], i) # list(intermediate_layer_model[i].predict([test_data[j]]))
                                  if len(test_data[j]) > 0 else []
                                  for j in range(len(test_data))]
-                                for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+                                for i in range(len(model_shape))]
 
     out_of_ranges = []
 
-    ###入力を可視化
     labels = [name[0] + "_class:{}".format(i) for i in range(output_size)] \
              + [name[1] + "_class:{}".format(i) for i in range(output_size)]
+    ###入力を可視化
+    """
     out_of_ranges.append(visualize(train_data + test_data,
                                    None, labels, ite=cf.Iteration,
                                    testflag=True, showflag=False,
                                    comment="layer:{} input".format(0), save_fig=save_fig,
                                    get_each_color=get_each_color, layer_type="input"))
+    """
     ###入力を可視化
 
     ###中間層出力を可視化
     import time
-    for i in range(len(get_kernel_and_bias(_mlp)) // 2):
+    for i in range(len(train_intermediate_output)):
         time.sleep(1)
+        layer_type = "hidden"
+        if i == 0:
+            layer_type = "input"
+        elif i == len(train_intermediate_output) - 1:
+            layer_type = "output"
         out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,
                                        comment="layer:{}".format(i + 1), save_fig=save_fig,
-                                       get_each_color=get_each_color, layer_type="output" if i == len(get_kernel_and_bias(_mlp)) // 2 - 1 else ""))
+                                       get_each_color=get_each_color, layer_type=layer_type))
         ###中間層出力を可視化
         # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))

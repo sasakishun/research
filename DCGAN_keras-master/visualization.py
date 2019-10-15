@@ -57,9 +57,10 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     # out_of_range = [[[[0番ノードミスサンプル番号=2, 3, 4], [1番ノードミス]], [], [] ], [], []]
     for i in range(len(x)):  # 3クラス分類->正解*3,不正解*3でi < 6
         # print("x[{}]:{} --------".format(i, np.shape(x[i])))
-        if x[i]:  # 各サンプルをプロット
+        if len(x[i]) > 0:  # 各サンプルをプロット
+            # print("x[{}]:{} len:{}".format(i, x[i], len(x[i])))
             # for j in range(min(500, input_size)):
-            for j in range(input_size):  # j列目(13次元入力ならj<13)
+            for j in range(input_size):  # j列目(13次元入力ならj<13)==参照ノード番号
                 ### 正解入力をプロット
                 if i < len(labels) // 2:
                     _x = [j + 0.04 * (i - len(labels) // 2) for _ in range(len(x[i]))]
@@ -101,28 +102,29 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         ### 正解範囲に入っていたらo,それ以外はx
 
                         # どの分類クラスに入っているか、色を指定して返す
-                        # i % (len(labels) // 2) = 現在参照クラス番号
+                        # i % (len(labels) // 2) = 現在参照サンプルのクラス番号
                         target_class = i % (len(labels) // 2)
                         if get_each_color:
-                            print("_class:{} _node:{} _sample:{}".format(i % (len(labels) // 2), int(_x[k]), k))
+                            print("_class:{} _node:{} _sample:{}".format(i % (len(labels) // 2), j, k))
                             if layer_type == "output": # 出力層の場合
                                 # 参照サンプルがsoftmax最大値ノードである場合
                                 if np.argmax(np.array([x[i][k][_node] for _node in range(input_size)])) == j:
                                     # 参照サンプルが間違い出力である場合
-                                    if j != i % (len(labels) // 2):
-                                        out_of_range_with_color[target_class][int(_x[k])].append(
+                                    # j: 現在参照しているノード番号
+                                    if j != target_class:
+                                        out_of_range_with_color[target_class][j].append(
                                             {"sample": k, "color": colors[j], "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
+                                             "correct_range":correct_range[target_class][j]})
                                         print("output:{} i % (len(labels) // 2):{}"
                                               .format(np.array([x[i][k][_node] for _node in range(input_size)]), i % (len(labels) // 2)))
                                     else:
-                                        out_of_range_with_color[target_class][int(_x[k])].append(
+                                        out_of_range_with_color[target_class][j].append(
                                             {"sample": k, "color": "white", "value": _y[k],
                                              "correct_range":correct_range[target_class][int(_x[k])]})
                                 else:
-                                    out_of_range_with_color[target_class][int(_x[k])].append(
+                                    out_of_range_with_color[target_class][j].append(
                                         {"sample": k, "color": "white", "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
+                                             "correct_range":correct_range[target_class][j]})
                             elif layer_type == "input":  # 入力層の場合
                                 belong_no_class = True
                                 # 異常ノードである場合
