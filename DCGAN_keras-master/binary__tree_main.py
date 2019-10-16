@@ -1322,9 +1322,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # print("miss_nodes:{}".format(miss_nodes))
     neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
                                                                   get_layer_size_from_weight(_mlp.get_weights()))
-    print("\nneuron_colors")
-    for i in range(len(neuron_colors)):
-        print(neuron_colors[i])
+    # print("\nneuron_colors")
+    # for i in range(len(neuron_colors)):
+        # print(neuron_colors[i])
 
     X_train = original_data[0]
     y_train = original_data[1]
@@ -1335,7 +1335,14 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     for _class in range(len(neuron_colors)):
         for _sample in range(len(neuron_colors[_class])):
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
-            print("class:{} sample:{}".format(_class, _sample_num))
+            # print("class:{} sample:{}".format(_class, _sample_num))
+            # for layer in range(len(neuron_colors[_class][_sample])):
+                # for node in range(len(neuron_colors[_class][_sample][layer])):
+                    # print("neuron_colors[{}][{}][{}][{}]\n{}".format(
+                        # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
+            parsing_miss_node(_mlp, neuron_colors[_class][_sample])
+            # print("colorized_node:{}".format(get_colorized_node(neuron_colors[_class][_sample])))
+            # exit()
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
@@ -1345,6 +1352,37 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     return
 
+# 入力: Model, あるクラス、あるサンプルのノード色->shape(層番号, ノード番号)
+def parsing_miss_node(model, neuron_colors_of_sample):
+    # 間違いノード検出（出力層）
+    for _layer in range(len(neuron_colors_of_sample)):
+        miss_node = get_colorized_node(neuron_colors_of_sample[-1])
+        for _node in range(len(neuron_colors_of_sample[_layer])):
+            child_node = get_child_node(model, layer=-2, node=_node)
+            miss_child = list(set(miss_node)&set(child_node))
+            print("miss_parent:{}".format(miss_node))
+            print("child_node:{}".format(child_node))
+            print("parent:{} layer:{} miss_child:{}\n".format(_node, _layer, miss_child))
+    return
+
+# 特定層の色付きノード番号を取得
+def get_colorized_node(neuron_color_in_layer):
+    colorized_node = []
+    for i, _node in enumerate(neuron_color_in_layer):
+        for item_of_node in _node:
+            if item_of_node["color"] != "white" and item_of_node["color"] != "black":
+                colorized_node.append(i)
+                break
+    return colorized_node
+
+# 特定層の子ノード番号を取得
+def get_child_node(model, layer, node):
+    kernel, bias = get_kernel_bias_mask(model)
+    child_node = []
+    for _child in range(len(kernel[layer])):
+        if kernel[layer][_child][node] != 0:
+            child_node.append(_child)
+    return child_node
 
 class Main_test():
     def __init__(self):
@@ -1359,8 +1397,8 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
-        # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
-        # exit()
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
+        exit()
 
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
         print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))

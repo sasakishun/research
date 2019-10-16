@@ -23,9 +23,9 @@ class Neuron():
         if color is None:
             color = [{"color": "black"}]
         for i, _color in enumerate(color):
-            if "value" in _color:
-                print("_color[\"value\"]:{}".format(_color["value"]))
-            print("_color:{}".format(_color["color"]))
+            # if "value" in _color:
+                # print("_color[\"value\"]:{}".format(_color["value"]))
+            # print("_color:{}".format(_color["color"]))
             if _color["color"] != "black": # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
                 if _color["color"] != "white":
