@@ -435,12 +435,15 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     for i in range(output_size):
         print("incorrect_data[{}]:{}".format(i, np.shape(incorrect_data[i])))
 
+    from binary__tree_main import feed_forward
     ### 正解データと不正解データに分割
-    correct_intermediate_output = [[predict_intermidate_output(_mlp, [correct_data[j]], i) # list(intermediate_layer_model[i].predict([correct_data[j]]))
-                                    if len(correct_data[j]) > 0 else []
+    # correct_intermediate_output = [[predict_intermidate_output(_mlp, [correct_data[j]], i) # list(intermediate_layer_model[i].predict([correct_data[j]]))
+    correct_intermediate_output = [[feed_forward(_mlp, correct_data[j])[i]
+                                        if len(correct_data[j]) > 0 else []
                                     for j in range(len(correct_data))]
                                    for i in range(len(model_shape))]
-    incorrect_intermediate_output = [[predict_intermidate_output(_mlp, [incorrect_data[j]], i)# list(intermediate_layer_model[i].predict([incorrect_data[j]]))
+    # incorrect_intermediate_output = [[predict_intermidate_output(_mlp, [incorrect_data[j]], i)# list(intermediate_layer_model[i].predict([incorrect_data[j]]))
+    incorrect_intermediate_output = [[feed_forward(_mlp, incorrect_data[j])[i]
                                       if len(incorrect_data[j]) > 0 else []
                                       for j in range(len(incorrect_data))]
                                      for i in range(len(model_shape))]
@@ -463,8 +466,8 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
             visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
                       None, labels, ite=cf.Iteration,
                       testflag=True if name == "test" else False, showflag=False,
-                      comment="layer:{} {}_acc:{:.2f}".format(i + 1, name,
-                                                              _mlp.evaluate(original_data, original_target)[1]))
+                      comment="layer:{} {}_acc:{:.2f}".format(
+                          i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
         ###中間層出力を可視化
         for i in range(dataset_category):
             print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))

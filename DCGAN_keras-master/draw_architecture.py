@@ -19,7 +19,6 @@ class Neuron():
         self.y = y
 
     def draw(self, text="", color=None):
-        print()
         if color is None:
             color = [{"color": "black"}]
         for i, _color in enumerate(color):

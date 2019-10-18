@@ -43,6 +43,19 @@ pruning_params = {
 }
 """
 
+def relu(a):
+    return np.where(a < 0, 0, a)
+
+def softmax(a):
+    # 一番大きい値を取得
+    c = np.max(a)
+    # 各要素から一番大きな値を引く（オーバーフロー対策）
+    exp_a = np.exp(a - c)
+    sum_exp_a = np.sum(exp_a)
+    # 要素の値/全体の要素の合計
+    y = exp_a / sum_exp_a
+    return y
+
 
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
@@ -417,11 +430,15 @@ def dense_layer_model(hidden_size, input_size, activation=None, layer_number=Non
                 kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
 
     inputs = Input(shape=(input_size,), name='inputs')
-    dense = BatchNormalization(name="BN_{}".format(layer_number))(inputs)
+    dense = BatchNormalization(name="BN_{}".format(layer_number),
+                               beta_initializer='ones',
+                               gamma_initializer='zeros',
+                               moving_mean_initializer='zeros',
+                               moving_variance_initializer='zeros',
+                               )(inputs)
     dense = _dense(dense, kernel_mask=kernel_mask, bias_mask=bias_mask)
 
     dense_model = Model(inputs=inputs, outputs=dense, name='dense_layer_{}'.format(layer_number))
-    # dense_model.summary()
     return dense_model
 
 def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None, child_num=2):

@@ -636,7 +636,7 @@ def get_layer_size_from_weight(_weights=None):
     if _weights is None:
         d = np.load(cf.Save_np_mlp_path)
         print("np.load(cf.Save_np_mlp_path):{}".format(d))
-        return get_layer_size_from_weight(np.load(cf.Save_np_mlp_path))
+        return get_layer_size_from_weight(d)
     else:
         # print("_weights:{}".format(_weights))
         return [np.shape(_weights[0])[0]] + [np.shape(i)[1] for i in _weights if i.ndim == 2]
@@ -1175,8 +1175,7 @@ def load_weights_and_generate_mlp():
 
 
 # 中間層出力を訓練テスト、正誤データごとに可視化
-def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test):
-    save_fig = True
+def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True):
     correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train \
         = show_intermidate_output(X_train, y_train, "train", _mlp, save_fig=save_fig)
     correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
@@ -1266,18 +1265,19 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
     neuron_colors = [[[[[{"color":"black", "node":_node}] for _node in range(i)] for i in layer_sizes]
                        for _sample in range(len(out_of_ranges[_class]))]
                       for _class in range(len(out_of_ranges))]
+    """
     for _class in range(len(neuron_colors)):
         print("_class:{}".format(_class))
         for _sample in range(len(neuron_colors[_class])):
             print("_sample:{}".format(_sample))
             for _layer in range(len(neuron_colors[_class][_sample])):
                 print("neuron_colors[_class][_sample][{}]:{}".format(_layer, neuron_colors[_class][_sample][_layer]))
-
+    """
     for _class in range(len(out_of_ranges)):
         for _sample in range(len(out_of_ranges[_class])):
             for _layer in range(len(out_of_ranges[_class][_sample])):
                 for _neuron in out_of_ranges[_class][_sample][_layer]:
-                    print("\n_class:{} _sample:{} _layer:{} _neuron:{}".format(_class, _sample, _layer, _neuron))
+                    # print("\n_class:{} _sample:{} _layer:{} _neuron:{}".format(_class, _sample, _layer, _neuron))
                     neuron_colors[_class][_sample][_layer][_neuron["node"]].append(_neuron) # _neuron["color"])  # colors[_class]
     return neuron_colors
 
@@ -1334,6 +1334,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # ミスニューロンを明示したネットワーク図を描画
     for _class in range(len(neuron_colors)):
         for _sample in range(len(neuron_colors[_class])):
+            # if _class != 2 or _sample != 0:
+                # continue
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # print("class:{} sample:{}".format(_class, _sample_num))
             # for layer in range(len(neuron_colors[_class][_sample])):
@@ -1341,8 +1343,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     # print("neuron_colors[{}][{}][{}][{}]\n{}".format(
                         # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
             parsing_miss_node(_mlp, neuron_colors[_class][_sample])
-            # print("colorized_node:{}".format(get_colorized_node(neuron_colors[_class][_sample])))
-            # exit()
+            correct_range = get_correct_range(neuron_colors[_class][_sample])
+
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
@@ -1354,15 +1356,19 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
 
 # 入力: Model, あるクラス、あるサンプルのノード色->shape(層番号, ノード番号)
 def parsing_miss_node(model, neuron_colors_of_sample):
+    print("neuron_color_of_sample:{}".format(neuron_colors_of_sample))
     # 間違いノード検出（出力層）
-    for _layer in range(len(neuron_colors_of_sample)):
-        miss_node = get_colorized_node(neuron_colors_of_sample[-1])
-        for _node in range(len(neuron_colors_of_sample[_layer])):
-            child_node = get_child_node(model, layer=-2, node=_node)
-            miss_child = list(set(miss_node)&set(child_node))
+    for _layer in reversed(range(1, len(neuron_colors_of_sample))):
+        print("layer:{}".format(_layer))
+        miss_node = get_colorized_node(neuron_colors_of_sample[_layer])
+        if len(miss_node) > 0:
             print("miss_parent:{}".format(miss_node))
-            print("child_node:{}".format(child_node))
-            print("parent:{} layer:{} miss_child:{}\n".format(_node, _layer, miss_child))
+        for _node in range(len(neuron_colors_of_sample[_layer])):
+            child_node = get_child_node(model, parent_layer=_layer, node=_node)
+            miss_child = list(set(miss_node)&set(child_node))
+            # print("child_node:{}".format(child_node))
+            if len(miss_child) > 0:
+                print("parent:{} layer:{} miss_child:{}\n".format(_node, _layer, miss_child))
     return
 
 # 特定層の色付きノード番号を取得
@@ -1372,17 +1378,221 @@ def get_colorized_node(neuron_color_in_layer):
         for item_of_node in _node:
             if item_of_node["color"] != "white" and item_of_node["color"] != "black":
                 colorized_node.append(i)
-                break
     return colorized_node
 
 # 特定層の子ノード番号を取得
-def get_child_node(model, layer, node):
+def get_child_node(model, parent_layer, node):
+    child_layer = parent_layer-1
     kernel, bias = get_kernel_bias_mask(model)
     child_node = []
-    for _child in range(len(kernel[layer])):
-        if kernel[layer][_child][node] != 0:
+    # print("parent_layer:{} kernel[{}]:\n{}".format(parent_layer, child_layer, kernel[child_layer]))
+    for _child in range(len(kernel[child_layer])):
+        if kernel[child_layer][_child][node] != 0:
             child_node.append(_child)
     return child_node
+
+# 正解範囲の行列(層数, ノード数)を返す
+def get_correct_range(neuron_colors_of_sample):
+    # shape:(layer数, node数)
+    correct_range = [[[0, 0] for _ in range(len(neuron_colors_of_sample[_layer]))]
+                     for _layer in range(len(neuron_colors_of_sample))]
+    for _layer, layer in enumerate(neuron_colors_of_sample):
+        for _node, node in enumerate(layer):
+            for item_of_node in node:
+                if "correct_range" in item_of_node:
+                    correct_range[_layer][_node] = item_of_node["correct_range"]
+    return correct_range
+
+
+# 入力 -> BN -> kernel -> bias -> activation
+def layer_of_feed_forward(layer, data, activation, target=None):
+    np.set_printoptions(precision=2)
+    input = copy.deepcopy(data)
+    output = input
+    weights = layer.get_weights()
+    print("input:{}".format(np.shape(input)))
+    show_weight(weights(), "layer: ")
+    # BNパラメータ
+    gamma = np.array(weights[0])
+    beta = np.array(weights[1])
+    mean = np.array(weights[2])
+    var = np.array(weights[3])
+    # for i in ["gamma", "beta", "mean", "var"]:
+        # print("{}: {}".format(i, eval(i)))
+    epsilon = 1e-3
+    _epsilon = np.array([epsilon for _ in range(len(mean))])
+    # BN計算
+    for i in range(len(output)):
+        output[i] =  ((output[i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
+    # *重み
+    for i in range(len(output)):
+        output[i] = np.dot(np.array(output[i]), np.array(weights[4]))
+    # +バイアス & 活性化関数
+    for i in range(len(output)):
+        output[i] = activation(output[i] + weights[5])
+    print("output:{}".format(np.shape(output)))
+    return output
+
+# 子ノードの出力補正
+# 入力: 層モデル, 訓練データ, 親層番号, 親ノード番号, 親ノードと子ノードの正解範囲
+# 親ノードの正解範囲をmin=Maxにすることで親ノードを固定できる
+# 出力: 入力補正した子ノード層の出力
+def correct_child_output(model, data, parent_layer, parent_node, correct_range_of2layer):
+    if parent_layer == 0:
+        return data
+    data = copy.deepcopy(data)
+
+    # 親ノードの出力
+    parent_out = feed_forward(model, parent_layer)[parent_node]
+    # 親ノードの正解範囲
+    parent_correct_range = correct_range_of2layer[1][parent_node]
+
+    # 子ノードの出力
+    child = get_child_node(model, parent_layer=parent_layer, node=parent_node)
+    _child_out = feed_forward(model, data)[parent_layer - 1]
+    child_out = [_child_out[i] for i in child]
+    # 子ノードの正解範囲
+    child_correct_range = [correct_range_of2layer[1][i] for i in child]
+
+
+    # 正方向に子ノードを変更する場合
+    if parent_out < parent_correct_range[0]:
+        # correct_amountだけ子ノードからの出力を増加させればよい
+        correct_amont = parent_correct_range[0] - parent_out
+
+        print()
+    # 負方向に子ノードを変更する場合
+    else:
+        print()
+
+    # 親ノードが正解に入るように子ノードを修正
+    corrected_child = 0
+    # 親ノード固定で子ノードだけ変更していく
+    return
+
+# 親層の出力から子層の出力を逆算
+def cariculate_target_to_input_of_layer(model, layer, parent_node, child_layer_out, activation):
+    np.set_printoptions(precision=2)
+    layer
+    output = copy.deepcopy()
+    input = output
+
+    weights = layer.get_weights()
+
+    # BNパラメータ
+    gamma = np.array(weights[0])
+    beta = np.array(weights[1])
+    mean = np.array(weights[2])
+    var = np.array(weights[3])
+    epsilon = 1e-3
+    _epsilon = np.array([epsilon for _ in range(len(mean))])
+
+    # BN計算
+    for i in range(len(output)):
+        output[i] =  ((output[i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
+    # *重み
+    for i in range(len(output)):
+        output[i] = np.dot(np.array(output[i]), np.array(weights[4]))
+    # +バイアス & 活性化関数
+    for i in range(len(output)):
+        output[i] = activation(output[i] + weights[5])
+    print("ouput:{}".format(np.shape(output)))
+    return output
+
+# 重みリストと入力を基に順伝播計算
+# 出力:各層の出力値リスト shape(層数, サンプル数) -> 中身: その層内ノードの出力リスト
+def feed_forward(model, data, target=None):
+    np.set_printoptions(precision=2)
+    # 入力 -> BN -> kernel -> bias -> activation
+    layer_num = len(model.layers)
+    intermidate_layer = [[np.array(i) for i in copy.deepcopy(data)]]
+    for _layer, layer in enumerate(model.layers):
+        if _layer == layer_num - 1:
+            intermidate_layer.append(layer_of_feed_forward(layer, intermidate_layer[-1], softmax))
+        else:
+            intermidate_layer.append(layer_of_feed_forward(layer, intermidate_layer[-1], relu))
+    # targetがある場合、精度検証
+    acc = 0
+    if target is not None:
+        for i, _data in enumerate(intermidate_layer[-1]):
+            print("data[{}]:{}->{} target:{} {}".format(
+                i, np.where(_data < 0.001, 0, _data), np.argmax(_data), np.argmax(target[i]),
+                "o" if np.argmax(_data)==np.argmax(target[i]) else "x"))
+            if np.argmax(_data)==np.argmax(target[i]):
+                acc += 1
+        acc /= len(intermidate_layer[-1])
+        print("acc: {}".format(acc))
+    return intermidate_layer # [i[0] for i in intermidate_layer]
+
+def _feed_forward(model, data, target=None):
+    np.set_printoptions(precision=2)
+    # 入力 -> BN -> kernel -> bias -> activation
+    epsilon = [1e-3 for _ in model.layers]
+    # print("epsilon:{}".format(epsilon))
+    weights = model.get_weights()
+    layer_num = len(weights) // 6
+    output_layer = layer_num - 1
+    intermidate_layer = [[] for _ in range(layer_num + 1)]
+    intermidate_layer[0] = [np.array(i) for i in copy.deepcopy(data)]
+
+    for _layer in range(len(weights)):
+        _inter_index = _layer // 6 + 1
+        intermidate_layer[_inter_index] = intermidate_layer[_inter_index - 1]
+        if _layer % 6 == 0: # BN計算
+            # normalization.py->__initのinitializerをいじれば4パラメータの内どれがどれか検証可能
+            gamma = np.array(weights[_layer])
+            beta = np.array(weights[_layer+1])
+            mean = np.array(weights[_layer+4])
+            var = np.array(weights[_layer+5])
+            _epsilon = np.array([epsilon[_layer // 6] for _ in range(len(mean))])
+            for i in range(len(intermidate_layer[_inter_index])):
+                intermidate_layer[_inter_index][i] =  ((intermidate_layer[_inter_index][i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
+        elif _layer % 6 == 2: # *重み
+            for i in range(len(intermidate_layer[_inter_index])):
+                intermidate_layer[_inter_index][i] = np.dot(np.array(intermidate_layer[_inter_index][i]), np.array(weights[_layer]))
+        elif _layer % 6 == 3:
+            # +バイアス & 活性化関数
+            for i in range(len(intermidate_layer[_inter_index])):
+                intermidate_layer[_inter_index][i] += weights[_layer]
+                # 活性化関数へ入力
+                if _layer // 6 == output_layer:
+                    intermidate_layer[_inter_index][i] = softmax(intermidate_layer[_inter_index][i])
+                else:
+                    intermidate_layer[_inter_index][i] = relu(intermidate_layer[_inter_index][i])
+    # targetがある場合、精度検証
+    if target is not None:
+        for i, _data in enumerate(intermidate_layer[-1]):
+            print("data[{}]:{}->{} target:{} {}".format(
+                i, np.where(_data < 0.001, 0, _data), np.argmax(_data), np.argmax(target[i]),
+                "o" if np.argmax(_data)==np.argmax(target[i]) else "x"))
+    return intermidate_layer # [i[0] for i in intermidate_layer]
+
+# 入出力層以外shrink
+def shrink_all_layer(_mlp, X_train, y_train, X_test, y_test):
+    _mlp = prune_and_update_mask(_mlp, X_train, y_train)
+    # 中間層不要ノード削除
+    from _tree_functions import _shrink_nodes
+    # 精度が下がらないノードは削除
+    for _shrink_with_acc in [True, False]:
+        for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights())) - 1):
+            X_train, y_train = shuffle_data(X_train, y_train)
+            print("shrink {}th layer".format(target_layer))
+            _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test,
+                                 shrink_with_acc=_shrink_with_acc)
+            kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
+            # 接続無し重みを削除する際は再学習不要（一応最後だけ再学習）
+            if _shrink_with_acc or target_layer == len(get_layer_size_from_weight(_mlp.get_weights())) - 2:
+                _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                         kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
+
+    _mlp.save_weights(cf.Save_mlp_path)
+    np.save(cf.Save_np_mlp_path, _mlp.get_weights())
+    print("saving weigths to -> {} {}".format(cf.Save_mlp_path, cf.Save_np_mlp_path))
+    return
+
+
+shrinked_flag = False
+
 
 class Main_test():
     def __init__(self):
@@ -1397,28 +1607,19 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
-        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
+        feed_forward(_mlp, X_train, y_train)
         exit()
+        # kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
+        # _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask, child_num=CHILD_NUM)
+        # feed_forward(_mlp, X_train, y_train)
+        # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=False)
 
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
         print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
         print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
         print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
-        _mlp = prune_and_update_mask(_mlp, X_train, y_train)
-        # 中間層不要ノード削除
-        from _tree_functions import _shrink_nodes
-        # 精度が下がらないノードは削除
-        for _shrink_with_acc in [True, False]:
-            for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights())) - 1):
-                X_train, y_train = shuffle_data(X_train, y_train)
-                print("shrink {}th layer".format(target_layer))
-                _mlp = _shrink_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test,
-                                     shrink_with_acc=_shrink_with_acc)
-                kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
-                # 接続無し重みを削除する際は再学習不要（一応最後だけ再学習）
-                if _shrink_with_acc or target_layer == len(get_layer_size_from_weight(_mlp.get_weights())) - 2:
-                    _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                             kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
+        if not shrinked_flag: # すでにshrinkしたモデルがあるならshrinked_flag==True
+            shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """
@@ -1921,6 +2122,7 @@ def arg_parse():
     parser.add_argument('--parity', dest='parity', action='store_true')
     parser.add_argument('--parity_shape', type=int)
     parser.add_argument('--child_num', type=int)
+    parser.add_argument('--shrinked', dest='shrinked', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -2053,6 +2255,9 @@ if __name__ == '__main__':
 
         dataset = "parity"
     dense_size[0] = input_size
+    if args.shrinked:
+        cf.Shrinked = "_shrinked"
+        shrinked_flag = True
     if args.binary_target >= 0:
         binary_flag = True
         binary_target = args.binary_target
