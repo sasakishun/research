@@ -1469,50 +1469,63 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     data = copy.deepcopy(data)
     bn_param = get_bn_parameter(model)
     kernel, bias = get_kernel_and_bias(model)
-
+    show_weight(model.get_weights(), comment="_layer_model")
     # 親ノードの出力
-    parent_out = layer_of_feed_forward(model, [data], parent_activation)[0][parent_node]
+    parent_outs = layer_of_feed_forward(model, [data], activation=parent_activation)[0]
+    parent_out = parent_outs[parent_node]
+    parent_outs_before_activation = layer_of_feed_forward(model, [data], activation=None)[0]
+    print("parent_outs_before_activation:{}".format(parent_outs_before_activation))
     # 親ノードの正解範囲
     parent_correct_range = correct_range_of2layer[1][parent_node]
-    print("parentout:{}".format(parent_out))
+    print("parent_out:{} parent_node:{}".format(parent_out, parent_node))
     # 子ノード番号リスト=child
     child = get_child_node(model, parent_layer=1, node=parent_node)
+    print("child:{}".format(child))
     # 子ノードの出力
     _child_out = data # feed_forward(model, data)[parent_layer - 1]
     child_out = [_child_out[i] for i in child]
     # 子ノードの正解範囲
     child_correct_range = [correct_range_of2layer[0][i] for i in child]
     print("\nchild_correct_range:{}".format(child_correct_range))
-    # 子ノード出力を正解範囲で変化させた場合の親ノード出力の変化範囲を計算
-    range_of_fluctuation = [[0,0] for _ in range(len(child))]
+
+    # 子ノード出力を正解範囲で変化させた場合の親ノード出力範囲を計算
+    range_of_fluctuation = [[0, 0] for _ in range(len(child))]
     for _child in child:
         for i, _child_correct_range in enumerate(child_correct_range[_child]):
-            _output = (_child_correct_range - bn_param["mean"][_child])\
+            _output = ((_child_correct_range - bn_param["mean"][_child])* bn_param["gamma"][_child])\
                       / (np.sqrt(bn_param["var"][_child] + bn_param["epsilon"]))\
-                      * bn_param["gamma"][_child] + bn_param["beta"][_child]
-            _output = _output * kernel[_child][parent_node]
+                      + bn_param["beta"][_child]
+            _output = _output * kernel[_child][parent_node] + bias[parent_node]
+            print("_output_before activation:{}".format(_output))
+            print("softmax input:{}".format([parent_outs_before_activation[i] if i != parent_node else _output
+                                             for i in range(len(parent_outs))]))
             if parent_activation == softmax:
-                parent_outs = layer_of_feed_forward(model, [data], activation=None)[0]
-                print("parent_outs:{}".format(parent_outs))
-                _output = parent_activation(np.array(
-                    [_output + bias[_child]] +
-                    [parent_outs[i] for i in range(len(parent_outs)) if i != parent_node]))[_child]
+                # softmaxに入れる順番がおかしい
+                _output = parent_activation(np.array([parent_outs_before_activation[i] if i != parent_node else _output
+                                                      for i in range(len(parent_outs))]))[parent_node]
             elif parent_activation == relu:
-                _output = parent_activation(_output + bias[_child])
-            range_of_fluctuation[_child][i] = _output - _child_out[_child]
+                _output = parent_activation(_output)
+            range_of_fluctuation[_child][i] = _output
+            print("_output:{}".format(_output))
     range_of_fluctuation = [sorted(i) for i in range_of_fluctuation]
     print("\nrange_of_fluctuation")
     for i in  range_of_fluctuation:
         print(i)
 
-    print("parent_out:{}".format(parent_out))
+    # parent_outにする場合
+    print("\nparent_out:{}".format(parent_out))
     print("parent_correct_range:{}".format(parent_correct_range))
     # 正方向に子ノードを変更する場合
     if parent_out < parent_correct_range[0]:
-        correct_amount = parent_correct_range[0] - parent_out
+        print("parent_out < parent_correct_range[0]")
+        correct_amount = parent_correct_range[0]#  - parent_out
     # 負方向に子ノードを変更する場合
+    elif parent_correct_range[1] < parent_out:
+        print("parent_correct_range[1] < parent_out")
+        correct_amount = parent_correct_range[1]#  - parent_out
     else:
-        correct_amount = parent_correct_range[1] - parent_out
+        print("parent_correct_range[0] < parent_out < parent_correct_range[1]")
+        correct_amount = parent_out
     print("\ncorrecct_amount:{}".format(correct_amount))
 
     # correct_amountだけ子ノードからの出力を増加させればよい
@@ -1525,20 +1538,33 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
         # correctable_amount = correct_amount=0.5 - 子ノードを修正した時の親ノードの変更可能範囲
         if correct_amount < range_of_fluctuation[_child][0]:
             correctable_amount = range_of_fluctuation[_child][0]
+            print("最小値にして異常ノード軽減")
         elif range_of_fluctuation[_child][1] < correct_amount:
             correctable_amount = range_of_fluctuation[_child][1]
+            print("最大値にして異常ノード軽減")
         else:
+            print("完全修復可能")
             # 完全修正可能
             correctable_amount = correct_amount
-
-        child_data[_child] += (correctable_amount / kernel[_child][parent_node] \
-                                * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"]))\
-                               / bn_param["gamma"][_child]
+        if parent_activation == softmax:
+            #
+            correctable_amount = arg_softmax([parent_outs_before_activation[i] for i in range(len(parent_outs_before_activation))
+                                               if i!= parent_node],
+                                              correctable_amount)
+            print("correctable_amount before softmax:{}".format(correctable_amount))
+            correctable_amount = (correctable_amount
+                                  - bias[parent_node]) / kernel[_child][parent_node]
+        child_data[_child] = ((correctable_amount - bn_param["beta"][_child])
+                              * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"]))\
+                             / bn_param["gamma"][_child] +bn_param["mean"][_child]
+        # child_data[_child] += (correctable_amount / kernel[_child][parent_node] \
+                               # * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"])) \
+                              # / bn_param["gamma"][_child]
 
     # 親ノード固定で子ノードだけ変更した結果を返す
     print("bad_child:{}".format(bad_child))
     print("child_out {} -> {}".format(data, child_data))
-    print("parent_outs {} -> {}".format(parent_outs, layer_of_feed_forward(model, [child_data], activation=None)[0]))
+    print("parent_outs {} -> {}".format(parent_outs, layer_of_feed_forward(model, [child_data], activation=parent_activation)[0]))
     return child_out
 
 # 入力: [ノード番号, ノード出力, ノードの正解範囲] * ノード数

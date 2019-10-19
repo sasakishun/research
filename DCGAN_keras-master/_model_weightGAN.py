@@ -56,6 +56,11 @@ def softmax(a):
     y = exp_a / sum_exp_a
     return y
 
+# softmax層出力(A, B, C)=outputsから、softmax層への入力(a, b, c)=inputsを逆算
+# a,b,cの内一つ以外指定し、その一つの入力を計算する
+def arg_softmax(inputs_removed_target, output):
+    return np.log(sum([np.exp(i) for i in inputs_removed_target])*output/(1 - output))
+
 
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
@@ -471,4 +476,7 @@ def get_tree_kernel_mask(hidden_size, child_num=2, show_mask=False):
     return kernel_mask
 
 if __name__ == '__main__':
-    mlp = tree_mlp(13, 3)
+    # mlp = tree_mlp(13, 3)
+    print(softmax([11, -20, 22]))
+    print(softmax([-19, -20, 22]))
+    print(softmax([0.40693525878330566,  -20.82664044877567, 22.328847296583998]))

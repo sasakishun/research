@@ -45,8 +45,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     for i in range(len(x) // 2):
         # print("len(x[{}]):{}".format(i, len(x[i])))
         if len(x[i]) > 0:
-            correct_range[i] = [[float("{:.2f}".format(min([x[i][k][j] for k in range(len(x[i]))]))),
-                                 float("{:.2f}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
+            correct_range[i] = [[float("{}".format(min([x[i][k][j] for k in range(len(x[i]))]))),
+                                 float("{}".format(max([x[i][k][j] for k in range(len(x[i]))])))]
                                 for j in range(len(x[i][0]))]
             # print("correct_range[{}]:{}".format(i, correct_range[i]))
 
