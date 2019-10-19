@@ -480,7 +480,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
 
 # 出力: shape(層数, クラス数, ノード数) -> 中身: 間違いノード番号のリスト
 def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"],
-                                    save_fig=True, get_each_color=False):
+                                    save_fig=True, get_each_color=False, get_intermidate_output=False):
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
                                 # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -496,7 +496,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
     # print("dataset_category:{}".format(dataset_category))
 
 
-    ### 正解データと不正解データに分割
+    ### 正解データと不正解データに分割 shape:(層数, クラス数, サンプル数, 中間層出力)
     train_intermediate_output = [[predict_intermidate_output(_mlp, [train_data[j]], i)# list(intermediate_layer_model[i].predict([train_data[j]]))
                                   if len(train_data[j]) > 0 else []
                                   for j in range(len(train_data))]
@@ -505,9 +505,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                  if len(test_data[j]) > 0 else []
                                  for j in range(len(test_data))]
                                 for i in range(len(model_shape))]
-
     out_of_ranges = []
-
     labels = [name[0] + "_class:{}".format(i) for i in range(output_size)] \
              + [name[1] + "_class:{}".format(i) for i in range(output_size)]
     ###入力を可視化
@@ -538,7 +536,10 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
         # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))
     ### 各層出力を可視化
-    return out_of_ranges
+    if get_intermidate_output:
+        return out_of_ranges, train_intermediate_output, test_intermediate_output
+    else:
+        return out_of_ranges
 
 
 def concate_elements(_list):

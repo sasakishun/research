@@ -105,7 +105,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # i % (len(labels) // 2) = 現在参照サンプルのクラス番号
                         target_class = i % (len(labels) // 2)
                         if get_each_color:
-                            print("_class:{} _node:{} _sample:{}".format(i % (len(labels) // 2), j, k))
+                            # print("_class:{} _node:{} _sample:{}".format(i % (len(labels) // 2), j, k))
                             if layer_type == "output": # 出力層の場合
                                 # 参照サンプルがsoftmax最大値ノードである場合
                                 if np.argmax(np.array([x[i][k][_node] for _node in range(input_size)])) == j:
@@ -115,8 +115,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                         out_of_range_with_color[target_class][j].append(
                                             {"sample": k, "color": colors[j], "value": _y[k],
                                              "correct_range":correct_range[target_class][j]})
-                                        print("output:{} i % (len(labels) // 2):{}"
-                                              .format(np.array([x[i][k][_node] for _node in range(input_size)]), i % (len(labels) // 2)))
+                                        # print("output:{} i % (len(labels) // 2):{}"
+                                              # .format(np.array([x[i][k][_node] for _node in range(input_size)]), i % (len(labels) // 2)))
                                     else:
                                         out_of_range_with_color[target_class][j].append(
                                             {"sample": k, "color": "white", "value": _y[k],
@@ -141,7 +141,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                         out_of_range_with_color[target_class][int(_x[k])].append(
                                             {"sample": k, "color": "gray", "value": _y[k],
                                              "correct_range":correct_range[target_class][int(_x[k])]})
-                                        print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
+                                        # print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
                                 # 正常ノードである場合
                                 else:
                                     out_of_range_with_color[target_class][int(_x[k])].append(
@@ -164,7 +164,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                         out_of_range_with_color[target_class][int(_x[k])].append(
                                             {"sample": k, "color": "gray", "value": _y[k],
                                              "correct_range":correct_range[target_class][int(_x[k])]})
-                                        print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
+                                        # print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
                                         # else:# 出力≒0
                                             # out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "white", "value": _y[k]})
                                             # print("white used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
