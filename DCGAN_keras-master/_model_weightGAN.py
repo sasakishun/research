@@ -61,6 +61,8 @@ def softmax(a):
 def arg_softmax(inputs_removed_target, output):
     return np.log(sum([np.exp(i) for i in inputs_removed_target])*output/(1 - output))
 
+def arg_relu(y):
+    return y
 
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
