@@ -64,6 +64,26 @@ def arg_softmax(inputs_removed_target, output):
 def arg_relu(y):
     return y
 
+def arg_bn(output, bn_param, show_parameter=False):
+    if show_parameter:
+        print("\nbn_param:{}\n".format({"beta": bn_param["beta"],
+                                        "mean": bn_param["mean"],
+                                        "gamma": bn_param["gamma"],
+                                        "var": bn_param["var"],
+                                        "epsilon": bn_param["epsilon"]}))
+    return ((output - bn_param["beta"]) * np.sqrt(bn_param["var"] + bn_param["epsilon"]))\
+           / bn_param["gamma"] + bn_param["mean"]
+
+def bn(x, bn_param, show_parameter=False):
+    if show_parameter:
+        print("\nbn_param:{}\n".format({"beta": bn_param["beta"],
+                                        "mean": bn_param["mean"],
+                                        "gamma": bn_param["gamma"],
+                                        "var": bn_param["var"],
+                                        "epsilon": bn_param["epsilon"]}))
+    return ((x-bn_param["mean"])/np.sqrt(bn_param["var"] + bn_param["epsilon"]))\
+           *bn_param["gamma"] + bn_param["beta"]
+
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
     abs_diffs = K.sum(K.abs(diffs), 2)

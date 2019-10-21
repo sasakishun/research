@@ -1341,7 +1341,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # if _class != 2 or _sample != 0:
                 # continue
             child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
-            for parent_nodes in [[1]]: # [[0],[1],[2]]:
+            ideal_hidden = []
+            for parent_nodes in [[1],[0],[2]]:
                 correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
                 print("correct_range_of2layer:{}".format(correct_range_of2layer))
                 # 出力層を補正、中間層を逆算的に調節
@@ -1353,20 +1354,25 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     print("\nname:{}".format(name))
                     print("parent_layer:{}".format(parent_layer))
                     print("child_data:{}".format(child_data))
-                    uncorrected_child_data = incorrect_intermediate_output[parent_layer][_class][_sample]
+                    child_data = incorrect_intermediate_output[parent_layer][_class][_sample]
                     child_nodes = []
+                    ideal_hidden = []
+
+                    # ここで更新したはずのchild_dataが別の子ノード更新で打ち消されてる
                     for parent_node in parent_nodes:
                         print("correctiong_child_node_of: parent_node[{}]".format(parent_node))
-                        child_data = correct_child_output(_mlp.layers[parent_layer], uncorrected_child_data, parent_layer,
+                        child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
                                                           parent_node, correct_range_of2layer, parent_activation)
                         child_nodes += get_child_node(_mlp, parent_layer+1, parent_node)
+                        print("12345 child_data:{}".format(child_data))
                     print("parent_nodes:{}".format(parent_nodes))
+                    ideal_hidden.append(copy.deepcopy(child_data))
                     parent_nodes = child_nodes
                     print("child_data:{}".format(child_data))
                     print("child_nodes:{}\n".format(child_nodes))
                     # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
                     correct_range_of2layer = get_correct_range(
-                        neuron_colors[_class][_sample][parent_layer-1:parent_layer + 1])
+                        copy.deepcopy(neuron_colors[_class][_sample][parent_layer-1:parent_layer + 1]))
                     if len(correct_range_of2layer) > 0:
                         for _node in range(model_shape[parent_layer]):
                             for i in range(2):
@@ -1383,9 +1389,15 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                                                     target_layer=layer)[0]
                                          for layer in range(len(model_shape))]
                 # print("corrected_intermidate:{}".format(corrected_intermidate))
-                for layer in range(len(corrected_intermidate)):
+                for layer in reversed(range(len(corrected_intermidate))):
                     print("hidden[{}]:{}".format(layer, list(corrected_intermidate[layer])))
                 child_data = corrected_intermidate[-2]
+
+            for i, _hidden in enumerate(reversed(ideal_hidden)):
+                print("\nideal_hidden[{}]:{}".format(i, _hidden))
+                out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
+                for _out in out:
+                    print("->{}".format(_out))
             exit()
 
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
@@ -1394,8 +1406,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 # for node in range(len(neuron_colors[_class][_sample][layer])):
                     # print("neuron_colors[{}][{}][{}][{}]\n{}".format(
                         # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
-            parsing_miss_node(_mlp, neuron_colors[_class][_sample])
-            correct_range = get_correct_range(neuron_colors[_class][_sample])
+            # parsing_miss_node(_mlp, neuron_colors[_class][_sample])
+            # correct_range = get_correct_range(neuron_colors[_class][_sample])
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
@@ -1519,21 +1531,18 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     child = get_child_node(model, parent_layer=1, node=parent_node)
     print("child:{}".format(child))
     # 子ノードの出力
-    _child_out = data # feed_forward(model, data)[parent_layer - 1]
+    _child_out = copy.deepcopy(data) # feed_forward(model, data)[parent_layer - 1]
     child_out = [_child_out[i] for i in child]
     # 子ノードの正解範囲
-    # child_correct_range = [correct_range_of2layer[0][i] for i in child]
     child_correct_range = correct_range_of2layer[0]
     print("\nchild_correct_range:{}".format(child_correct_range))
 
     # 子ノード出力を正解範囲で変化させた場合の親ノード出力範囲を、子ノードごとに計算
+    """
     range_of_fluctuation = [[{"parent":0, "child":0}, {"parent":0, "child":0}] for _ in range(len(data))]
     for _child in child:
-        # print("_child:{}".format(_child))
-        # print("child_correct_range:{}".format(child_correct_range))
         print("child_correct_range[{}]:{}".format(_child, child_correct_range[_child]))
         for i, _child_correct_range in enumerate(child_correct_range[_child]):
-            # 他の子ノードの出力も加算しなくてはならない->未実装
             _output = 0
             for _node in child:
                 _outputs = _child_correct_range if _node == _child else _child_out[_node]
@@ -1542,73 +1551,129 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
                           + bn_param["beta"][_node]
                 _output += _outputs * kernel[_node][parent_node]
             _output +=  bias[parent_node]
-
-            print("input to activation:{}".format([parent_outs_before_activation[i] if i != parent_node else _output
-                                             for i in range(len(parent_outs))]))
+            #print("input to activation:{}".format([parent_outs_before_activation[i] if i != parent_node else _output
+                                             #for i in range(len(parent_outs))]))
             if parent_activation.__name__ == "softmax":
-                print("\n\nsoftmax:{} is used in correct\n\n".format(parent_activation.__name__))
-                # softmaxに入れる順番がおかしい
+                # print("\n\nsoftmax:{} is used in correct\n\n".format(parent_activation.__name__))
                 _output = parent_activation(np.array([parent_outs_before_activation[i] if i != parent_node else _output
                                                       for i in range(len(parent_outs))]))[parent_node]
             elif parent_activation.__name__ == "relu":
                 _output = parent_activation(_output)
-            print("_output:{}".format(_output))
             range_of_fluctuation[_child][i] = {"parent":_output, "child":_child_correct_range}
-            # print("_output:{}".format(_output))
-        # range_of_fluctuation[_child][0] = min(range_of_fluctuation[_child][0], min(_child_range))
-        # range_of_fluctuation[_child][1] = max(range_of_fluctuation[_child][1], max(_child_range))
     range_of_fluctuation = [sorted(i, key=lambda i:i["parent"]) for i in range_of_fluctuation]
-    print("\nrange_of_fluctuation")
-    for i in  range_of_fluctuation:
-        print(i)
+    """
+    range_of_fluctuation = get_range_of_fluctuation(child, parent_node, copy.deepcopy(data), child_correct_range,
+                                                    bn_param, parent_activation, kernel, bias, parent_outs_before_activation)
 
+    # 正しく順伝播できているか算出 -> softmaxもreluもOK
+    """
+    for _child in child:
+        for i in range(2):
+            _tmp = copy.deepcopy(_child_out)
+            _tmp[_child] = range_of_fluctuation[_child][i]["child"]
+            print("\nparent_out:{} vs my feed forward:{}".format(layer_of_feed_forward(model, [_tmp], parent_activation),
+                                                                 range_of_fluctuation[_child][i]["parent"]))
+    """
     # parent_outにする場合
     print("\nparent_out:{}".format(parent_out))
     print("parent_correct_range:{}".format(parent_correct_range))
     # 正方向に子ノードを変更する場合
-    if parent_out < parent_correct_range[0]:
+    if parent_out < min(parent_correct_range):
         print("parent_out < parent_correct_range[0]")
-        correct_amount = parent_correct_range[0]#  - parent_out
+        correct_amount = min(parent_correct_range)#  - parent_out
     # 負方向に子ノードを変更する場合
-    elif parent_correct_range[1] < parent_out:
+    elif max(parent_correct_range) < parent_out:
         print("parent_correct_range[1] < parent_out")
-        correct_amount = parent_correct_range[1]#  - parent_out
+        correct_amount = max(parent_correct_range)#  - parent_out
     else:
         print("parent_correct_range[0] < parent_out < parent_correct_range[1]")
         correct_amount = parent_out
     print("\ncorrecct_amount:{}".format(correct_amount))
 
-    # correct_amountだけ子ノードからの出力を増加させればよい
     bad_child = bad_node_sorted([[child[i], child_out[i], child_correct_range[child[i]]] for i in range(len(child))])
 
     # 親ノードが正解に入るように子ノードを修正
     child_data = copy.deepcopy(data)
+    print("child_data:{}".format(child_data))
     for _child in bad_child:
         # 正解の範囲内でできる修正量を計算
-        # correctable_amount = correct_amount=0.5 - 子ノードを修正した時の親ノードの変更可能範囲
         if correct_amount < range_of_fluctuation[_child][0]["parent"]:
             correctable_amount = range_of_fluctuation[_child][0]["parent"]
             print("最小値:{}にして異常ノード軽減".format(correctable_amount))
         elif range_of_fluctuation[_child][1]["parent"] < correct_amount:
             correctable_amount = range_of_fluctuation[_child][1]["parent"]
-            # correct_amount -= range_of_fluctuation[_child_range][1]["parent"]
             print("最大値:{}にして異常ノード軽減".format(correctable_amount))
         else:
             correctable_amount = copy.deepcopy(correct_amount)
             print("完全修復可能:{}".format(correctable_amount))
+
+        print("correctable_amount:{}".format(correctable_amount))
         if parent_activation.__name__ == "softmax":
             correctable_amount = arg_softmax([parent_outs_before_activation[i] for i in range(len(parent_outs_before_activation))
                                                if i!= parent_node],
                                               correctable_amount)
-            print("correctable_amount before softmax:{}".format(correctable_amount))
+        elif parent_activation.__name__ == "relu":
+            correctable_amount = arg_relu(correctable_amount)
 
-        # 他のノードの出力も考慮しなくてはならない->未実装10/21
-        correctable_amount = (correctable_amount - bias[parent_node]) / kernel[_child][parent_node]
-        child_data[_child] = ((correctable_amount - bn_param["beta"][_child])
-                              * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"]))\
-                             / bn_param["gamma"][_child] +bn_param["mean"][_child]
+        print("correctable_amount:{} - other output".format(correctable_amount))
+        # 他のノードの出力も考慮
+        for _node in child:
+            print("node:{}".format(_node))
+            if _node == _child:
+                continue
+            print("     node:{}".format(_node))
+            correctable_amount -= bn(child_data[_node],
+                                         {"beta":bn_param["beta"][_node],
+                                          "mean":bn_param["mean"][_node],
+                                          "gamma":bn_param["gamma"][_node],
+                                          "var":bn_param["var"][_node],
+                                          "epsilon":bn_param["epsilon"]})\
+                                  * kernel[_node][parent_node]
+        print("correctable_amount:{} + bias:{}".format(correctable_amount, bias[parent_node]))
+        correctable_amount -= bias[parent_node]
+        print("correctable_amount:{}".format(correctable_amount))
+        correctable_amount /= kernel[_child][parent_node]
+        print("correctable_amount:{}".format(correctable_amount))
+        correctable_amount = arg_bn(correctable_amount,
+                                     {"beta":bn_param["beta"][_child],
+                                      "mean":bn_param["mean"][_child],
+                                      "gamma":bn_param["gamma"][_child],
+                                      "var":bn_param["var"][_child],
+                                      "epsilon":bn_param["epsilon"]})
+        print("correctable_amount:{}\n".format(correctable_amount))
+        child_data[_child] = correctable_amount
+        range_of_fluctuation = get_range_of_fluctuation(child, parent_node, child_data, child_correct_range,
+                                                        bn_param, parent_activation, kernel, bias, parent_outs_before_activation)
+        """
+        _output = 0
+        print("_output:{}".format(_output))
+        print("child_data:{}".format(child_data))
+        for _node in child:
+            _outputs = child_data[_node]
+            _outputs = ((_outputs - bn_param["mean"][_node]) * bn_param["gamma"][_node]) \
+                       / (np.sqrt(bn_param["var"][_node] + bn_param["epsilon"])) \
+                       + bn_param["beta"][_node]
+            _output += _outputs * kernel[_node][parent_node]
+        print("_output:{}".format(_output))
+        print("child_data:{}".format(child_data))
+        _output += bias[parent_node]
+        print("_output:{}".format(_output))
+        print("child_data:{}".format(child_data))
+        """
+        # print("input to activation:{}".format([parent_outs_before_activation[i] if i != parent_node else _output
+                                               # for i in range(len(parent_outs))]))
+        """
+        if parent_activation.__name__ == "softmax":
+            _output = parent_activation(np.array([parent_outs_before_activation[i] if i != parent_node else _output
+                                                  for i in range(len(parent_outs))]))[parent_node]
+        elif parent_activation.__name__ == "relu":
+            _output = parent_activation(_output)
+        print("_output:{}".format(_output))
+        print("child_data:{}".format(child_data))
+        print("child:{}",format(child))
         print("child_data[_child]:{} _child:{}".format(child_data[_child], _child))
-        # child_dataを更新後もう一度じゅんでんぱけいさんをしなくてはならない
+        """
+        # child_dataを更新後もう一度順伝播計算をしなくてはならない
         # child_data[_child] += (correctable_amount / kernel[_child][parent_node] \
                                # * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"])) \
                               # / bn_param["gamma"][_child]
@@ -1616,14 +1681,40 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     print("bad_child:{}".format(bad_child))
     print("child_out {} -> {}".format(data, child_data))
     print("parent_outs {} -> {}".format(parent_outs, layer_of_feed_forward(model, [child_data], activation=parent_activation)[0]))
-    if parent_activation.__name__ == "relu":
-        exit()
+    # if parent_activation.__name__ == "relu":
+        # exit()
     return child_data
 
+def get_range_of_fluctuation(child, parent_node, child_data, _child_correct_range, bn_param, parent_activation, kernel, bias, parent_outs_before_activation=None):
+    child_correct_range = copy.deepcopy(_child_correct_range)
+    range_of_fluctuation = [[{"parent":0, "child":0}, {"parent":0, "child":0}] for _ in range(len(child_data))]
+    for _child in child:
+        for i, _child_correct_range in enumerate(child_correct_range[_child]):
+            print("    i:{} _child:{} _child_correct_range:{}".format(i, _child, _child_correct_range))
+            _output = 0
+            for _node in child:
+                _outputs = _child_correct_range if _node == _child else child_data[_node]
+                _outputs = ((_outputs - bn_param["mean"][_node])* bn_param["gamma"][_node])\
+                          / (np.sqrt(bn_param["var"][_node] + bn_param["epsilon"]))\
+                          + bn_param["beta"][_node]
+                _output += _outputs * kernel[_node][parent_node]
+            _output +=  bias[parent_node]
+            if parent_activation.__name__ == "softmax":
+                _output = parent_activation(np.array([parent_outs_before_activation[i] if i != parent_node else _output
+                                                      for i in range(len(parent_outs_before_activation))]))[parent_node]
+            elif parent_activation.__name__ == "relu":
+                _output = parent_activation(_output)
+                print("        _output:{}".format(_output))
+            range_of_fluctuation[_child][i] = {"parent":_output, "child":_child_correct_range}
+    range_of_fluctuation = [sorted(i, key=lambda i:i["parent"]) for i in range_of_fluctuation]
+    print("\nrange_of_fluctuation")
+    for i in  range_of_fluctuation:
+        print(i)
+    return range_of_fluctuation
 # 入力: [ノード番号, ノード出力, ノードの正解範囲] * ノード数
 # 出力: 正解範囲から離れているノードを優先して前に持ってきたときのノード番号リスト
 def bad_node_sorted(nodes_child_out_correct_range):
-    return [nodes_child_out_correct_range[0][0]]
+    # return [nodes_child_out_correct_range[0][0]]
     return [i[0] for i in nodes_child_out_correct_range]
 
 # 親層の出力から子層の出力を逆算
@@ -1657,12 +1748,13 @@ def cariculate_target_to_input_of_layer(model, layer, parent_node, child_layer_o
 
 # 重みリストと入力を基に順伝播計算
 # 出力:各層の出力値リスト shape(層数, サンプル数) -> 中身: その層内ノードの出力リスト
-def feed_forward(model, data, target=None):
+def feed_forward(model, data, target=None, input_layer=0):
     np.set_printoptions(precision=2)
     # 入力 -> BN -> kernel -> bias -> activation
-    layer_num = len(model.layers)
+    layer_num = len(model.layers[input_layer:])
     intermidate_layer = [[np.array(i) for i in copy.deepcopy(data)]]
-    for _layer, layer in enumerate(model.layers):
+    for _layer, layer in enumerate(model.layers[input_layer:]):
+        # print("_layer:{} layer:{}".format(_layer, layer))
         if _layer == layer_num - 1:
             intermidate_layer.append(layer_of_feed_forward(layer, intermidate_layer[-1], softmax))
         else:
