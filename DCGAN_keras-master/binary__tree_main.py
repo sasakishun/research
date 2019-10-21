@@ -1601,6 +1601,8 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
                                                if i!= parent_node],
                                               correctable_amount)
             print("correctable_amount before softmax:{}".format(correctable_amount))
+
+        # 他のノードの出力も考慮しなくてはならない->未実装10/21
         correctable_amount = (correctable_amount - bias[parent_node]) / kernel[_child][parent_node]
         child_data[_child] = ((correctable_amount - bn_param["beta"][_child])
                               * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"]))\

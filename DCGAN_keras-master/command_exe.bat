@@ -1,3 +1,6 @@
+cls
+python binary__tree_main.py --wine --test --child_num 2 --shrinked
+goto end
 python binary__tree_main.py --wine --train --child_num 2
 python binary__tree_main.py --wine --test --child_num 2
 
