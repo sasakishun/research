@@ -1398,7 +1398,6 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
                 for _out in out:
                     print("->{}".format(_out))
-            exit()
 
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # print("class:{} sample:{}".format(_class, _sample_num))
@@ -1833,6 +1832,8 @@ def shrink_all_layer(_mlp, X_train, y_train, X_test, y_test):
                 _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
                                          kernel_mask=kernel_mask, bias_mask=bias_mask, epochs=cf.Iteration)
 
+    cf.Shrinked = "_shrinked"
+    cf.reload_path()
     _mlp.save_weights(cf.Save_mlp_path)
     np.save(cf.Save_np_mlp_path, _mlp.get_weights())
     print("saving weigths to -> {} {}".format(cf.Save_mlp_path, cf.Save_np_mlp_path))
@@ -1870,6 +1871,7 @@ class Main_test():
             shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
 
         # 意図的に間違いデータ作成
+        """
         bad_X_test = copy.deepcopy(X_test[0])
         bad_y_test = copy.deepcopy(y_test[0])
         print("X_test:{}".format(X_test))
@@ -1886,6 +1888,7 @@ class Main_test():
         y_test = np.array(y_test)
         print("X_test:{}".format(X_test))
         print("y_test:{}".format(y_test))
+        """
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """

@@ -26,8 +26,8 @@ class Neuron():
             _text_correct_range = pyplot.text(self.x + 4, self.y - 12, "[{:.2f}, {:.2f}]".format(
                 _color["correct_range"][0], _color["correct_range"][1]) if "correct_range" in _color else None,
                                               fontsize=neuron_radius * 10, color="gray")
-            """
             pyplot.gca()._add_text(_text_correct_range)
+            """
             if _color["color"] != "black": # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
                 if _color["color"] != "white":
