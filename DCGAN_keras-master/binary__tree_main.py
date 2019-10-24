@@ -19,6 +19,7 @@ from _tree_functions import *
 # import keras.backend.tensorflow_backend as KTF
 # import tensorflow as tf
 from draw_architecture import *
+from save_img_from_nparray import SaveImgFromList
 
 # config = tf.ConfigProto()
 # config.gpu_options.allow_growth = True
@@ -1342,9 +1343,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 # continue
             child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
             ideal_hidden = []
-            for parent_nodes in [[1],[0],[2]]:
+            print("output_nodes:{}".format([[i] for i in range(model_shape[-1]) if i != _class] + [[_class]]))
+            for _parent_nodes in [[i] for i in range(model_shape[-1]) if i != _class] + [[_class]]:
                 correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
                 print("correct_range_of2layer:{}".format(correct_range_of2layer))
+                parent_nodes = copy.deepcopy(_parent_nodes)
                 # 出力層を補正、中間層を逆算的に調節
                 for parent_layer in reversed(range(len(_mlp.layers))):
                     if parent_layer == len(_mlp.layers) - 1:
@@ -1354,7 +1357,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     print("\nname:{}".format(name))
                     print("parent_layer:{}".format(parent_layer))
                     print("child_data:{}".format(child_data))
-                    child_data = incorrect_intermediate_output[parent_layer][_class][_sample]
+                    child_data = copy.deepcopy(incorrect_intermediate_output[parent_layer][_class][_sample])
                     child_nodes = []
                     ideal_hidden = []
 
@@ -1380,10 +1383,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         print("correct_range_of2layer:{}".format(correct_range_of2layer))
                     else:
                         print("finished at parent_layer:{}".format(parent_layer))
+                np.set_printoptions(precision=2)
                 print("child_data:{}".format(child_data))
                 print("before_corrected")
-                for layer in range(len(incorrect_intermediate_output)):
-                    print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
+                for layer in reversed(range(len(incorrect_intermediate_output))):
+                    print("hidden[{}]:{}".format(layer, incorrect_intermediate_output[layer][_class][_sample]))
                 print("after_corrected")
                 corrected_intermidate = [predict_intermidate_output(_mlp, [[child_data]],
                                                                     target_layer=layer)[0]
@@ -1393,11 +1397,23 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     print("hidden[{}]:{}".format(layer, list(corrected_intermidate[layer])))
                 child_data = corrected_intermidate[-2]
 
+            # 修正前と後の画像を連結表示
+            SaveImgFromList([np.array(incorrect_intermediate_output[0][_class])[_sample], np.array(child_data)],
+                            np.array([Height, Width]),
+                            tag=["original[{}]".format(np.argmax(incorrect_intermediate_output[-1][_class])[_sample]),
+                                 "corrected[{}]".format(np.argmax(feed_forward(_mlp, [child_data], target=None)))],
+                            comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
+
+            # SaveImgFromList(np.array(corrected_intermidate[0]), np.array([Height, Width]),
+                            # comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
+            # SaveImgFromList(np.array(incorrect_intermediate_output[0][_class][_sample]),
+                            # np.array([Height, Width]), comment="uncorrected_class[{}]_sample[{}]".format(_class, _sample))()
             for i, _hidden in enumerate(reversed(ideal_hidden)):
                 print("\nideal_hidden[{}]:{}".format(i, _hidden))
                 out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
                 for _out in out:
                     print("->{}".format(_out))
+            # exit()
 
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # print("class:{} sample:{}".format(_class, _sample_num))
@@ -1871,24 +1887,23 @@ class Main_test():
             shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
 
         # 意図的に間違いデータ作成
-        """
-        bad_X_test = copy.deepcopy(X_test[0])
-        bad_y_test = copy.deepcopy(y_test[0])
-        print("X_test:{}".format(X_test))
-        print("y_test:{}".format(y_test))
-        print("bad_X_test:{}".format(bad_X_test))
-        print("bad_y_test:{}".format(bad_y_test))
-        X_test = list(X_test)
-        y_test = list(y_test)
-        bad_X_test[4] = 11.
-        bad_X_test[5] = 12.
-        X_test.append(bad_X_test)
-        y_test.append(bad_y_test)
-        X_test = np.array(X_test)
-        y_test = np.array(y_test)
-        print("X_test:{}".format(X_test))
-        print("y_test:{}".format(y_test))
-        """
+        if input_size == 13:
+            bad_X_test = copy.deepcopy(X_test[0])
+            bad_y_test = copy.deepcopy(y_test[0])
+            print("X_test:{}".format(X_test))
+            print("y_test:{}".format(y_test))
+            print("bad_X_test:{}".format(bad_X_test))
+            print("bad_y_test:{}".format(bad_y_test))
+            X_test = list(X_test)
+            y_test = list(y_test)
+            bad_X_test[4] = 11.
+            bad_X_test[5] = 12.
+            X_test.append(bad_X_test)
+            y_test.append(bad_y_test)
+            X_test = np.array(X_test)
+            y_test = np.array(y_test)
+            print("X_test:{}".format(X_test))
+            print("y_test:{}".format(y_test))
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """
@@ -2457,8 +2472,8 @@ if __name__ == '__main__':
         iris = load_iris()
         dataset = "iris"
     elif args.digits:
-        Height = 1
-        Width = 64
+        Height = 8
+        Width = 8
         Channel = 1
         input_size = Height * Width * Channel
         output_size = 10

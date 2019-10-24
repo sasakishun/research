@@ -18,3 +18,4 @@ DCGAN_keras-master/visualized_iris/
 *.csv
 segm/data/
 DCGAN_keras-master/log/
+DCGAN_keras-master/corrected_img/

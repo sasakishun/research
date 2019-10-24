@@ -1,4 +1,10 @@
 cls
+python binary__tree_main.py --digit --test --child_num 8 --shrinked
+goto end
+
+python binary__tree_main.py --mnist --test --child_num 112 --shrinked
+goto end
+
 python binary__tree_main.py --iris --test --child_num 2 --shrinked
 python binary__tree_main.py --wine --test --child_num 2 --shrinked
 

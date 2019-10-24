@@ -64,13 +64,17 @@ def arg_softmax(inputs_removed_target, output):
 def arg_relu(y):
     return y
 
-def arg_bn(output, bn_param, show_parameter=False):
+def arg_bn(output, bn_param, show_parameter=True):
     if show_parameter:
         print("\nbn_param:{}\n".format({"beta": bn_param["beta"],
                                         "mean": bn_param["mean"],
                                         "gamma": bn_param["gamma"],
                                         "var": bn_param["var"],
                                         "epsilon": bn_param["epsilon"]}))
+    # gamma == 0の場合に0除算発生->出力がnan
+    if bn_param["gamma"] == 0:
+        print("output:{}".format(output))
+        return 0
     return ((output - bn_param["beta"]) * np.sqrt(bn_param["var"] + bn_param["epsilon"]))\
            / bn_param["gamma"] + bn_param["mean"]
 
