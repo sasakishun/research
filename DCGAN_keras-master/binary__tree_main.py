@@ -1342,6 +1342,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # if _class != 2 or _sample != 0:
                 # continue
             child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
+            corrected_input = []
             ideal_hidden = []
             print("output_nodes:{}".format([[i] for i in range(model_shape[-1]) if i != _class] + [[_class]]))
             for _parent_nodes in [[i] for i in range(model_shape[-1]) if i != _class] + [[_class]]:
@@ -1392,16 +1393,19 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 corrected_intermidate = [predict_intermidate_output(_mlp, [[child_data]],
                                                                     target_layer=layer)[0]
                                          for layer in range(len(model_shape))]
+                corrected_input.append(copy.deepcopy(child_data))
                 # print("corrected_intermidate:{}".format(corrected_intermidate))
                 for layer in reversed(range(len(corrected_intermidate))):
                     print("hidden[{}]:{}".format(layer, list(corrected_intermidate[layer])))
                 child_data = corrected_intermidate[-2]
 
             # 修正前と後の画像を連結表示
-            SaveImgFromList([np.array(incorrect_intermediate_output[0][_class])[_sample], np.array(child_data)],
+            SaveImgFromList([np.array(incorrect_intermediate_output[0][_class][_sample])]+
+                            [np.array(i) for i in corrected_input],
                             np.array([Height, Width]),
-                            tag=["original[{}]".format(np.argmax(incorrect_intermediate_output[-1][_class])[_sample]),
-                                 "corrected[{}]".format(np.argmax(feed_forward(_mlp, [child_data], target=None)))],
+                            tag=["orig[{}]".format(np.argmax(incorrect_intermediate_output[-1][_class][_sample]))]+
+                                ["after[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
+                                 for i in corrected_input],
                             comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
 
             # SaveImgFromList(np.array(corrected_intermidate[0]), np.array([Height, Width]),
