@@ -53,7 +53,7 @@ dataset_category = 10
 no_mask = False
 dense_size = [64, 60, 32, 16, 10]
 CHILD_NUM = 2
-IS_IMAGE = False
+
 
 def krkopt_data():
     _train = [[], []]
@@ -164,7 +164,7 @@ def standardize(X_train, X_test):
     return X_train, X_test
 
 
-def wine_data():
+def wine_data(train_flag=True):
     ### .dataファイルを読み込む
     _data = open(os.getcwd() + r"\wine.data", "r")
     lines = _data.readlines()
@@ -294,7 +294,7 @@ def balance_data():
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
 
-def digits_data(binary_flag=False):
+def digits_data(binary_flag=False, train_flag=True):
     # if binary_target is None:
     # print("Error : Please input binary_target")
     # exit()
@@ -444,7 +444,6 @@ def cifar10_data():
     print("y_train:{} y_test:{}".format(y_train.shape, y_test.shape))
     return X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite
 
-
 def my_tqdm(ite):
     ### 学習進行状況表示
     con = '|'
@@ -462,15 +461,15 @@ def my_tqdm(ite):
     return con
 
 
-def getdata(dataset, binary_flag):
+def getdata(dataset, binary_flag, train_frag=True):
     if dataset == "iris":
         return iris_data()
     elif dataset == "mnist":
         return mnist_data()
     elif dataset == "digits":
-        return digits_data(binary_flag=binary_flag)
+        return digits_data(binary_flag=binary_flag, train_flag=train_frag)
     elif dataset == "wine":
-        return wine_data()
+        return wine_data(train_flag=train_frag)
     elif dataset == "balance":
         return balance_data()
     elif dataset == "parity":
@@ -614,7 +613,7 @@ def batchNormalization_is_used(_weights):
 # BN使用可において,kernel始まりのインデックスと,[BN,kernel,bias]の1層あたりの重み長さを返す
 def get_kernel_start_index_and_set_size(_mlp):
     kernel_start = 0
-    set_size = 6  # 自分で指定（MLPならBNパラメータ4層+kernel+bias=6層）
+    set_size = 6 # 自分で指定（MLPならBNパラメータ4層+kernel+bias=6層）
     _weights = _mlp.get_weights()
     for i, _weight in enumerate(_weights):
         if _weight.ndim == 2:
@@ -717,7 +716,7 @@ def set_weights(_mlp, _weights):
 
 # 入力:mlpオブジェクト->重みを返す,入力:weightsリスト->そのまま返す
 def model2weights(_mlp):
-    if str(type(_mlp)) == "<class 'keras.engine.training.Model'>" \
+    if str(type(_mlp)) == "<class 'keras.engine.training.Model'>"\
             or str(type(_mlp)) == "<class 'keras.engine.sequential.Sequential'>":
         return _mlp.get_weights()
     elif str(type(_mlp)) != "list":
@@ -776,19 +775,18 @@ class Main_train():
 
     def train(self, load_model=False, use_mbd=False):
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
-            = getdata(dataset, binary_flag=binary_flag)
+            = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         # X_train, y_train = shuffle_data(X_train, y_train)
 
         ### これだとBNが正しく機能するが、内部処理不明 -> 要分析
         K.set_learning_phase(0)
         ### これだとBNが正しく機能する
-        kernel_mask = get_tree_kernel_mask(
-            calculate_tree_shape(input_size, output_size, child_num=CHILD_NUM, is_image=IS_IMAGE),
-            child_num=CHILD_NUM, show_mask=True, is_image=IS_IMAGE)
+        kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size, child_num=CHILD_NUM),
+                                           child_num=CHILD_NUM, show_mask=True)
         # visualize_network(weights=kernel_mask)
 
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask,
-                        child_num=CHILD_NUM, is_image=IS_IMAGE)  # myMLP(13, [5, 4, 2], 3)
+                        child_num=CHILD_NUM)  # myMLP(13, [5, 4, 2], 3)
         for i in range(5):
             X_train, y_train = shuffle_data(X_train, y_train)
             # モデル学習
@@ -1213,8 +1211,8 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
 # 出力 : shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
 def get_miss_nodes(out_of_ranges):
     # for _layer in range(len(out_of_ranges)):  # 層番号
-    # for _class in range(len(out_of_ranges[_layer])):  # クラス番号
-    # print("out_of_ranges[{}][{}]:{}".format(_layer, _class, out_of_ranges[_layer][_class]))
+        # for _class in range(len(out_of_ranges[_layer])):  # クラス番号
+            # print("out_of_ranges[{}][{}]:{}".format(_layer, _class, out_of_ranges[_layer][_class]))
 
     # 間違いサンプル数を取得
     class_num = len(out_of_ranges[-1][0])
@@ -1257,19 +1255,19 @@ def get_miss_nodes(out_of_ranges):
             for _node in range(len(out_of_ranges[_layer][_class])):  # ノード番号(0,1,2,3....)
                 for _sample in out_of_ranges[_layer][_class][_node]:  # ミスサンプル番号
                     # print("_class:{}  _sample:{} _layer:{} _node:{}".format(_class, _sample, _layer, _node))
-                    miss_nodes[_class][sample_num_to_index[_class][str(_sample["sample"])]][_layer] \
+                    miss_nodes[_class][sample_num_to_index[_class][str(_sample["sample"])]][_layer]\
                         .append({"node": _node, "color": _sample["color"],
-                                 "value": _sample["value"] if "value" in _sample else None,
-                                 "correct_range": _sample["correct_range"] if "correct_range" in _sample else None})
+                                 "value":_sample["value"] if "value" in _sample else None,
+                                 "correct_range":_sample["correct_range"] if "correct_range" in _sample else None})
     return miss_nodes, sample_num_to_index
 
 
 # 入力 : shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
 # 出力 : shape(クラス数, サンプル数, 層数, ノード数)->色(ミスノードだけクラス色、それ以外は黒)
 def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
-    neuron_colors = [[[[[{"color": "black", "node": _node}] for _node in range(i)] for i in layer_sizes]
-                      for _sample in range(len(out_of_ranges[_class]))]
-                     for _class in range(len(out_of_ranges))]
+    neuron_colors = [[[[[{"color":"black", "node":_node}] for _node in range(i)] for i in layer_sizes]
+                       for _sample in range(len(out_of_ranges[_class]))]
+                      for _class in range(len(out_of_ranges))]
     """
     for _class in range(len(neuron_colors)):
         print("_class:{}".format(_class))
@@ -1283,8 +1281,7 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
             for _layer in range(len(out_of_ranges[_class][_sample])):
                 for _neuron in out_of_ranges[_class][_sample][_layer]:
                     # print("\n_class:{} _sample:{} _layer:{} _neuron:{}".format(_class, _sample, _layer, _neuron))
-                    neuron_colors[_class][_sample][_layer][_neuron["node"]].append(
-                        _neuron)  # _neuron["color"])  # colors[_class]
+                    neuron_colors[_class][_sample][_layer][_neuron["node"]].append(_neuron) # _neuron["color"])  # colors[_class]
     return neuron_colors
 
 
@@ -1292,22 +1289,14 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["correct_train", "miss_test"]):
     get_each_color = True
-    each_color, corret_intermediate_output, incorrect_intermediate_output = show_intermidate_train_and_test(correct[0],
-                                                                                                            correct[1],
-                                                                                                            incorrect[
-                                                                                                                0],
-                                                                                                            incorrect[
-                                                                                                                1],
-                                                                                                            _mlp,
-                                                                                                            name=name,
-                                                                                                            save_fig=False,
-                                                                                                            get_each_color=get_each_color,
-                                                                                                            get_intermidate_output=True)
+    each_color, corret_intermediate_output, incorrect_intermediate_output = show_intermidate_train_and_test(correct[0], correct[1],
+                                                 incorrect[0], incorrect[1],
+                                                 _mlp, name=name, save_fig=False, get_each_color=get_each_color, get_intermidate_output=True)
     model_shape = get_layer_size_from_weight(_mlp.get_weights())
     # for _class in range(len(each_color)):
-    # for _layer in range(len(each_color[_class])):
-    # for _node in range(len(each_color[_class][_layer])):
-    # print("each_color[{}][{}][{}]:{}".format(_class, _layer, _node, each_color[_class][_layer][_node]))
+        # for _layer in range(len(each_color[_class])):
+            # for _node in range(len(each_color[_class][_layer])):
+                # print("each_color[{}][{}][{}]:{}".format(_class, _layer, _node, each_color[_class][_layer][_node]))
     """
     print("each_color:{}".format(each_color))
     print("name:{}".format(name))
@@ -1338,7 +1327,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                                                   get_layer_size_from_weight(_mlp.get_weights()))
     # print("\nneuron_colors")
     # for i in range(len(neuron_colors)):
-    # print(neuron_colors[i])
+        # print(neuron_colors[i])
 
     X_train = original_data[0]
     y_train = original_data[1]
@@ -1350,7 +1339,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         for _sample in range(len(neuron_colors[_class])):
             for layer in range(len(incorrect_intermediate_output)):
                 print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
-                # if _class != 2 or _sample != 0:
+            # if _class != 2 or _sample != 0:
                 # continue
             child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
             corrected_input = []
@@ -1378,7 +1367,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         print("correctiong_child_node_of: parent_node[{}]".format(parent_node))
                         child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
                                                           parent_node, correct_range_of2layer, parent_activation)
-                        child_nodes += get_child_node(_mlp, parent_layer + 1, parent_node)
+                        child_nodes += get_child_node(_mlp, parent_layer+1, parent_node)
                         print("12345 child_data:{}".format(child_data))
                     print("parent_nodes:{}".format(parent_nodes))
                     ideal_hidden.append(copy.deepcopy(child_data))
@@ -1387,7 +1376,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     print("child_nodes:{}\n".format(child_nodes))
                     # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
                     correct_range_of2layer = get_correct_range(
-                        copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
+                        copy.deepcopy(neuron_colors[_class][_sample][parent_layer-1:parent_layer + 1]))
                     if len(correct_range_of2layer) > 0:
                         for _node in range(model_shape[parent_layer]):
                             for i in range(2):
@@ -1411,18 +1400,18 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 child_data = corrected_intermidate[-2]
 
             # 修正前と後の画像を連結表示
-            SaveImgFromList([np.array(incorrect_intermediate_output[0][_class][_sample])] +
+            SaveImgFromList([np.array(incorrect_intermediate_output[0][_class][_sample])]+
                             [np.array(i) for i in corrected_input],
                             np.array([Height, Width]),
-                            tag=["orig[{}]".format(np.argmax(incorrect_intermediate_output[-1][_class][_sample]))] +
-                                ["after[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
+                            tag=["[{}]->[{}]".format(_class, np.argmax(incorrect_intermediate_output[-1][_class][_sample]))]+
+                                ["[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
                                  for i in corrected_input],
                             comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
 
             # SaveImgFromList(np.array(corrected_intermidate[0]), np.array([Height, Width]),
-            # comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
+                            # comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
             # SaveImgFromList(np.array(incorrect_intermediate_output[0][_class][_sample]),
-            # np.array([Height, Width]), comment="uncorrected_class[{}]_sample[{}]".format(_class, _sample))()
+                            # np.array([Height, Width]), comment="uncorrected_class[{}]_sample[{}]".format(_class, _sample))()
             for i, _hidden in enumerate(reversed(ideal_hidden)):
                 print("\nideal_hidden[{}]:{}".format(i, _hidden))
                 out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
@@ -1433,9 +1422,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # print("class:{} sample:{}".format(_class, _sample_num))
             # for layer in range(len(neuron_colors[_class][_sample])):
-            # for node in range(len(neuron_colors[_class][_sample][layer])):
-            # print("neuron_colors[{}][{}][{}][{}]\n{}".format(
-            # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
+                # for node in range(len(neuron_colors[_class][_sample][layer])):
+                    # print("neuron_colors[{}][{}][{}][{}]\n{}".format(
+                        # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
             # parsing_miss_node(_mlp, neuron_colors[_class][_sample])
             # correct_range = get_correct_range(neuron_colors[_class][_sample])
             visualize_network(
@@ -1446,7 +1435,6 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 neuron_color=neuron_colors[_class][_sample])
             # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     return
-
 
 # 入力: Model, あるクラス、あるサンプルのノード色->shape(層番号, ノード番号)
 def parsing_miss_node(model, neuron_colors_of_sample):
@@ -1459,12 +1447,11 @@ def parsing_miss_node(model, neuron_colors_of_sample):
             print("miss_parent:{}".format(miss_node))
         for _node in range(len(neuron_colors_of_sample[_layer])):
             child_node = get_child_node(model, parent_layer=_layer, node=_node)
-            miss_child = list(set(miss_node) & set(child_node))
+            miss_child = list(set(miss_node)&set(child_node))
             # print("child_node:{}".format(child_node))
             if len(miss_child) > 0:
                 print("parent:{} layer:{} miss_child:{}\n".format(_node, _layer, miss_child))
     return
-
 
 # 特定層の色付きノード番号を取得
 def get_colorized_node(neuron_color_in_layer):
@@ -1475,10 +1462,9 @@ def get_colorized_node(neuron_color_in_layer):
                 colorized_node.append(i)
     return colorized_node
 
-
 # 特定層の子ノード番号を取得
 def get_child_node(model, parent_layer, node):
-    child_layer = parent_layer - 1
+    child_layer = parent_layer-1
     kernel, bias = get_kernel_bias_mask(model)
     child_node = []
     # print("parent_layer:{} kernel[{}]:\n{}".format(parent_layer, child_layer, kernel[child_layer]))
@@ -1486,7 +1472,6 @@ def get_child_node(model, parent_layer, node):
         if kernel[child_layer][_child][node] != 0:
             child_node.append(_child)
     return child_node
-
 
 # 正解範囲の行列(層数, ノード数)を返す
 def get_correct_range(neuron_colors_of_sample):
@@ -1515,12 +1500,12 @@ def layer_of_feed_forward(layer, data, activation=None, target=None):
     mean = np.array(weights[2])
     var = np.array(weights[3])
     # for i in ["gamma", "beta", "mean", "var"]:
-    # print("{}: {}".format(i, eval(i)))
+        # print("{}: {}".format(i, eval(i)))
     epsilon = 1e-3
     _epsilon = np.array([epsilon for _ in range(len(mean))])
     # BN計算
     for i in range(len(output)):
-        output[i] = ((output[i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
+        output[i] =  ((output[i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
     # *重み
     for i in range(len(output)):
         output[i] = np.dot(np.array(output[i]), np.array(weights[4]))
@@ -1531,7 +1516,6 @@ def layer_of_feed_forward(layer, data, activation=None, target=None):
     # print("output:{}".format(np.shape(output)))
     return output
 
-
 # batch_normalizatonのパラメータを返す
 def get_bn_parameter(layer_model):
     weights = layer_model.get_weights()
@@ -1541,8 +1525,7 @@ def get_bn_parameter(layer_model):
     mean = np.array(weights[2])
     var = np.array(weights[3])
     epsilon = 1e-3
-    return {"gamma": gamma, "beta": beta, "mean": mean, "var": var, "epsilon": epsilon}
-
+    return {"gamma":gamma, "beta":beta, "mean":mean, "var":var, "epsilon":epsilon}
 
 # 子ノードの出力補正
 # 入力: 層モデル, 1訓練データ , 親層番号, 親ノード番号, 親ノードと子ノードの正解範囲
@@ -1550,7 +1533,7 @@ def get_bn_parameter(layer_model):
 # 出力: 入力補正した子ノード層の出力
 def correct_child_output(model, data, parent_layer, parent_node, correct_range_of2layer, parent_activation):
     # if parent_layer == 0:
-    # return data
+        # return data
     data = copy.deepcopy(data)
     bn_param = get_bn_parameter(model)
     kernel, bias = get_kernel_and_bias(model)
@@ -1567,7 +1550,7 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     child = get_child_node(model, parent_layer=1, node=parent_node)
     print("child:{}".format(child))
     # 子ノードの出力
-    _child_out = copy.deepcopy(data)  # feed_forward(model, data)[parent_layer - 1]
+    _child_out = copy.deepcopy(data) # feed_forward(model, data)[parent_layer - 1]
     child_out = [_child_out[i] for i in child]
     # 子ノードの正解範囲
     child_correct_range = correct_range_of2layer[0]
@@ -1599,8 +1582,7 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     range_of_fluctuation = [sorted(i, key=lambda i:i["parent"]) for i in range_of_fluctuation]
     """
     range_of_fluctuation = get_range_of_fluctuation(child, parent_node, copy.deepcopy(data), child_correct_range,
-                                                    bn_param, parent_activation, kernel, bias,
-                                                    parent_outs_before_activation)
+                                                    bn_param, parent_activation, kernel, bias, parent_outs_before_activation)
 
     # 正しく順伝播できているか算出 -> softmaxもreluもOK
     """
@@ -1617,17 +1599,18 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     # 正方向に子ノードを変更する場合
     if parent_out < min(parent_correct_range):
         print("parent_out < parent_correct_range[0]")
-        correct_amount = min(parent_correct_range)  # - parent_out
+        correct_amount = min(parent_correct_range)#  - parent_out
     # 負方向に子ノードを変更する場合
     elif max(parent_correct_range) < parent_out:
         print("parent_correct_range[1] < parent_out")
-        correct_amount = max(parent_correct_range)  # - parent_out
+        correct_amount = max(parent_correct_range)#  - parent_out
     else:
         print("parent_correct_range[0] < parent_out < parent_correct_range[1]")
         correct_amount = parent_out
     print("\ncorrecct_amount:{}".format(correct_amount))
 
-    bad_child = bad_node_sorted([[child[i], child_out[i], child_correct_range[child[i]]] for i in range(len(child))])
+    bad_child = bad_node_sorted([[child[i], range_of_fluctuation[child[i]]] for i in range(len(child))],
+                                correct_amount)
 
     # 親ノードが正解に入るように子ノードを修正
     child_data = copy.deepcopy(data)
@@ -1646,10 +1629,9 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
 
         print("correctable_amount:{}".format(correctable_amount))
         if parent_activation.__name__ == "softmax":
-            correctable_amount = arg_softmax(
-                [parent_outs_before_activation[i] for i in range(len(parent_outs_before_activation))
-                 if i != parent_node],
-                correctable_amount)
+            correctable_amount = arg_softmax([parent_outs_before_activation[i] for i in range(len(parent_outs_before_activation))
+                                               if i!= parent_node],
+                                              correctable_amount)
         elif parent_activation.__name__ == "relu":
             correctable_amount = arg_relu(correctable_amount)
 
@@ -1661,11 +1643,11 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
                 continue
             print("     node:{}".format(_node))
             correctable_amount -= bn(child_data[_node],
-                                     {"beta": bn_param["beta"][_node],
-                                      "mean": bn_param["mean"][_node],
-                                      "gamma": bn_param["gamma"][_node],
-                                      "var": bn_param["var"][_node],
-                                      "epsilon": bn_param["epsilon"]}) \
+                                         {"beta":bn_param["beta"][_node],
+                                          "mean":bn_param["mean"][_node],
+                                          "gamma":bn_param["gamma"][_node],
+                                          "var":bn_param["var"][_node],
+                                          "epsilon":bn_param["epsilon"]})\
                                   * kernel[_node][parent_node]
         print("correctable_amount:{} + bias:{}".format(correctable_amount, bias[parent_node]))
         correctable_amount -= bias[parent_node]
@@ -1673,16 +1655,15 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
         correctable_amount /= kernel[_child][parent_node]
         print("correctable_amount:{}".format(correctable_amount))
         correctable_amount = arg_bn(correctable_amount,
-                                    {"beta": bn_param["beta"][_child],
-                                     "mean": bn_param["mean"][_child],
-                                     "gamma": bn_param["gamma"][_child],
-                                     "var": bn_param["var"][_child],
-                                     "epsilon": bn_param["epsilon"]})
+                                     {"beta":bn_param["beta"][_child],
+                                      "mean":bn_param["mean"][_child],
+                                      "gamma":bn_param["gamma"][_child],
+                                      "var":bn_param["var"][_child],
+                                      "epsilon":bn_param["epsilon"]})
         print("correctable_amount:{}\n".format(correctable_amount))
         child_data[_child] = correctable_amount
         range_of_fluctuation = get_range_of_fluctuation(child, parent_node, child_data, child_correct_range,
-                                                        bn_param, parent_activation, kernel, bias,
-                                                        parent_outs_before_activation)
+                                                        bn_param, parent_activation, kernel, bias, parent_outs_before_activation)
         """
         _output = 0
         print("_output:{}".format(_output))
@@ -1700,7 +1681,7 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
         print("child_data:{}".format(child_data))
         """
         # print("input to activation:{}".format([parent_outs_before_activation[i] if i != parent_node else _output
-        # for i in range(len(parent_outs))]))
+                                               # for i in range(len(parent_outs))]))
         """
         if parent_activation.__name__ == "softmax":
             _output = parent_activation(np.array([parent_outs_before_activation[i] if i != parent_node else _output
@@ -1714,53 +1695,55 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
         """
         # child_dataを更新後もう一度順伝播計算をしなくてはならない
         # child_data[_child] += (correctable_amount / kernel[_child][parent_node] \
-        # * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"])) \
-        # / bn_param["gamma"][_child]
+                               # * np.sqrt(bn_param["var"][_child] + bn_param["epsilon"])) \
+                              # / bn_param["gamma"][_child]
     # 親ノード固定で子ノードだけ変更した結果を返す
     print("bad_child:{}".format(bad_child))
     print("child_out {} -> {}".format(data, child_data))
-    print("parent_outs {} -> {}".format(parent_outs,
-                                        layer_of_feed_forward(model, [child_data], activation=parent_activation)[0]))
+    print("parent_outs {} -> {}".format(parent_outs, layer_of_feed_forward(model, [child_data], activation=parent_activation)[0]))
     # if parent_activation.__name__ == "relu":
-    # exit()
+        # exit()
     return child_data
 
-
-def get_range_of_fluctuation(child, parent_node, child_data, _child_correct_range, bn_param, parent_activation, kernel,
-                             bias, parent_outs_before_activation=None):
+def get_range_of_fluctuation(child, parent_node, child_data, _child_correct_range, bn_param, parent_activation, kernel, bias, parent_outs_before_activation=None):
     child_correct_range = copy.deepcopy(_child_correct_range)
-    range_of_fluctuation = [[{"parent": 0, "child": 0}, {"parent": 0, "child": 0}] for _ in range(len(child_data))]
+    range_of_fluctuation = [[{"parent":0, "child":0}, {"parent":0, "child":0}] for _ in range(len(child_data))]
     for _child in child:
         for i, _child_correct_range in enumerate(child_correct_range[_child]):
             print("    i:{} _child:{} _child_correct_range:{}".format(i, _child, _child_correct_range))
             _output = 0
             for _node in child:
                 _outputs = _child_correct_range if _node == _child else child_data[_node]
-                _outputs = ((_outputs - bn_param["mean"][_node]) * bn_param["gamma"][_node]) \
-                           / (np.sqrt(bn_param["var"][_node] + bn_param["epsilon"])) \
-                           + bn_param["beta"][_node]
+                _outputs = ((_outputs - bn_param["mean"][_node])* bn_param["gamma"][_node])\
+                          / (np.sqrt(bn_param["var"][_node] + bn_param["epsilon"]))\
+                          + bn_param["beta"][_node]
                 _output += _outputs * kernel[_node][parent_node]
-            _output += bias[parent_node]
+            _output +=  bias[parent_node]
             if parent_activation.__name__ == "softmax":
                 _output = parent_activation(np.array([parent_outs_before_activation[i] if i != parent_node else _output
                                                       for i in range(len(parent_outs_before_activation))]))[parent_node]
             elif parent_activation.__name__ == "relu":
                 _output = parent_activation(_output)
                 print("        _output:{}".format(_output))
-            range_of_fluctuation[_child][i] = {"parent": _output, "child": _child_correct_range}
-    range_of_fluctuation = [sorted(i, key=lambda i: i["parent"]) for i in range_of_fluctuation]
+            range_of_fluctuation[_child][i] = {"parent":_output, "child":_child_correct_range}
+    range_of_fluctuation = [sorted(i, key=lambda i:i["parent"]) for i in range_of_fluctuation]
     print("\nrange_of_fluctuation")
-    for i in range_of_fluctuation:
+    for i in  range_of_fluctuation:
         print(i)
     return range_of_fluctuation
 
-
-# 入力: [ノード番号, ノード出力, ノードの正解範囲] * ノード数
+# 入力: [ノード番号, 実現可能な親出力] * ノード数、目標親出力
 # 出力: 正解範囲から離れているノードを優先して前に持ってきたときのノード番号リスト
-def bad_node_sorted(nodes_child_out_correct_range):
-    # return [nodes_child_out_correct_range[0][0]]
+def bad_node_sorted(nodes_child_out_correct_range, _correct_amount):
+    # 親ノードの修正可能量が多い順でソート
+    # 変更する入力要素は少なくする->adversariral exampleでは全体に薄く変更され、見ても分からない
+    # 木構造ならではの強み
+    # 負方向へのずれ = max(0, nodes_child_out_correct_range[_node][0]["parent"] - correct_amount)
+    # 正方向へのずれ = max(0, correct_amount - nodes_child_out_correct_range[_node][1]["parent"])
+    nodes_child_out_correct_range.sort(key=lambda x: min(max(0, x[1][0]["parent"] - _correct_amount),
+                                                         max(0, _correct_amount - x[1][1]["parent"])))
+    print("nodes_child_out_correct_range:{}".format(nodes_child_out_correct_range))
     return [i[0] for i in nodes_child_out_correct_range]
-
 
 # 親層の出力から子層の出力を逆算
 def cariculate_target_to_input_of_layer(model, layer, parent_node, child_layer_out, activation):
@@ -1781,7 +1764,7 @@ def cariculate_target_to_input_of_layer(model, layer, parent_node, child_layer_o
 
     # BN計算
     for i in range(len(output)):
-        output[i] = ((output[i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
+        output[i] =  ((output[i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
     # *重み
     for i in range(len(output)):
         output[i] = np.dot(np.array(output[i]), np.array(weights[4]))
@@ -1790,7 +1773,6 @@ def cariculate_target_to_input_of_layer(model, layer, parent_node, child_layer_o
         output[i] = activation(output[i] + weights[5])
     print("ouput:{}".format(np.shape(output)))
     return output
-
 
 # 重みリストと入力を基に順伝播計算
 # 出力:各層の出力値リスト shape(層数, サンプル数) -> 中身: その層内ノードの出力リスト
@@ -1811,13 +1793,12 @@ def feed_forward(model, data, target=None, input_layer=0):
         for i, _data in enumerate(intermidate_layer[-1]):
             print("data[{}]:{}->{} target:{} {}".format(
                 i, np.where(_data < 0.001, 0, _data), np.argmax(_data), np.argmax(target[i]),
-                "o" if np.argmax(_data) == np.argmax(target[i]) else "x"))
-            if np.argmax(_data) == np.argmax(target[i]):
+                "o" if np.argmax(_data)==np.argmax(target[i]) else "x"))
+            if np.argmax(_data)==np.argmax(target[i]):
                 acc += 1
         acc /= len(intermidate_layer[-1])
         print("acc: {}".format(acc))
-    return intermidate_layer  # [i[0] for i in intermidate_layer]
-
+    return intermidate_layer # [i[0] for i in intermidate_layer]
 
 def _feed_forward(model, data, target=None):
     np.set_printoptions(precision=2)
@@ -1833,20 +1814,18 @@ def _feed_forward(model, data, target=None):
     for _layer in range(len(weights)):
         _inter_index = _layer // 6 + 1
         intermidate_layer[_inter_index] = intermidate_layer[_inter_index - 1]
-        if _layer % 6 == 0:  # BN計算
+        if _layer % 6 == 0: # BN計算
             # normalization.py->__initのinitializerをいじれば4パラメータの内どれがどれか検証可能
             gamma = np.array(weights[_layer])
-            beta = np.array(weights[_layer + 1])
-            mean = np.array(weights[_layer + 4])
-            var = np.array(weights[_layer + 5])
+            beta = np.array(weights[_layer+1])
+            mean = np.array(weights[_layer+4])
+            var = np.array(weights[_layer+5])
             _epsilon = np.array([epsilon[_layer // 6] for _ in range(len(mean))])
             for i in range(len(intermidate_layer[_inter_index])):
-                intermidate_layer[_inter_index][i] = ((intermidate_layer[_inter_index][i] - mean) / np.sqrt(
-                    var + _epsilon)) * gamma + beta
-        elif _layer % 6 == 2:  # *重み
+                intermidate_layer[_inter_index][i] =  ((intermidate_layer[_inter_index][i] - mean) / np.sqrt(var + _epsilon)) * gamma + beta
+        elif _layer % 6 == 2: # *重み
             for i in range(len(intermidate_layer[_inter_index])):
-                intermidate_layer[_inter_index][i] = np.dot(np.array(intermidate_layer[_inter_index][i]),
-                                                            np.array(weights[_layer]))
+                intermidate_layer[_inter_index][i] = np.dot(np.array(intermidate_layer[_inter_index][i]), np.array(weights[_layer]))
         elif _layer % 6 == 3:
             # +バイアス & 活性化関数
             for i in range(len(intermidate_layer[_inter_index])):
@@ -1861,9 +1840,8 @@ def _feed_forward(model, data, target=None):
         for i, _data in enumerate(intermidate_layer[-1]):
             print("data[{}]:{}->{} target:{} {}".format(
                 i, np.where(_data < 0.001, 0, _data), np.argmax(_data), np.argmax(target[i]),
-                "o" if np.argmax(_data) == np.argmax(target[i]) else "x"))
-    return intermidate_layer  # [i[0] for i in intermidate_layer]
-
+                "o" if np.argmax(_data)==np.argmax(target[i]) else "x"))
+    return intermidate_layer # [i[0] for i in intermidate_layer]
 
 # 入出力層以外shrink
 def shrink_all_layer(_mlp, X_train, y_train, X_test, y_test):
@@ -1905,7 +1883,7 @@ class Main_test():
 
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
-            = getdata(dataset, binary_flag=binary_flag)
+            = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
         feed_forward(_mlp, X_train, y_train)
 
@@ -1918,7 +1896,7 @@ class Main_test():
         print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
         print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
         print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
-        if not shrinked_flag:  # すでにshrinkしたモデルがあるならshrinked_flag==True
+        if not shrinked_flag: # すでにshrinkしたモデルがあるならshrinked_flag==True
             shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
 
         # 意図的に間違いデータ作成
@@ -1959,9 +1937,11 @@ class Main_test():
         print("finish")
         exit()
 
+
+
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
-            = digits_data(binary_flag=True)
+            = digits_data(binary_flag=True, train_flag=True)
         # getdata(dataset, binary_flag=binary_flag, train_frag=True)
         global dataset_category
         global output_size
@@ -2440,7 +2420,6 @@ def arg_parse():
     parser.add_argument('--parity_shape', type=int)
     parser.add_argument('--child_num', type=int)
     parser.add_argument('--shrinked', dest='shrinked', action='store_true')
-    parser.add_argument('--is_image', dest='is_image', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -2472,7 +2451,8 @@ if __name__ == '__main__':
         from keras.datasets import mnist
         import config_mnist as cf
         from _model_mnist import *
-        cf.Dataset = "mnist_"
+
+        # np.random.seed(cf.Random_seed)
         dataset = "mnist"
     elif args.cifar10:
         Height = 32
@@ -2485,7 +2465,7 @@ if __name__ == '__main__':
         from keras.datasets import cifar10 as mnist
         # from _model_cifar10 import *
         from _model_mnist import *
-        cf.Dataset = "cifar10_"
+
         # np.random.seed(cf.Random_seed)
         dataset = "cifar10"
     elif args.iris:
@@ -2511,11 +2491,13 @@ if __name__ == '__main__':
         input_size = Height * Width * Channel
         output_size = 10
         import config_mnist as cf
+
         cf.Dataset = "digits_"
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         from sklearn.datasets import load_digits
+
         dataset_category = 10
         digits = load_digits(n_class=dataset_category)
         dataset = "digits"
@@ -2527,6 +2509,7 @@ if __name__ == '__main__':
         output_size = 17
         import config_mnist as cf
         from _model_iris import *
+
         # np.random.seed(cf.Random_seed)
         # from sklearn.datasets import load_iris
         # iris = load_iris()
@@ -2539,8 +2522,10 @@ if __name__ == '__main__':
         output_size = 3
         dataset_category = 3
         import config_mnist as cf
+
         cf.Dataset = "wine_"
         from _model_iris import *
+
         dataset = "wine"
     elif args.balance:
         Height = 1
@@ -2564,6 +2549,7 @@ if __name__ == '__main__':
         dataset_category = 2
         import config_mnist as cf
         from _model_iris import *
+
         dataset = "parity"
     dense_size[0] = input_size
     if args.shrinked:
@@ -2579,9 +2565,6 @@ if __name__ == '__main__':
             _path = cf.Save_hidden_layers_path[i]
             cf.Save_hidden_layers_path[i] = _path[:-3] + "_" + str(binary_target) + _path[-3:]
             print(_path)
-    if args.is_image:
-        IS_IMAGE = True
-        cf.Dataset += "image_"
     cf.reload_path()
     if args.train:
         main = Main_train()
