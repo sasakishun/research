@@ -43,8 +43,10 @@ pruning_params = {
 }
 """
 
+
 def relu(a):
     return np.where(a < 0, 0, a)
+
 
 def softmax(a):
     # 一番大きい値を取得
@@ -56,13 +58,16 @@ def softmax(a):
     y = exp_a / sum_exp_a
     return y
 
+
 # softmax層出力(A, B, C)=outputsから、softmax層への入力(a, b, c)=inputsを逆算
 # a,b,cの内一つ以外指定し、その一つの入力を計算する
 def arg_softmax(inputs_removed_target, output):
-    return np.log(sum([np.exp(i) for i in inputs_removed_target])*output/(1 - output))
+    return np.log(sum([np.exp(i) for i in inputs_removed_target]) * output / (1 - output))
+
 
 def arg_relu(y):
     return y
+
 
 def arg_bn(output, bn_param, show_parameter=True):
     if show_parameter:
@@ -75,8 +80,9 @@ def arg_bn(output, bn_param, show_parameter=True):
     if bn_param["gamma"] == 0:
         print("output:{}".format(output))
         return 0
-    return ((output - bn_param["beta"]) * np.sqrt(bn_param["var"] + bn_param["epsilon"]))\
+    return ((output - bn_param["beta"]) * np.sqrt(bn_param["var"] + bn_param["epsilon"])) \
            / bn_param["gamma"] + bn_param["mean"]
+
 
 def bn(x, bn_param, show_parameter=False):
     if show_parameter:
@@ -85,8 +91,9 @@ def bn(x, bn_param, show_parameter=False):
                                         "gamma": bn_param["gamma"],
                                         "var": bn_param["var"],
                                         "epsilon": bn_param["epsilon"]}))
-    return ((x-bn_param["mean"])/np.sqrt(bn_param["var"] + bn_param["epsilon"]))\
-           *bn_param["gamma"] + bn_param["beta"]
+    return ((x - bn_param["mean"]) / np.sqrt(bn_param["var"] + bn_param["epsilon"])) \
+           * bn_param["gamma"] + bn_param["beta"]
+
 
 def minb_disc(x):
     diffs = K.expand_dims(x, 3) - K.expand_dims(K.permute_dimensions(x, [1, 2, 0]), 0)
@@ -345,7 +352,8 @@ def tree(input_size, output_size, get_hidden_flag=False, all_combination_flag=Fa
 def mlp(input_size, hidden_size, output_size):
     activation = "relu"
     _dense = [
-        Dense(hidden_size[j], activation=activation if j != 0 else None, kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
+        Dense(hidden_size[j], activation=activation if j != 0 else None, kernel_regularizer=regularizers.l1(0.01),
+              name='dense{}'.format(j),
               kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
         for j in range(len(hidden_size))]
     _dense.append(Dense(output_size, activation="softmax", kernel_regularizer=regularizers.l1(0.01),
@@ -385,7 +393,7 @@ def masked_mlp(input_size, hidden_size, output_size):
     dense = [multiply([inputs, mask[0]])]
     for i in range(len(_dense)):
         dense.append(_dense[i](dense[i]))
-        dense[-1] = multiply([dense[-1], mask[i+1]])
+        dense[-1] = multiply([dense[-1], mask[i + 1]])
     _mlp = Model(inputs=[inputs] + mask, outputs=dense[-1], name='dense_tree')
     _mlp.compile(loss='categorical_crossentropy',
                  optimizer="adam",
@@ -402,7 +410,7 @@ def _myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_we
     print("hidden_size:{}".format(hidden_size))
     print("output_size:{}".format(output_size))
     _dense = [
-        MyLayer(hidden_size[j], activation=activation, # None,
+        MyLayer(hidden_size[j], activation=activation,  # None,
                 kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(j),
                 kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
         for j in range(len(hidden_size))
@@ -421,14 +429,14 @@ def _myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_we
                                bias_mask=bias_mask[i] if bias_mask is not None else None)
                      )
         # if i < len(_dense) - 1:
-            # dense[i + 1] = BatchNormalization(trainable=False)(dense[i + 1])
-            # dense[i+1] = Activation(activation)(dense[i+1])
+        # dense[i + 1] = BatchNormalization(trainable=False)(dense[i + 1])
+        # dense[i+1] = Activation(activation)(dense[i+1])
         # dense[i+1] = Dropout(rate=0.0001)(dense[i+1])
 
     mlp = Model(inputs=inputs, outputs=dense[-1], name='dense_tree')
     mlp.compile(loss='categorical_crossentropy',
-                 optimizer="adam",
-                 metrics=[metrics.categorical_accuracy])
+                optimizer="adam",
+                metrics=[metrics.categorical_accuracy])
     if set_weights:
         mlp.set_weights(set_weights)
     return mlp
@@ -440,7 +448,7 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_wei
         input_size = model_shape[layer_number]
         hidden_size = model_shape[layer_number + 1]
         # print("layer_number:{} hidden_size:{}".format(layer_number, hidden_size))
-        if layer_number + 1 == len(model_shape) - 1: # 出力層
+        if layer_number + 1 == len(model_shape) - 1:  # 出力層
             activation = "softmax"
         else:
             activation = "relu"
@@ -448,17 +456,19 @@ def myMLP(model_shape, kernel_mask=None, bias_mask=None, trainable=True, set_wei
                                   kernel_mask=kernel_mask[layer_number] if kernel_mask is not None else None,
                                   bias_mask=bias_mask[layer_number] if bias_mask is not None else None))
     mlp.compile(loss='categorical_crossentropy',
-                 optimizer="adam",
-                 metrics=[metrics.categorical_accuracy])
+                optimizer="adam",
+                metrics=[metrics.categorical_accuracy])
     print("weights:{}".format([np.shape(i) for i in mlp.get_weights()]))
     if set_weights:
         mlp.set_weights(set_weights)
     return mlp
 
-def dense_layer_model(hidden_size, input_size, activation=None, layer_number=None, kernel_mask=None, bias_mask=None, trainable=True):
+
+def dense_layer_model(hidden_size, input_size, activation=None, layer_number=None, kernel_mask=None, bias_mask=None,
+                      trainable=True):
     _dense = MyLayer(hidden_size, activation=activation,
-                kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(layer_number),
-                kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
+                     kernel_regularizer=regularizers.l1(0.01), name='dense{}'.format(layer_number),
+                     kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=1, seed=None))
 
     inputs = Input(shape=(input_size,), name='inputs')
     dense = BatchNormalization(name="BN_{}".format(layer_number),
@@ -472,37 +482,74 @@ def dense_layer_model(hidden_size, input_size, activation=None, layer_number=Non
     dense_model = Model(inputs=inputs, outputs=dense, name='dense_layer_{}'.format(layer_number))
     return dense_model
 
-def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None, child_num=2):
+
+def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None, child_num=2, is_image=False):
     from _tree_functions import calculate_tree_shape
     print("input:{}".format(input_size))
     print("output_size:{}".format(output_size))
-    hidden_size = calculate_tree_shape(input_size, output_size, child_num=child_num)
+    hidden_size = calculate_tree_shape(input_size, output_size, child_num=child_num, is_image=is_image)
     print("tree_shape:{}".format([i for i in hidden_size]))
     if kernel_mask is None:
         # [13->21->12->6->3]のmlpのmaskを作成
-        kernel_mask = get_tree_kernel_mask(hidden_size, child_num=child_num)
+        kernel_mask = get_tree_kernel_mask(hidden_size, child_num=child_num, is_image=is_image)
     # visualize_network(kernel_mask, )
     return myMLP(hidden_size, kernel_mask, bias_mask)
 
-def get_tree_kernel_mask(hidden_size, child_num=2, show_mask=False):
+
+def get_tree_kernel_mask(hidden_size, child_num=2, show_mask=False, is_image=False):
+    import math
     kernel_mask = [np.zeros((hidden_size[i - 1], hidden_size[i])) for i in range(1, len(hidden_size))]
     output_size = hidden_size[-1]
-    for i in range(len(kernel_mask)):
-        for j in range(hidden_size[i]):
-            if i == 0:
-                for _class in range(output_size):
-                    kernel_mask[i][j][j // child_num + (hidden_size[i + 1] // output_size) * _class] = 1
-            else:
-                _class = j // (hidden_size[i] // output_size)
-                kernel_mask[i][j][(j % (hidden_size[i] // output_size)) // child_num
-                                  + (hidden_size[i + 1] // output_size) * _class] = 1
+    if not is_image:
+        for i in range(len(kernel_mask)):
+            for j in range(hidden_size[i]):
+                if i == 0:
+                    for _class in range(output_size):
+                        kernel_mask[i][j][j // child_num + (hidden_size[i + 1] // output_size) * _class] = 1
+                else:
+                    _class = j // (hidden_size[i] // output_size)
+                    kernel_mask[i][j][(j % (hidden_size[i] // output_size)) // child_num
+                                      + (hidden_size[i + 1] // output_size) * _class] = 1
+    else:
+        # i層目、j行、k列のノードと親ノードの結合
+        for i in range(len(kernel_mask)):
+            for j in range(hidden_size[i]):
+                if i == 0:
+                    image_size = int(np.sqrt(hidden_size[i]))
+                    for _class in range(output_size):
+                        """
+                        print("i:{} j:{} _class:{} -> parent_pos:{} + {} parent:{}"
+                              .format(i, j, _class,
+                                      (j // (child_num * image_size)) * math.ceil(image_size / child_num),
+                                      (j % image_size) // child_num,
+                                      (hidden_size[i + 1] // output_size) * _class))
+                        """
+                        kernel_mask[i][j][(j // (child_num * image_size)) * math.ceil(image_size / child_num)
+                                          + (j % image_size) // child_num
+                                          + (hidden_size[i + 1] // output_size) * _class] = 1
+                else:
+                    image_size = int(np.sqrt(hidden_size[i] // output_size))
+                    _class = j // (hidden_size[i] // output_size)
+                    """
+                    print("i:{} j:{} _class:{} -> parent_pos:{} + {} parent:{} image_size:{}"
+                          .format(i, j % (hidden_size[i] // output_size), _class,
+                                  (j % (hidden_size[i] // output_size) // (child_num * image_size)) * math.ceil(image_size / child_num),
+                                  (j % (hidden_size[i] // output_size) % image_size) // child_num,
+                                  (hidden_size[i + 1] // output_size) * _class,
+                                  image_size))
+                    """
+                    kernel_mask[i][j][
+                        ((j % (hidden_size[i] // output_size)) // (child_num * image_size)) * math.ceil(image_size / child_num)
+                        + ((j % (hidden_size[i] // output_size)) % image_size) // child_num
+                        + (hidden_size[i + 1] // output_size) * _class] = 1
     if show_mask:
         for i in range(len(kernel_mask)):
             print("kernel_mask[{}]:{}".format(i, kernel_mask[i]))
     return kernel_mask
 
+
 if __name__ == '__main__':
     # mlp = tree_mlp(13, 3)
     print(softmax([11, -20, 22]))
     print(softmax([-19, -20, 22]))
-    print(softmax([0.40693525878330566,  -20.82664044877567, 22.328847296583998]))
+    print(softmax([0.40693525878330566, -20.82664044877567, 22.328847296583998]))

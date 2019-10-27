@@ -1,4 +1,7 @@
 cls
+python binary__tree_main.py --digit --train --child_num 2
+goto end
+
 python binary__tree_main.py --digit --test --child_num 8 --shrinked
 python binary__tree_main.py --mnist --test --child_num 112 --shrinked
 goto end

@@ -28,18 +28,20 @@ class Neuron():
                                               fontsize=neuron_radius * 10, color="gray")
             pyplot.gca()._add_text(_text_correct_range)
             """
-            if _color["color"] != "black": # ミスニューロンは半径大きく、黒以外で描画
+            if _color["color"] != "black":  # ミスニューロンは半径大きく、黒以外で描画
                 slip = 3 * (i - 1)
                 if _color["color"] != "white":
-                    circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius*5, facecolor=_color["color"], edgecolor=_color["color"])
+                    circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius * 5,
+                                           facecolor=_color["color"], edgecolor=_color["color"])
                     # 異常ノードの場合(白は数値のみ描画するために使用)
-                    _text_correct_range = pyplot.text(self.x+4,  self.y-12, "[{:.2f}, {:.2f}]".format(
+                    _text_correct_range = pyplot.text(self.x + 4, self.y - 12, "[{:.2f}, {:.2f}]".format(
                         _color["correct_range"][0], _color["correct_range"][1]) if "correct_range" in _color else None,
-                                                      fontsize=neuron_radius*10, color="gray")
+                                                      fontsize=neuron_radius * 10, color="gray")
                     pyplot.gca()._add_text(_text_correct_range)
 
-                _text_value = pyplot.text(self.x+4,  self.y-4, "{:.2f}".format(_color["value"]) if "value" in _color else None,
-                                          fontsize=neuron_radius*10, color="gray")
+                _text_value = pyplot.text(self.x + 4, self.y - 4,
+                                          "{:.2f}".format(_color["value"]) if "value" in _color else None,
+                                          fontsize=neuron_radius * 10, color="gray")
                 pyplot.gca()._add_text(_text_value)
             else:
                 circle = pyplot.Circle((self.x, self.y), radius=neuron_radius, fill=False, color="black")
@@ -54,12 +56,13 @@ class Layer():
         self.y = self.__calculate_layer_y_position()
         self.neurons = self.__intialise_neurons(number_of_neurons)
         self.weights = weights
-        self.neuron_color = node_color if node_color is not None else [[{"color": "black"}] for _ in range(number_of_neurons)]
+        self.neuron_color = node_color if node_color is not None else [[{"color": "black"}] for _ in
+                                                                       range(number_of_neurons)]
         if non_active_neurons:
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
 
-    def __intialise_neurons(self, number_of_neurons, image_flag = False):
+    def __intialise_neurons(self, number_of_neurons, image_flag=False):
         # image_flag == Trueだと入力:64を8*8にして可視化
         neurons = []
         x = self.__calculate_left_margin_so_layer_is_centered(number_of_neurons)

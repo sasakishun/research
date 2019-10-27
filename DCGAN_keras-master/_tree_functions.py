@@ -244,7 +244,7 @@ def delete_node(weights, model, target_layer, target_node):
     weights[target_layer + kernel_start + 1] = np.delete(weights[target_layer + kernel_start + 1],
                                                          target_node)
     # BNノード(x4層)削除
-    bn_layer_index = list(range(target_layer+set_size, target_layer+kernel_start+set_size))\
+    bn_layer_index = list(range(target_layer + set_size, target_layer + kernel_start + set_size)) \
                      + list(range(target_layer + set_size + kernel_start + 2, target_layer + set_size + set_size))
     print("bn_layer_index:{}".format(bn_layer_index))
     print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
@@ -258,6 +258,7 @@ def delete_node(weights, model, target_layer, target_node):
         weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
     """
     return weights
+
 
 # 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
 # 出力 : 不要ノードを削除したモデル(model)
@@ -277,7 +278,8 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
             if shrink_with_acc:
                 # target_layerを削除して性能検証
                 prev_acc = model.evaluate(X_train, y_train)[1]
-                target_deleted_weights = delete_node(copy.deepcopy(weights), model=model, target_layer=target_layer, target_node=target_node)
+                target_deleted_weights = delete_node(copy.deepcopy(weights), model=model, target_layer=target_layer,
+                                                     target_node=target_node)
                 # show_weight(target_deleted_weights, comment="\ntarget_deleted_weigths")
                 _model = myMLP(get_layer_size_from_weight(target_deleted_weights), set_weights=target_deleted_weights)
                 target_deleted_acc = _model.evaluate(X_train, y_train)[1]
@@ -294,7 +296,8 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
                 if np.any(weights[target_layer + kernel_start].T[target_node] != 0) \
                         and np.any(weights[parent_layer + kernel_start][target_node] != 0):
                     print("weights[{}].T[{}]\n{}".format(target_layer + kernel_start,
-                                                         target_node, weights[target_layer + kernel_start].T[target_node]))
+                                                         target_node,
+                                                         weights[target_layer + kernel_start].T[target_node]))
                     target_node += 1
                     continue
                 else:
@@ -373,6 +376,7 @@ def sort_weights(_weights, target_layer=None):
 
 from binary__tree_main import get_kernel_and_bias
 
+
 # 中間層出力をpredict()
 def predict_intermidate_output(model, data, target_layer=None):
     if target_layer is None:
@@ -385,13 +389,14 @@ def predict_intermidate_output(model, data, target_layer=None):
             out = model.layers[_layer].predict(out)
         return out
 
+
 def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
-                                # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+    # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
 
     # for _sample, _target in zip(predict_intermidate_output(_mlp, len(_mlp.layers), data), target):
-        # print("{} -> {} vs {} ".format(_sample, np.argmax(_sample), np.argmax(_target)))
+    # print("{} -> {} vs {} ".format(_sample, np.argmax(_sample), np.argmax(_target)))
     # for i in range(len(intermediate_layer_model[-1].get_weights())):
     # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
     print("_mlp.layers:{}".format(len(_mlp.layers)))
@@ -413,7 +418,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     correct_target = [[] for _ in range(output_size)]
     incorrect_data = [[] for _ in range(output_size)]
     incorrect_target = [[] for _ in range(output_size)]
-    output = [predict_intermidate_output(_mlp, data[i], len(model_shape)-1) for i in range(output_size)]
+    output = [predict_intermidate_output(_mlp, data[i], len(model_shape) - 1) for i in range(output_size)]
 
     # output = [intermediate_layer_model[-1].predict(data[i]) for i in range(output_size)]
     # for i in range(output_size):
@@ -439,7 +444,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     ### 正解データと不正解データに分割
     # correct_intermediate_output = [[predict_intermidate_output(_mlp, [correct_data[j]], i) # list(intermediate_layer_model[i].predict([correct_data[j]]))
     correct_intermediate_output = [[feed_forward(_mlp, correct_data[j])[i]
-                                        if len(correct_data[j]) > 0 else []
+                                    if len(correct_data[j]) > 0 else []
                                     for j in range(len(correct_data))]
                                    for i in range(len(model_shape))]
     # incorrect_intermediate_output = [[predict_intermidate_output(_mlp, [incorrect_data[j]], i)# list(intermediate_layer_model[i].predict([incorrect_data[j]]))
@@ -483,7 +488,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                     save_fig=True, get_each_color=False, get_intermidate_output=False):
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
-                                # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
+    # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
     model_shape = get_layer_size_from_weight(_mlp.get_weights())
     output_size = model_shape[-1]
     # output_size = np.shape(get_kernel_and_bias(intermediate_layer_model[-1])[-1])[0]
@@ -497,11 +502,13 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
 
 
     ### 正解データと不正解データに分割 shape:(層数, クラス数, サンプル数, 中間層出力)
-    train_intermediate_output = [[predict_intermidate_output(_mlp, [train_data[j]], i)# list(intermediate_layer_model[i].predict([train_data[j]]))
+    train_intermediate_output = [[predict_intermidate_output(_mlp, [train_data[j]],
+                                                             i)  # list(intermediate_layer_model[i].predict([train_data[j]]))
                                   if len(train_data[j]) > 0 else []
                                   for j in range(len(train_data))]
                                  for i in range(len(model_shape))]
-    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]], i) # list(intermediate_layer_model[i].predict([test_data[j]]))
+    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]],
+                                                            i)  # list(intermediate_layer_model[i].predict([test_data[j]]))
                                  if len(test_data[j]) > 0 else []
                                  for j in range(len(test_data))]
                                 for i in range(len(model_shape))]
@@ -549,9 +556,12 @@ def concate_elements(_list):
     return concated
 
 
-def calculate_tree_shape(input_size, output_size=1, child_num=2):
+def calculate_tree_shape(input_size, output_size=1, child_num=2, is_image=False):
     import math
     shape = [input_size]
     while shape[-1] > 1:
-        shape.append(math.ceil(shape[-1] / child_num))
+        if not is_image:
+            shape.append(math.ceil(shape[-1] / child_num))
+        else:
+            shape.append(math.ceil(np.sqrt(shape[-1]) / child_num) ** 2)
     return [shape[i] * (output_size if i != 0 else 1) for i in range(len(shape))]
