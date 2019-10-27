@@ -1403,8 +1403,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             SaveImgFromList([np.array(incorrect_intermediate_output[0][_class][_sample])]+
                             [np.array(i) for i in corrected_input],
                             np.array([Height, Width]),
-                            tag=["orig[{}]".format(np.argmax(incorrect_intermediate_output[-1][_class][_sample]))]+
-                                ["after[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
+                            tag=["[{}]->[{}]".format(_class, np.argmax(incorrect_intermediate_output[-1][_class][_sample]))]+
+                                ["[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
                                  for i in corrected_input],
                             comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
 
@@ -1609,7 +1609,8 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
         correct_amount = parent_out
     print("\ncorrecct_amount:{}".format(correct_amount))
 
-    bad_child = bad_node_sorted([[child[i], child_out[i], child_correct_range[child[i]]] for i in range(len(child))])
+    bad_child = bad_node_sorted([[child[i], range_of_fluctuation[child[i]]] for i in range(len(child))],
+                                correct_amount)
 
     # 親ノードが正解に入るように子ノードを修正
     child_data = copy.deepcopy(data)
@@ -1730,10 +1731,18 @@ def get_range_of_fluctuation(child, parent_node, child_data, _child_correct_rang
     for i in  range_of_fluctuation:
         print(i)
     return range_of_fluctuation
-# 入力: [ノード番号, ノード出力, ノードの正解範囲] * ノード数
+
+# 入力: [ノード番号, 実現可能な親出力] * ノード数、目標親出力
 # 出力: 正解範囲から離れているノードを優先して前に持ってきたときのノード番号リスト
-def bad_node_sorted(nodes_child_out_correct_range):
-    # return [nodes_child_out_correct_range[0][0]]
+def bad_node_sorted(nodes_child_out_correct_range, _correct_amount):
+    # 親ノードの修正可能量が多い順でソート
+    # 変更する入力要素は少なくする->adversariral exampleでは全体に薄く変更され、見ても分からない
+    # 木構造ならではの強み
+    # 負方向へのずれ = max(0, nodes_child_out_correct_range[_node][0]["parent"] - correct_amount)
+    # 正方向へのずれ = max(0, correct_amount - nodes_child_out_correct_range[_node][1]["parent"])
+    nodes_child_out_correct_range.sort(key=lambda x: min(max(0, x[1][0]["parent"] - _correct_amount),
+                                                         max(0, _correct_amount - x[1][1]["parent"])))
+    print("nodes_child_out_correct_range:{}".format(nodes_child_out_correct_range))
     return [i[0] for i in nodes_child_out_correct_range]
 
 # 親層の出力から子層の出力を逆算
