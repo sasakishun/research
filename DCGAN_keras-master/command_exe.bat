@@ -1,5 +1,11 @@
 cls
-python binary__tree_main.py --digit --train --child_num 2
+python binary__tree_main.py --digit --train --child_num 3 --is_image
+python binary__tree_main.py --digit --test --child_num 3 --is_image
+python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked
+
+python binary__tree_main.py --mnist --train --child_num 9 --is_image
+python binary__tree_main.py --mnist --test --child_num 9 --is_image
+python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked
 goto end
 
 python binary__tree_main.py --digit --test --child_num 8 --shrinked

@@ -53,7 +53,7 @@ dataset_category = 10
 no_mask = False
 dense_size = [64, 60, 32, 16, 10]
 CHILD_NUM = 2
-
+IS_IMAGE=False
 
 def krkopt_data():
     _train = [[], []]
@@ -781,12 +781,12 @@ class Main_train():
         ### これだとBNが正しく機能するが、内部処理不明 -> 要分析
         K.set_learning_phase(0)
         ### これだとBNが正しく機能する
-        kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size, child_num=CHILD_NUM),
-                                           child_num=CHILD_NUM, show_mask=True)
+        kernel_mask = get_tree_kernel_mask(calculate_tree_shape(input_size, output_size, child_num=CHILD_NUM, is_image=IS_IMAGE),
+                                           child_num=CHILD_NUM, show_mask=True, is_image=IS_IMAGE)
         # visualize_network(weights=kernel_mask)
 
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask,
-                        child_num=CHILD_NUM)  # myMLP(13, [5, 4, 2], 3)
+                        child_num=CHILD_NUM, is_image=IS_IMAGE)  # myMLP(13, [5, 4, 2], 3)
         for i in range(5):
             X_train, y_train = shuffle_data(X_train, y_train)
             # モデル学習
@@ -1898,6 +1898,7 @@ class Main_test():
         print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         if not shrinked_flag: # すでにshrinkしたモデルがあるならshrinked_flag==True
             shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
+            exit()
 
         # 意図的に間違いデータ作成
         if input_size == 13:
@@ -2420,6 +2421,7 @@ def arg_parse():
     parser.add_argument('--parity_shape', type=int)
     parser.add_argument('--child_num', type=int)
     parser.add_argument('--shrinked', dest='shrinked', action='store_true')
+    parser.add_argument('--is_image', dest='is_image', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -2451,7 +2453,7 @@ if __name__ == '__main__':
         from keras.datasets import mnist
         import config_mnist as cf
         from _model_mnist import *
-
+        cf.Dataset = "mnist_"
         # np.random.seed(cf.Random_seed)
         dataset = "mnist"
     elif args.cifar10:
@@ -2476,7 +2478,6 @@ if __name__ == '__main__':
         output_size = 3
         dataset_category = 3
         import config_mnist as cf
-
         cf.Dataset = "iris_"
         from _model_iris import *
         # np.random.seed(cf.Random_seed)
@@ -2565,6 +2566,9 @@ if __name__ == '__main__':
             _path = cf.Save_hidden_layers_path[i]
             cf.Save_hidden_layers_path[i] = _path[:-3] + "_" + str(binary_target) + _path[-3:]
             print(_path)
+    if args.is_image:
+        IS_IMAGE=True
+        cf.Dataset += "imageTree_"
     cf.reload_path()
     if args.train:
         main = Main_train()
