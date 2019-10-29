@@ -548,7 +548,20 @@ def get_tree_kernel_mask(hidden_size, child_num=2, show_mask=False, is_image=Fal
     return kernel_mask
 
 
+def write_result(path_w, str_list):
+    # from datetime import datetime
+    # path_w = os.getcwd() + r"\result\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
+    with open(path_w, mode='w') as f:
+        for s in str_list:
+            print(s)
+            f.write(str(s) + "\n")
+    with open(path_w) as f:
+        print(f.read())
+
+
 if __name__ == '__main__':
+    write_result()
+    exit()
     # mlp = tree_mlp(13, 3)
     print(softmax([11, -20, 22]))
     print(softmax([-19, -20, 22]))
