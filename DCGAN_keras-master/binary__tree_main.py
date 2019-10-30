@@ -1177,13 +1177,54 @@ def load_weights_and_generate_mlp():
     _mlp.load_weights(cf.Save_mlp_path)
     return _mlp
 
+def artificasl_change(X_test, change_num=1):
+    change_pos = [[] for _ in X_test]
+    for i in range(len(change_pos)):
+        for _ in range(change_num):
+            _change_pos = int(np.random.randint(0, len(X_test[i]-1)))
+            X_test[i][_change_pos] = -200
+        change_pos[i].append(_change_pos)
+    return X_test, change_pos
 
 # 中間層出力を訓練テスト、正誤データごとに可視化
-def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True):
-    correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train \
-        = show_intermidate_output(X_train, y_train, "train", _mlp, save_fig=save_fig)
-    correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test \
-        = show_intermidate_output(X_test, y_test, "test", _mlp, save_fig=save_fig)
+def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True, artificial_error=False):
+    if artificial_error:
+        # 故意間違い発生前のデータ待避
+        original_class_data_train, original_class_target_train = divide_data(X_train, y_train, output_size)
+        original_class_data_test, original_class_target_test = divide_data(X_test, y_test, output_size)
+        # ここで、故意の間違いデータを作成する
+        X_test, change_pos = artificasl_change(X_test)
+        change_pos, _ = divide_data(change_pos, copy.deepcopy(y_test), dataset_category)
+
+    # クラスごとに分け、連結して並べたcorrect_data_trainなどを取得
+    correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train, train_index \
+        = show_intermidate_output(X_train, y_train, "train", _mlp, save_fig=save_fig, get_index=True)
+    correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test, test_index \
+        = show_intermidate_output(X_test, y_test, "test", _mlp, save_fig=save_fig, get_index=True)
+
+    if artificial_error:
+        # indexを辿ることで、故意間違いデータと変更前データの対応するペアが分かる
+        # train_data, train_target = divide_data(train_data, train_target, dataset_category)によってソートされた結果順に
+        # resultファイルに修正ノード番号が出力される、つまり故意間違いデータをdivide_dataした出力を
+        # 頭から順にresultファイルに書き込めばいい->実装中10/30
+        changed_nodes = [[[] for _ in range(len(test_index["incorrect"][_class]))] for _class in range(output_size)]
+        for _class in range(output_size):
+            for i, _test_index in enumerate(test_index["incorrect"][_class]):
+                # 間違い出力時の番号iの変更箇所をappend
+                changed_nodes[_class][i].append(_test_index)
+                # print("_test_index:{}".format(_test_index))
+                # print("{}\nvs\n{}\n".format(original_class_data_test[_class][_test_index], correct_data_test[i]))
+        # print("changed_nodes:{}".format(changed_nodes))
+        # print("test_index[incorrect]:{}".format(test_index["incorrect"]))
+        # print("test_index[correct]:{}".format(test_index["correct"]))
+        result_path = os.getcwd() + r"\result\{}_change_nodes".format(datetime.now().strftime("%Y%m%d%H%M%S"))
+        result = [dataset, "artificial miss"]
+        for _class in range(len(changed_nodes)):
+            for j in changed_nodes[_class]:
+                result.append("class:{} missed sample: {} -> {} chang_pos:{}"
+                              .format(_class, j, original_class_data_test[_class][j], change_pos[_class][j]))
+        write_result(path_w=result_path, str_list=result)
+
     """
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     correct_data_test, correct_target_test,
@@ -1194,9 +1235,9 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     
     """
     # 間違いが多すぎると結果出力が終わらないため、修正実験サンプル数限定
-    p = np.random.permutation(len(incorrect_data_test))[:20]
-    incorrect_data_test, incorrect_target_test\
-        = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
+    # p = np.random.permutation(len(incorrect_data_test))[:20]
+    # incorrect_data_test, incorrect_target_test \
+        # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
@@ -1297,17 +1338,9 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["correct_train", "miss_test"]):
     get_each_color = True
-    each_color, corret_intermediate_output, incorrect_intermediate_output = show_intermidate_train_and_test(correct[0],
-                                                                                                            correct[1],
-                                                                                                            incorrect[
-                                                                                                                0],
-                                                                                                            incorrect[
-                                                                                                                1],
-                                                                                                            _mlp,
-                                                                                                            name=name,
-                                                                                                            save_fig=False,
-                                                                                                            get_each_color=get_each_color,
-                                                                                                            get_intermidate_output=True)
+    each_color, corret_intermediate_output, incorrect_intermediate_output \
+        = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
+                                          save_fig=False, get_each_color=get_each_color, get_intermidate_output=True)
     # 実験結果書き込み用パス
     result_path = os.getcwd() + r"\result\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
     result = [dataset, copy.deepcopy(name)]
@@ -1423,7 +1456,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 # print("corrected_intermidate:{}".format(corrected_intermidate))
                 for layer in reversed(range(len(corrected_intermidate))):
                     print("hidden[{}]:{}".format(layer, list(corrected_intermidate[layer])))
-                # child_data = corrected_intermidate[-2]
+                    # child_data = corrected_intermidate[-2]
 
             # name == ["CORRECT_train", "MISS_train"]のときは結果集計
             # 集計要素: 変更入力要素、修正率（出力==_classになったか）
@@ -1437,9 +1470,12 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             for _node, _input in enumerate(corrected_input[-1]):
                 print("diff {} vs {}".format(_input, incorrect_intermediate_output[0][_class][_sample][_node]))
                 # if _input != incorrect_intermediate_output[0][_class][_sample][_node]:
-                if not(_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][_node] < _input+0.0001):
-                        diff_nodes.append(_node)
-            result.append("diff_nodes(len:{}): {}".format(len(diff_nodes), diff_nodes))
+                if not (_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][_node] < _input + 0.0001):
+                    diff_nodes.append(_node)
+            result.append("diff_nodes(class:{} sample:{} len:{}): {} input:{} -> {}"
+                          .format(_class, _sample, len(diff_nodes), diff_nodes,
+                                  incorrect_intermediate_output[0][_class][_sample],
+                                  corrected_input[-1]))
             # 修正前と後の画像を連結表示
             SaveImgFromList([np.array(incorrect_intermediate_output[0][_class][_sample])] +
                             [np.array(i) for i in corrected_input],
@@ -1472,7 +1508,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 neuron_color=neuron_colors[_class][_sample])
             # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
-                  .format(correct_success_num, total_sample_num, 100.*correct_success_num / total_sample_num))
+                  .format(correct_success_num, total_sample_num, 100. * correct_success_num / total_sample_num))
     write_result(result_path, result)
     return
 
@@ -1963,24 +1999,6 @@ class Main_test():
             shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
             exit()
 
-        # 意図的に間違いデータ作成
-        if input_size == 13:
-            bad_X_test = copy.deepcopy(X_test[0])
-            bad_y_test = copy.deepcopy(y_test[0])
-            print("X_test:{}".format(X_test))
-            print("y_test:{}".format(y_test))
-            print("bad_X_test:{}".format(bad_X_test))
-            print("bad_y_test:{}".format(bad_y_test))
-            X_test = list(X_test)
-            y_test = list(y_test)
-            bad_X_test[4] = 11.
-            bad_X_test[5] = 12.
-            X_test.append(bad_X_test)
-            y_test.append(bad_y_test)
-            X_test = np.array(X_test)
-            y_test = np.array(y_test)
-            print("X_test:{}".format(X_test))
-            print("y_test:{}".format(y_test))
         # 性能評価
         evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """
@@ -1997,7 +2015,7 @@ class Main_test():
         print("\ntotal acc_test:{}".
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
         """
-        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test)
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=True)
         print("finish")
         exit()
 

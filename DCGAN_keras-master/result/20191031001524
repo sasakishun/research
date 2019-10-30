@@ -1,0 +1,4 @@
+iris
+['CORRECT_train', 'MISS_test']
+diff_nodes(class:1 sample:0 len:2): [2, 3] input:[6.7 3.  5.  1.7] -> [6.7  3.   4.69 1.6 ]
+correct_success_num:1 total_sample_num:1 success_rate:100.0

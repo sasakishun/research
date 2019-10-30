@@ -390,7 +390,7 @@ def predict_intermidate_output(model, data, target_layer=None):
         return out
 
 
-def show_intermidate_output(data, target, name, _mlp, save_fig=True):
+def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=True):
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
     # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -400,7 +400,6 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     # for i in range(len(intermediate_layer_model[-1].get_weights())):
     # print("intermidate[{}]:{}".format(i, np.shape(intermediate_layer_model[-1].get_weights()[i])))
     print("_mlp.layers:{}".format(len(_mlp.layers)))
-
     model_shape = get_layer_size_from_weight(_mlp.get_weights())
     output_size = model_shape[-1]
     for i in range(len(model_shape)):
@@ -426,15 +425,18 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
     # for j in range(len(output[i])):
     # print(output[i][j])
     # [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
+    index = {"correct": [[] for _ in range(output_size)], "incorrect": [[] for _ in range(output_size)]}
     ### 正解データと不正解データに分割
     for i in range(output_size):
-        for _data, _target, _output in zip(data[i], target[i], output[i]):
+        for _sample, (_data, _target, _output) in enumerate(zip(data[i], target[i], output[i])):
             if np.argmax(_output) == np.argmax(_target):
                 correct_data[i].append(_data)
                 correct_target[i].append(_target)
+                index["correct"][i].append(_sample)
             else:
                 incorrect_data[i].append(_data)
                 incorrect_target[i].append(_target)
+                index["incorrect"][i].append(_sample)
     for i in range(output_size):
         print("correct_data[{}]:{}".format(i, np.shape(correct_data[i])))
     for i in range(output_size):
@@ -478,9 +480,12 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True):
             print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
         print("toral acc: {}\n\n".format(_mlp.evaluate(original_data, original_target)[1]))
         ### 各層出力を可視化
-
-    return concate_elements(correct_data), concate_elements(correct_target), \
-           concate_elements(incorrect_data), concate_elements(incorrect_target)
+    if get_index:
+        return concate_elements(correct_data), concate_elements(correct_target), \
+               concate_elements(incorrect_data), concate_elements(incorrect_target), index
+    else:
+        return concate_elements(correct_data), concate_elements(correct_target), \
+               concate_elements(incorrect_data), concate_elements(incorrect_target)
 
 
 # 出力: shape(層数, クラス数, ノード数) -> 中身: 間違いノード番号のリスト
@@ -507,8 +512,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                   if len(train_data[j]) > 0 else []
                                   for j in range(len(train_data))]
                                  for i in range(len(model_shape))]
-    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]],
-                                                            i)  # list(intermediate_layer_model[i].predict([test_data[j]]))
+    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]], i)  # list(intermediate_layer_model[i].predict([test_data[j]]))
                                  if len(test_data[j]) > 0 else []
                                  for j in range(len(test_data))]
                                 for i in range(len(model_shape))]
