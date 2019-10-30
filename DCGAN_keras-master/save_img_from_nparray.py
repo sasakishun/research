@@ -8,7 +8,7 @@ import cv2
 
 class SaveImgFromList:
     def __init__(self, imgs, shape, tag=None, comment=None):
-        self.imgs = [np.array(img) * 255. for img in imgs]
+        self.imgs = [np.reshape(np.array(img) * 255., shape) for img in imgs]
         self.shape = shape
         self.tag = tag
         if comment is not None:
@@ -18,7 +18,7 @@ class SaveImgFromList:
     def __call__(self, *args, **kwargs):
         if self.shape[0] == 1 or self.shape[1] == 1:
             return
-        imgs = [Image.fromarray(np.reshape(img, self.shape)).convert('RGB') for img in self.imgs]
+        imgs = [Image.fromarray(img).convert('RGB') for img in self.imgs]
         fig = plt.figure(figsize=(6, 8 * len(imgs)))
         print(imgs)
         for i, p in enumerate(imgs):
@@ -42,12 +42,13 @@ class SaveImgFromList:
 def colorize_pixel_diff(corrected, prev, shape):
     _diff = np.subtract(corrected, prev)
     diff = np.zeros((shape[0], shape[1], 3))
-    for i in range(_diff.shape[0]):
-        for j in range(_diff.shape[1]):
-            if _diff[i, j] > 0:
-                diff[i, j, 0] = _diff[i, j]
-            elif _diff[i, j] < 0:
-                diff[i, j, 2] = -_diff[i, j]
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            print("i:{} j:{}".format(i, j))
+            if _diff[i][j] > 0:
+                diff[i][j][0] = _diff[i][j]
+            elif _diff[i][j] < 0:
+                diff[i][j][2] = -_diff[i][j]
     # print("_diff:{}".format(_diff))
     # print("diff:{}".format(diff))
     return np.array(diff).astype(np.uint8)

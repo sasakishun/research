@@ -1193,6 +1193,10 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                                     _mlp, name=["CORRECT_train", "MISS_train"], save_fig=save_fig)
     
     """
+    # 間違いが多すぎると結果出力が終わらないため、修正実験サンプル数限定
+    p = np.random.permutation(len(incorrect_data_test))[:20]
+    incorrect_data_test, incorrect_target_test\
+        = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
@@ -1432,9 +1436,10 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             diff_nodes = []
             for _node, _input in enumerate(corrected_input[-1]):
                 print("diff {} vs {}".format(_input, incorrect_intermediate_output[0][_class][_sample][_node]))
-                if _input != incorrect_intermediate_output[0][_class][_sample][_node]:
-                    diff_nodes.append(_node)
-            result.append("diff_nodes: {}".format(diff_nodes))
+                # if _input != incorrect_intermediate_output[0][_class][_sample][_node]:
+                if not(_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][_node] < _input+0.0001):
+                        diff_nodes.append(_node)
+            result.append("diff_nodes(len:{}): {}".format(len(diff_nodes), diff_nodes))
             # 修正前と後の画像を連結表示
             SaveImgFromList([np.array(incorrect_intermediate_output[0][_class][_sample])] +
                             [np.array(i) for i in corrected_input],
@@ -1790,9 +1795,11 @@ def bad_node_sorted(nodes_child_out_correct_range, _correct_amount):
     # 木構造ならではの強み
     # 負方向へのずれ = max(0, nodes_child_out_correct_range[_node][0]["parent"] - correct_amount)
     # 正方向へのずれ = max(0, correct_amount - nodes_child_out_correct_range[_node][1]["parent"])
+    """
     nodes_child_out_correct_range.sort(key=lambda x: min(max(0, x[1][0]["parent"] - _correct_amount),
                                                          max(0, _correct_amount - x[1][1]["parent"])))
-    print("nodes_child_out_correct_range:{}".format(nodes_child_out_correct_range))
+    """
+    # print("nodes_child_out_correct_range:{}".format(nodes_child_out_correct_range))
     return [i[0] for i in nodes_child_out_correct_range]
 
 
