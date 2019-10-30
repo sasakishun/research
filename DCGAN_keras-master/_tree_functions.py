@@ -425,18 +425,18 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=T
     # for j in range(len(output[i])):
     # print(output[i][j])
     # [masked_mlp_model.predict(inputs_z(data[i], _mask)) for i in range(output_size)]
-    index = {"correct":[], "incorrect":[]}
+    index = {"correct": [[] for _ in range(output_size)], "incorrect": [[] for _ in range(output_size)]}
     ### 正解データと不正解データに分割
     for i in range(output_size):
-        for _data, _target, _output in zip(data[i], target[i], output[i]):
+        for _sample, (_data, _target, _output) in enumerate(zip(data[i], target[i], output[i])):
             if np.argmax(_output) == np.argmax(_target):
                 correct_data[i].append(_data)
                 correct_target[i].append(_target)
-                index["correct"].append(i)
+                index["correct"][i].append(_sample)
             else:
                 incorrect_data[i].append(_data)
                 incorrect_target[i].append(_target)
-                index["incorrect"].append(i)
+                index["incorrect"][i].append(_sample)
     for i in range(output_size):
         print("correct_data[{}]:{}".format(i, np.shape(correct_data[i])))
     for i in range(output_size):
@@ -512,8 +512,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                   if len(train_data[j]) > 0 else []
                                   for j in range(len(train_data))]
                                  for i in range(len(model_shape))]
-    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]],
-                                                            i)  # list(intermediate_layer_model[i].predict([test_data[j]]))
+    test_intermediate_output = [[predict_intermidate_output(_mlp, [test_data[j]], i)  # list(intermediate_layer_model[i].predict([test_data[j]]))
                                  if len(test_data[j]) > 0 else []
                                  for j in range(len(test_data))]
                                 for i in range(len(model_shape))]
