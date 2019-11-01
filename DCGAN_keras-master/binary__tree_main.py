@@ -2037,7 +2037,8 @@ class Main_test():
         print("\ntotal acc_test:{}".
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
         """
-        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=True)
+        # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=True)
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False)
         print("finish")
         exit()
 
