@@ -170,12 +170,42 @@ class NeuralNetwork():
         return cv2.imread(path + ".png")
 
 
-def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None):
+# 中間層出力が0に繋がる重みを削除
+def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus=None):
+    for parent_layer in reversed(range(len(_kernel))):
+        for parent_node in range(np.shape(_kernel[parent_layer])[1]):
+            if intermidate_outpus[parent_layer][parent_node] == 0:
+                # 出力0に繋がる重みを0初期化、子ノード出力も0に
+                for _child in range(len(_kernel[parent_layer-1])):
+                    if _kernel[parent_layer-1][_child][parent_node] != 0:
+                        # 親に繋がる子ノード出力を0に
+                        intermidate_outpus[parent_layer-1][_child] = 0
+                        # 子から親に繋がる重みも0に
+                        _kernel[parent_layer - 1][_child][parent_node] = 0
+    # 入力層から順に、子ノードとの結合がないノードの重み削除
+    for parent_layer in range(len(_kernel)-1):
+        for parent_node in range(np.shape(_kernel[parent_layer])[1]):
+            # 子ノードと結合があるか確認
+            connect = False
+            for child_node in range(np.shape(_kernel[parent_layer])[0]):
+                if _kernel[parent_layer][child_node][parent_node] != 0:
+                    connect = True
+                    break
+            if not connect:
+                for parent_parent_node in range(np.shape(_kernel[parent_layer+1])[1]):
+                    _kernel[parent_layer+1][parent_node][parent_parent_node] = 0
+    return _kernel
+
+
+def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, intermidate_outpus=None):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
     number_of_neurons_in_widest_layer = 4
     network = NeuralNetwork()
+    _weights = [i for i in _weights if i.ndim == 2]  # kernelだけ抽出
+    if intermidate_outpus is not None:
+        _weights = delet_kernel_with_intermidate_out_is_zero(_weights, intermidate_outpus)
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
 
     weights = []

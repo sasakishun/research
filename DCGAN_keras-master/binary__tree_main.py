@@ -741,7 +741,7 @@ def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, 
     model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
                   bias_mask=bias_mask, set_weights=weights)
     # コールバック設定
-    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=200, verbose=0, mode='auto')
+    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=1000, verbose=0, mode='auto')
     # tb_cb = keras.callbacks.TensorBoard(log_dir=".\log", histogram_freq=1) # 謎エラーが発生するため不使用
     # 学習
     valid_num = len(X_train) // 10
@@ -2006,7 +2006,13 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
-        feed_forward(_mlp, X_train, y_train)
+        for i in range(len(X_train)):
+            intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
+            intermidate_out[1][1] = 0
+            print(intermidate_out)
+            mydraw(_mlp.get_weights(), acc=None, comment="", node_colors=None,
+                   intermidate_outpus=intermidate_out)
+            exit()
 
         # kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
         # _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask, child_num=CHILD_NUM)
