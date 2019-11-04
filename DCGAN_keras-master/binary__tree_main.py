@@ -1177,14 +1177,16 @@ def load_weights_and_generate_mlp():
     _mlp.load_weights(cf.Save_mlp_path)
     return _mlp
 
+
 def artificasl_change(X_test, change_num=1):
     change_pos = [[] for _ in X_test]
     for i in range(len(change_pos)):
         for _ in range(change_num):
-            _change_pos = int(np.random.randint(0, len(X_test[i]-1)))
+            _change_pos = int(np.random.randint(0, len(X_test[i] - 1)))
             X_test[i][_change_pos] = -200
         change_pos[i].append(_change_pos)
     return X_test, change_pos
+
 
 # 中間層出力を訓練テスト、正誤データごとに可視化
 def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True, artificial_error=False):
@@ -1241,16 +1243,16 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # 間違いが多すぎると結果出力が終わらないため、修正実験サンプル数限定
     # p = np.random.permutation(len(incorrect_data_test))[:20]
     # incorrect_data_test, incorrect_target_test \
-        # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
+    # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "MISS_test"])
-    exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [correct_data_test, correct_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "CORRECT_test"])
+    exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
                                      original_data=[X_train, y_train, X_test, y_test],
@@ -1395,7 +1397,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
 
     # ミスニューロンを明示したネットワーク図を描画
     for _class in range(len(neuron_colors)):
-        for _sample in range(len(incorrect_intermediate_output[0][_class])): # len(neuron_colors[_class])):
+        for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
             for layer in range(len(incorrect_intermediate_output)):
                 print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
             child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
@@ -1434,8 +1436,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     child_data = feed_forward(_mlp, [[corrected_input[-1]]], target=None)[parent_layer][0][0]
                     print("\n1 child_data:{}".format(child_data))
                     # else:
-                        # child_data = copy.deepcopy(incorrect_intermediate_output[parent_layer][_class][_sample])
-                        # print("2 child_data:{}\n".format(child_data))
+                    # child_data = copy.deepcopy(incorrect_intermediate_output[parent_layer][_class][_sample])
+                    # print("2 child_data:{}\n".format(child_data))
                     child_nodes = []
                     ideal_hidden = []
 
@@ -1496,7 +1498,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # 修正前と後の画像を連結表示
             SaveImgFromList([np.array(i) for i in corrected_input],
                             np.array([Height, Width]),
-                            tag=["[{}]->[{}]".format(_class, np.argmax(feed_forward(_mlp, [[corrected_input[0]]], target=None)[-1]))] +
+                            tag=["[{}]->[{}]".format(_class, np.argmax(
+                                feed_forward(_mlp, [[corrected_input[0]]], target=None)[-1]))] +
                                 ["[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
                                  for i in corrected_input[1:]],
                             comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
@@ -1710,7 +1713,9 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     print("\ncorrecct_amount:{}".format(correct_amount))
 
     # bad_child = bad_node_sorted([[child[i], range_of_fluctuation[child[i]]] for i in range(len(child))], correct_amount)
-    bad_child = bad_node_sorted([[child[i], _child_out[child[i]], correct_range_of2layer[0][child[i]]] for i in range(len(child))], correct_amount)
+    bad_child = bad_node_sorted(
+        [[child[i], _child_out[child[i]], correct_range_of2layer[0][child[i]]] for i in range(len(child))],
+        correct_amount)
 
     # 親ノードが正解に入るように子ノードを修正
     child_data = copy.deepcopy(data)
@@ -1853,10 +1858,10 @@ def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False
         """
         # 正解範囲の中心からのずれでソート
         # print("key:{}".format(["中央値{} ずれ{}".format((x[2][0] + x[2][1])/2, -abs((x[2][0] + x[2][1])/2 - x[1])) for x in nodes_child_out_correct_range]))
-        nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1])/2 - x[1]))
+        nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
         # print("bad_child:{}".format([[i[0], i[1]] for i in nodes_child_out_correct_range]))
         # if len([i[0] for i in nodes_child_out_correct_range]) > 1 and [[i[0], i[1]] for i in nodes_child_out_correct_range][0][0] != 0:
-            # exit()
+        # exit()
     # print("nodes_child_out_correct_range:{}".format(nodes_child_out_correct_range))
     return [i[0] for i in nodes_child_out_correct_range]
 
@@ -2010,11 +2015,10 @@ class Main_test():
             intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
             print(intermidate_out)
             # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
-                   # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,)
-            mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
-                   .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,
-                   intermidate_outpus=intermidate_out)
-        exit()
+            # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,)
+            # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
+            # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,
+            # intermidate_outpus=intermidate_out)
 
         # kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
         # _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask, child_num=CHILD_NUM)
