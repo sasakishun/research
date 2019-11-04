@@ -8,7 +8,7 @@ import cv2
 
 
 def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None,
-              save_fig=True, get_each_color=False, layer_type=None):
+              save_fig=True, get_each_color=False, layer_type=None, dir=""):
     # x : [[クラス0の訓練データ], [クラス1..]...., []]
     """
     _max_list_size = 0
@@ -230,7 +230,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     plt.xlabel("{} node\n{}".format(comment, correct_range_str))
 
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
-    plt.title("ite:{} {}".format(ite, "test" if testflag else "train"))
+    plt.title("ite:{} {} {}".format(ite, "test" if testflag else "train", comment+dir))
     if not testflag:
         plt.ylabel("output")
     # y軸に1刻みにで小目盛り(minor locator)表示
@@ -244,13 +244,18 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     if save_fig:
         # save as png
         import os
-        path = os.getcwd() + r"\visualized_iris"
+        path = os.getcwd() + r"\visualized_iris\hidden_output"
         print("saved to -> " + path + "\{}{}".format("test" if testflag else "train", ite))
-        if ite % cf.Iteration == 0:
-            plt.savefig(path + "{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite,
-                                                datetime.now().strftime("%Y%m%d%H%M%S")))
-        else:
-            plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
+        # dirと同名ディレクトリを作成
+        path = path + dir
+        if path is not None:
+            my_makedirs(path)
+        plt.savefig(path + r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")))
+        # if ite % cf.Iteration == 0:
+            # plt.savefig(path + "{}{}_{}".format(r"\test\test" if testflag else r"\train\train", ite,
+                                                # datetime.now().strftime("%Y%m%d%H%M%S")))
+        # else:
+            # plt.savefig(path + "{}{}".format(r"\test\test" if testflag else r"\train\train", ite))
     plt.close()
     if get_each_color:
         return out_of_range_with_color
@@ -299,3 +304,9 @@ def concate_elements(_list):
     for i in concated[1:]:
         concated[0] += i
     return concated[0]
+
+def my_makedirs(path):
+    import os
+    if not os.path.isdir(path):
+        os.makedirs(path)
+

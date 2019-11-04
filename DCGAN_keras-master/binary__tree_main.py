@@ -1248,7 +1248,6 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "MISS_test"])
-    exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [correct_data_test, correct_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
@@ -1528,10 +1527,20 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                                             _mlp.evaluate(X_test, y_test)[1]),
                 neuron_color=neuron_colors[_class][_sample],
                 intermidate_outpus=intermidate_out)
-                # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
-    result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
-                  .format(correct_success_num, total_sample_num, 100. * correct_success_num / total_sample_num))
-    write_result(result_path, result)
+            # 正解訓練サンプル×ミスサンプルの図も作成
+            #クラス0なのに、クラス1のラベルがついてる？
+            print("_class:{}".format(_class))
+            show_intermidate_train_and_test(correct[0], correct[1],
+                                            [incorrect_intermediate_output[0][_class][_sample]], [np.eye(output_size)[_class]],
+                                            _mlp, name=name,
+                                            save_fig=True, get_each_color=False,
+                                            get_intermidate_output=False,
+                                            dir=r"\{}_{}class_{}_sample_{}".format(name[1], cf.Dataset, _class, _sample_num))
+            # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
+    if total_sample_num > 0:
+        result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
+                      .format(correct_success_num, total_sample_num, 100. * correct_success_num / total_sample_num))
+        write_result(result_path, result)
     return
 
 
@@ -2054,7 +2063,7 @@ class Main_test():
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
         """
         # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=True)
-        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False)
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False, save_fig=False)
         print("finish")
         exit()
 

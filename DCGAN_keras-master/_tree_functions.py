@@ -471,7 +471,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=T
             print("visualize layer:{}".format(i))
             time.sleep(1)
             visualize(correct_intermediate_output[i] + incorrect_intermediate_output[i],
-                      None, labels, ite=cf.Iteration,
+                      None, labels, ite=cf.Iteration, save_fig=save_fig,
                       testflag=True if name == "test" else False, showflag=False,
                       comment="layer:{} {}_acc:{:.2f}".format(
                           i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
@@ -490,7 +490,8 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=T
 
 # 出力: shape(層数, クラス数, ノード数) -> 中身: 間違いノード番号のリスト
 def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"],
-                                    save_fig=True, get_each_color=False, get_intermidate_output=False):
+                                    save_fig=True, get_each_color=False, get_intermidate_output=False, dir=""):
+
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
     # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -541,8 +542,9 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
         out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,
-                                       comment="layer:{}".format(i + 1), save_fig=save_fig,
-                                       get_each_color=get_each_color, layer_type=layer_type))
+                                       comment="layer:{} ".format(i + 1), save_fig=save_fig,
+                                       get_each_color=get_each_color, layer_type=layer_type,
+                                       dir=dir))
         ###中間層出力を可視化
         # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))
