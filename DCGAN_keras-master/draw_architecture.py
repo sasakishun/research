@@ -209,6 +209,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     _weights = [i for i in _weights if i.ndim == 2]  # kernelだけ抽出
     if intermidate_outpus is not None:
         _weights = delet_kernel_with_intermidate_out_is_zero(_weights, intermidate_outpus)
+
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
 
     weights = []

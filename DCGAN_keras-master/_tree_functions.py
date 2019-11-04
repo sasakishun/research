@@ -317,12 +317,12 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
     return model
 
 
-def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None):
+def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None, intermidate_outpus=None):
     print("visualising_start")
     # return
     from time import sleep
     sleep(1)
-    im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color)
+    im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color, intermidate_outpus=intermidate_outpus)
     im_h_resize = im_architecture
     path = os.getcwd() + r"\visualized_iris\network_architecture\triple\{}".format(
         datetime.now().strftime("%Y%m%d%H%M%S") + ".png")

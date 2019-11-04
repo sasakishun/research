@@ -1248,6 +1248,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "MISS_test"])
+    exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [correct_data_test, correct_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
@@ -1400,115 +1401,116 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
             for layer in range(len(incorrect_intermediate_output)):
                 print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
-            child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
-            corrected_input = [copy.deepcopy(incorrect_intermediate_output[0][_class][_sample])]
-            ideal_hidden = []
+            if name[1][:4] == "miss":
+                child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
+                corrected_input = [copy.deepcopy(incorrect_intermediate_output[0][_class][_sample])]
+                ideal_hidden = []
 
-            _out = feed_forward(_mlp, [[corrected_input[-1]]])[-1][0][0]
-            _out = sorted([[_out_, i] for i, _out_ in enumerate(_out)])
-            _out = [i[1] for i in _out]
-            print("output_nodes:{}".format([[_class]] + [[i] for i in _out if i != _class]))
-            # for _parent_nodes in [[i] for i in range(model_shape[-1]) if i != _class] + [[_class]]:
-            for _parent_nodes in [[_class]] + [[i] for i in _out if i != _class]:
-                # parent_nodesは出力最大ノードにしてもいいか？
+                _out = feed_forward(_mlp, [[corrected_input[-1]]])[-1][0][0]
+                _out = sorted([[_out_, i] for i, _out_ in enumerate(_out)])
+                _out = [i[1] for i in _out]
+                print("output_nodes:{}".format([[_class]] + [[i] for i in _out if i != _class]))
+                # for _parent_nodes in [[i] for i in range(model_shape[-1]) if i != _class] + [[_class]]:
+                for _parent_nodes in [[_class]] + [[i] for i in _out if i != _class]:
+                    # parent_nodesは出力最大ノードにしてもいいか？
 
-                # 出力がおかしくなければcontinue->たどってしまうと子孫に異常値があるたびに、入力が微小変化
-                # 現状の分類クラスを算出
-                _out_class = np.argmax(feed_forward(_mlp, [[corrected_input[-1]]])[-1][0][0])
-                if _out_class == _class:
-                    break
-                # これは無視することで入力変化を抑える
-                print("correcting_class:{}".format(_parent_nodes))
-                correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
-                print("correct_range_of2layer:{}".format(correct_range_of2layer))
-                parent_nodes = copy.deepcopy(_parent_nodes)
-                # 出力層を補正、中間層を逆算的に調節
-                for parent_layer in reversed(range(len(_mlp.layers))):
-                    if parent_layer == len(_mlp.layers) - 1:
-                        parent_activation = softmax
-                    else:
-                        parent_activation = relu
-                    print("\nname:{}".format(name))
-                    print("parent_layer:{}".format(parent_layer))
+                    # 出力がおかしくなければcontinue->たどってしまうと子孫に異常値があるたびに、入力が微小変化
+                    # 現状の分類クラスを算出
+                    _out_class = np.argmax(feed_forward(_mlp, [[corrected_input[-1]]])[-1][0][0])
+                    if _out_class == _class:
+                        break
+                    # これは無視することで入力変化を抑える
+                    print("correcting_class:{}".format(_parent_nodes))
+                    correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
+                    print("correct_range_of2layer:{}".format(correct_range_of2layer))
+                    parent_nodes = copy.deepcopy(_parent_nodes)
+                    # 出力層を補正、中間層を逆算的に調節
+                    for parent_layer in reversed(range(len(_mlp.layers))):
+                        if parent_layer == len(_mlp.layers) - 1:
+                            parent_activation = softmax
+                        else:
+                            parent_activation = relu
+                        print("\nname:{}".format(name))
+                        print("parent_layer:{}".format(parent_layer))
+                        print("child_data:{}".format(child_data))
+                        # correct_dataの値を取ってくるべき
+                        # if len(corrected_input) > 0:
+                        child_data = feed_forward(_mlp, [[corrected_input[-1]]], target=None)[parent_layer][0][0]
+                        print("\n1 child_data:{}".format(child_data))
+                        # else:
+                        # child_data = copy.deepcopy(incorrect_intermediate_output[parent_layer][_class][_sample])
+                        # print("2 child_data:{}\n".format(child_data))
+                        child_nodes = []
+                        ideal_hidden = []
+
+                        # ここで更新したはずのchild_dataが別の子ノード更新で打ち消されてる
+                        for parent_node in parent_nodes:
+                            print("correctiong_child_node_of: parent_node[{}]".format(parent_node))
+                            child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
+                                                              parent_node, correct_range_of2layer, parent_activation)
+                            child_nodes += get_child_node(_mlp, parent_layer + 1, parent_node)
+                        print("parent_nodes:{}".format(parent_nodes))
+                        ideal_hidden.append(copy.deepcopy(child_data))
+                        parent_nodes = child_nodes
+                        print("child_data:{}".format(child_data))
+                        print("child_nodes:{}\n".format(child_nodes))
+                        # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
+                        correct_range_of2layer = get_correct_range(
+                            copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
+                        if len(correct_range_of2layer) > 0:
+                            for _node in range(model_shape[parent_layer]):
+                                for i in range(2):
+                                    correct_range_of2layer[1][_node][i] = child_data[_node]
+                            print("correct_range_of2layer:{}".format(correct_range_of2layer))
+                        else:
+                            print("finished at parent_layer:{}".format(parent_layer))
+                    np.set_printoptions(precision=2)
                     print("child_data:{}".format(child_data))
-                    # correct_dataの値を取ってくるべき
-                    # if len(corrected_input) > 0:
-                    child_data = feed_forward(_mlp, [[corrected_input[-1]]], target=None)[parent_layer][0][0]
-                    print("\n1 child_data:{}".format(child_data))
-                    # else:
-                    # child_data = copy.deepcopy(incorrect_intermediate_output[parent_layer][_class][_sample])
-                    # print("2 child_data:{}\n".format(child_data))
-                    child_nodes = []
-                    ideal_hidden = []
+                    print("before_corrected")
+                    for layer in reversed(range(len(incorrect_intermediate_output))):
+                        print("hidden[{}]:{}".format(layer, incorrect_intermediate_output[layer][_class][_sample]))
+                    print("after_corrected")
+                    corrected_intermidate = [predict_intermidate_output(_mlp, [[child_data]],
+                                                                        target_layer=layer)[0]
+                                             for layer in range(len(model_shape))]
+                    corrected_input.append(copy.deepcopy(child_data))
+                    # print("corrected_intermidate:{}".format(corrected_intermidate))
+                    for layer in reversed(range(len(corrected_intermidate))):
+                        print("hidden[{}]:{}".format(layer, list(corrected_intermidate[layer])))
+                        # child_data = corrected_intermidate[-2]
 
-                    # ここで更新したはずのchild_dataが別の子ノード更新で打ち消されてる
-                    for parent_node in parent_nodes:
-                        print("correctiong_child_node_of: parent_node[{}]".format(parent_node))
-                        child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
-                                                          parent_node, correct_range_of2layer, parent_activation)
-                        child_nodes += get_child_node(_mlp, parent_layer + 1, parent_node)
-                    print("parent_nodes:{}".format(parent_nodes))
-                    ideal_hidden.append(copy.deepcopy(child_data))
-                    parent_nodes = child_nodes
-                    print("child_data:{}".format(child_data))
-                    print("child_nodes:{}\n".format(child_nodes))
-                    # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
-                    correct_range_of2layer = get_correct_range(
-                        copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
-                    if len(correct_range_of2layer) > 0:
-                        for _node in range(model_shape[parent_layer]):
-                            for i in range(2):
-                                correct_range_of2layer[1][_node][i] = child_data[_node]
-                        print("correct_range_of2layer:{}".format(correct_range_of2layer))
-                    else:
-                        print("finished at parent_layer:{}".format(parent_layer))
-                np.set_printoptions(precision=2)
-                print("child_data:{}".format(child_data))
-                print("before_corrected")
-                for layer in reversed(range(len(incorrect_intermediate_output))):
-                    print("hidden[{}]:{}".format(layer, incorrect_intermediate_output[layer][_class][_sample]))
-                print("after_corrected")
-                corrected_intermidate = [predict_intermidate_output(_mlp, [[child_data]],
-                                                                    target_layer=layer)[0]
-                                         for layer in range(len(model_shape))]
-                corrected_input.append(copy.deepcopy(child_data))
-                # print("corrected_intermidate:{}".format(corrected_intermidate))
-                for layer in reversed(range(len(corrected_intermidate))):
-                    print("hidden[{}]:{}".format(layer, list(corrected_intermidate[layer])))
-                    # child_data = corrected_intermidate[-2]
-
-            # name == ["CORRECT_train", "MISS_train"]のときは結果集計
-            # 集計要素: 変更入力要素、修正率（出力==_classになったか）
-            # 元入力画像: np.array(incorrect_intermediate_output[0][_class][_sample])
-            # 変更後画像: np.array(correct_input[-1])
-            total_sample_num += 1
-            if _class == np.argmax(feed_forward(_mlp, [[corrected_input[-1]]], target=None)[-1]):
-                correct_success_num += 1
-            # 修正前と修正後の入力画像の変更点を算出
-            diff_nodes = []
-            for _node, _input in enumerate(corrected_input[-1]):
-                print("diff {} vs {}".format(_input, incorrect_intermediate_output[0][_class][_sample][_node]))
-                # if _input != incorrect_intermediate_output[0][_class][_sample][_node]:
-                if not (_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][_node] < _input + 0.0001):
-                    diff_nodes.append(_node)
-            result.append("diff_nodes(class:{} sample:{} len:{}): {}\ninput:{}\nafter{}"
-                          .format(_class, _sample, len(diff_nodes), diff_nodes,
-                                  incorrect_intermediate_output[0][_class][_sample],
-                                  corrected_input[-1]))
-            # 修正前と後の画像を連結表示
-            SaveImgFromList([np.array(i) for i in corrected_input],
-                            np.array([Height, Width]),
-                            tag=["[{}]->[{}]".format(_class, np.argmax(
-                                feed_forward(_mlp, [[corrected_input[0]]], target=None)[-1]))] +
-                                ["[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
-                                 for i in corrected_input[1:]],
-                            comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
-            for i, _hidden in enumerate(reversed(ideal_hidden)):
-                print("\nideal_hidden[{}]:{}".format(i, _hidden))
-                out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
-                for _out in out:
-                    print("->{}".format(_out))
-            # exit()
+                # name == ["CORRECT_train", "MISS_train"]のときは結果集計
+                # 集計要素: 変更入力要素、修正率（出力==_classになったか）
+                # 元入力画像: np.array(incorrect_intermediate_output[0][_class][_sample])
+                # 変更後画像: np.array(correct_input[-1])
+                total_sample_num += 1
+                if _class == np.argmax(feed_forward(_mlp, [[corrected_input[-1]]], target=None)[-1]):
+                    correct_success_num += 1
+                # 修正前と修正後の入力画像の変更点を算出
+                diff_nodes = []
+                for _node, _input in enumerate(corrected_input[-1]):
+                    print("diff {} vs {}".format(_input, incorrect_intermediate_output[0][_class][_sample][_node]))
+                    # if _input != incorrect_intermediate_output[0][_class][_sample][_node]:
+                    if not (_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][_node] < _input + 0.0001):
+                        diff_nodes.append(_node)
+                result.append("diff_nodes(class:{} sample:{} len:{}): {}\ninput:{}\nafter{}"
+                              .format(_class, _sample, len(diff_nodes), diff_nodes,
+                                      incorrect_intermediate_output[0][_class][_sample],
+                                      corrected_input[-1]))
+                # 修正前と後の画像を連結表示
+                SaveImgFromList([np.array(i) for i in corrected_input],
+                                np.array([Height, Width]),
+                                tag=["[{}]->[{}]".format(_class, np.argmax(
+                                    feed_forward(_mlp, [[corrected_input[0]]], target=None)[-1]))] +
+                                    ["[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
+                                     for i in corrected_input[1:]],
+                                comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
+                for i, _hidden in enumerate(reversed(ideal_hidden)):
+                    print("\nideal_hidden[{}]:{}".format(i, _hidden))
+                    out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
+                    for _out in out:
+                        print("->{}".format(_out))
+                # exit()
 
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # print("class:{} sample:{}".format(_class, _sample_num))
@@ -1518,13 +1520,15 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
             # parsing_miss_node(_mlp, neuron_colors[_class][_sample])
             # correct_range = get_correct_range(neuron_colors[_class][_sample])
+            intermidate_out = [_out[0] for _out in feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                             _mlp.evaluate(X_test, y_test)[1]),
-                neuron_color=neuron_colors[_class][_sample])
-            # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
+                neuron_color=neuron_colors[_class][_sample],
+                intermidate_outpus=intermidate_out)
+                # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
                   .format(correct_success_num, total_sample_num, 100. * correct_success_num / total_sample_num))
     write_result(result_path, result)
