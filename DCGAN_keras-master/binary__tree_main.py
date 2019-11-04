@@ -2008,11 +2008,13 @@ class Main_test():
         _mlp = load_weights_and_generate_mlp()
         for i in range(len(X_train)):
             intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
-            intermidate_out[1][1] = 0
             print(intermidate_out)
-            mydraw(_mlp.get_weights(), acc=None, comment="", node_colors=None,
+            # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
+                   # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,)
+            mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
+                   .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,
                    intermidate_outpus=intermidate_out)
-            exit()
+        exit()
 
         # kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
         # _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask, child_num=CHILD_NUM)
