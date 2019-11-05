@@ -1526,7 +1526,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                             _mlp.evaluate(X_test, y_test)[1]),
                 neuron_color=neuron_colors[_class][_sample],
-                intermidate_outpus=intermidate_out)
+                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
             # 正解訓練サンプル×ミスサンプルの図も作成
             #クラス0なのに、クラス1のラベルがついてる？
             print("_class:{}".format(_class))
@@ -1535,13 +1535,46 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                             _mlp, name=name,
                                             save_fig=True, get_each_color=False,
                                             get_intermidate_output=False,
-                                            dir=r"\{}_{}class_{}_sample_{}".format(name[1], cf.Dataset, _class, _sample_num))
+                                            dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
+            # 出力＝0のノード子孫を削除する場合
+            if False:
+                visualize_network(weights=delet_kernel_with_intermidate_out_is_zero(get_kernel_and_bias(_mlp), intermidate_out),
+                                  comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
+                                          + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                                              _mlp.evaluate(X_test, y_test)[1]),
+                                  neuron_color=neuron_colors[_class][_sample],
+                                  intermidate_outpus=intermidate_out,
+                                  dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
+                show_intermidate_train_and_test(correct[0], correct[1],
+                                                [incorrect_intermediate_output[0][_class][_sample]], [np.eye(output_size)[_class]],
+                                                _mlp, name=name,
+                                                save_fig=True, get_each_color=False,
+                                                get_intermidate_output=False,
+                                                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
+                                                mask=get_zero_output_index(_mlp, intermidate_out))
             # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     if total_sample_num > 0:
         result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
                       .format(correct_success_num, total_sample_num, 100. * correct_success_num / total_sample_num))
         write_result(result_path, result)
     return
+
+# 1入力データから、出力=0のマスク行列を返す
+def get_zero_output_index(_model, intermidate_out):
+    _weights = _model.get_weights()
+    layer_size = [np.shape(_weights[0])[0]] + [np.shape(i)[1] for i in _weights if i.ndim == 2]
+    mask = [np.full(i, True) for i in layer_size]
+    from draw_architecture import delet_kernel_with_intermidate_out_is_zero
+    kernel = delet_kernel_with_intermidate_out_is_zero([i for i in _weights if i.ndim == 2],
+                                                       intermidate_outpus=intermidate_out)
+    print(intermidate_out)
+    # 自身から親ノードへの結合がない->マスク=False
+    for _layer in range(len(kernel)):
+        for _node in range(len(kernel[_layer])):
+            if np.all(kernel[_layer][_node] == 0):
+                mask[_layer][_node] = False
+        print("nmask[{}]:{}".format(_layer, mask[_layer]))
+    return mask
 
 
 # 入力: Model, あるクラス、あるサンプルのノード色->shape(層番号, ノード番号)

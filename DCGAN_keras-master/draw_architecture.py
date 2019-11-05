@@ -147,7 +147,7 @@ class NeuralNetwork():
         pyplot.show()
     """
 
-    def draw(self, path, acc=None, comment=""):
+    def draw(self, path, acc=None, comment="", dir=None):
         for layer in self.layers:
             layer.draw()
         if acc is not None:
@@ -162,7 +162,13 @@ class NeuralNetwork():
         if not os.path.exists(path):  # ディレクトリがないとき新規作成
             path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
             print("path:{}".format(path))
-        path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")
+        if dir is not None:
+            from visualization import my_makedirs
+            path = os.getcwd() + r"\visualized_iris\hidden_output" + dir
+            my_makedirs(path)
+            path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
+        else:
+            path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")
         pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0, dpi=200)
         print("saved to -> {}".format(path))
         # pyplot.show()
@@ -171,7 +177,11 @@ class NeuralNetwork():
 
 
 # 中間層出力が0に繋がる重みを削除
-def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus=None):
+# ～（応用例）～
+# このintermidate_outputsをmaskと考え、消したいノードだけを0、他を1にすれば
+# いらないノード重みとその子孫だけ消せる
+def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus):
+    _kernel = [i for i in _kernel if i.ndim == 2]
     for parent_layer in reversed(range(1, len(intermidate_outpus)-1)):
         for parent_node in range(len(intermidate_outpus[parent_layer])):
             if intermidate_outpus[parent_layer][parent_node] == 0:
@@ -200,16 +210,14 @@ def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus=None):
     return _kernel
 
 
-def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, intermidate_outpus=None):
+def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
     number_of_neurons_in_widest_layer = 4
     network = NeuralNetwork()
+    print("_weights:{}".format(_weights))
     _weights = [i for i in _weights if i.ndim == 2]  # kernelだけ抽出
-    if intermidate_outpus is not None:
-        _weights = delet_kernel_with_intermidate_out_is_zero(_weights, intermidate_outpus)
-
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
 
     weights = []
@@ -244,7 +252,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None)
     # print("weights:\n{}".format(weights))
     path = os.getcwd() + r"\visualized_iris\network_architecture"
-    return network.draw(path=path, acc=acc, comment=comment)
+    return network.draw(path=path, acc=acc, comment=comment, dir=dir)
 
 
 def _active_route(_weights, acc, comment="", binary_target=-1, using_nodes=[]):

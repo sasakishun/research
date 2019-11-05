@@ -317,12 +317,12 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
     return model
 
 
-def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None, intermidate_outpus=None):
+def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None, intermidate_outpus=None, dir=None):
     print("visualising_start")
     # return
     from time import sleep
     sleep(1)
-    im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color, intermidate_outpus=intermidate_outpus)
+    im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color, dir=dir)
     im_h_resize = im_architecture
     path = os.getcwd() + r"\visualized_iris\network_architecture\triple\{}".format(
         datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
@@ -490,7 +490,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=T
 
 # 出力: shape(層数, クラス数, ノード数) -> 中身: 間違いノード番号のリスト
 def show_intermidate_train_and_test(train_data, train_target, test_data, test_target, _mlp, name=["train", "test"],
-                                    save_fig=True, get_each_color=False, get_intermidate_output=False, dir=""):
+                                    save_fig=True, get_each_color=False, get_intermidate_output=False, dir="",mask=None):
 
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
@@ -544,7 +544,8 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
                                        testflag=True, showflag=False,
                                        comment="layer:{} ".format(i + 1), save_fig=save_fig,
                                        get_each_color=get_each_color, layer_type=layer_type,
-                                       dir=dir))
+                                       dir=dir,
+                                       mask=mask[i] if mask is not None else None))
         ###中間層出力を可視化
         # for i in range(dataset_category):
         # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))

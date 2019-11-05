@@ -6,10 +6,9 @@ from datetime import datetime
 import config_mnist as cf
 import cv2
 
-
 def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None,
-              save_fig=True, get_each_color=False, layer_type=None, dir=""):
-    # x : [[クラス0の訓練データ], [クラス1..]...., []]
+              save_fig=True, get_each_color=False, layer_type=None, dir="", mask=None):
+    # x : [[クラス0の訓練データ(ノード数,サンプル数)], [クラス1..]...., []]
     """
     _max_list_size = 0
     xtick_flag = False
@@ -20,9 +19,16 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
             xtick_flag = True
     # _max_list_size = min(100, _max_list_size)
     """
+    if mask is not None:
+        for _node, _mask in enumerate(mask):
+            if not _mask:
+                for _class in range(len(x)):
+                    for _sample in range(len(x[_class])):
+                        x[_class][_sample][_node] = 0
 
     # plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
-    plt.figure(figsize=(8, 8), dpi=100)
+    input_size = len(x[0][0])
+    plt.figure(figsize=(input_size*2, 8), dpi=100)#  * input_size)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
@@ -35,8 +41,8 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
               colors[6],
               colors[7],
               colors[9]]  # 色指定
-    input_size = len(x[0][0])
     class_num = len(x)//2
+
     # プロット
     # print("x:{}".format(len(x)))
     # for i in range(len(x)):
@@ -60,10 +66,19 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
         if len(x[i]) > 0:  # 各サンプルをプロット
             # print("x[{}]:{} len:{}".format(i, x[i], len(x[i])))
             # for j in range(min(500, input_size)):
+            if i < len(labels) // 2:
+                line_pos, center_slip = get_line_centersrip_pos(i, len(labels))
+                _x = [j + line_pos - center_slip for j in range(input_size)]
+                _y = [(_correct_range[0] + _correct_range[1]) / 2 for _correct_range in correct_range[i]]
+                e = [(_correct_range[1] - _correct_range[0]) / 2 for _correct_range in correct_range[i]]
+                plt.errorbar(_x, _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i])
+            else:
+                line_pos, center_slip = get_line_centersrip_pos(len(labels)//2, len(labels))
+
             for j in range(input_size):  # j列目(13次元入力ならj<13)==参照ノード番号
                 ### 正解入力をプロット
                 if i < len(labels) // 2:
-                    _x = [j + 0.04 * (i - len(labels) // 2) for _ in range(len(x[i]))]
+                    _x = [j + line_pos - center_slip for _ in range(len(x[i]))]
                     _y = np.array(x[i])[:, j]
                     plt.scatter(_x, _y, color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
                                 marker=".")
@@ -71,7 +86,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
 
                 ### 不正解入力をプロット
                 else:
-                    _x = [j + 0.04 * (i - len(labels) // 2 + 1) for _ in range(len(x[i]))]  # j番目サンプルの横軸座標
+                    _x = [j + line_pos + center_slip for _ in range(len(x[i]))]  # j番目サンプルの横軸座標
                     _y = np.array(x[i])[:, j]  # j番目のサンプルの縦軸座標
                     _in = [[], []]
                     _out = [[], []]
@@ -309,4 +324,9 @@ def my_makedirs(path):
     import os
     if not os.path.isdir(path):
         os.makedirs(path)
+
+def get_line_centersrip_pos(_class, labels_len):
+    line_pos = 0.05 * (_class - (labels_len // 2) + 0.5)
+    center_slip = 0.05 * _class / 4
+    return line_pos, center_slip
 
