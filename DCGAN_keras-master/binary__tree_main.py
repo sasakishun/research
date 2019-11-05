@@ -1537,8 +1537,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                             get_intermidate_output=False,
                                             dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
             # 出力＝0のノード子孫を削除する場合
-            if False:
-                visualize_network(weights=delet_kernel_with_intermidate_out_is_zero(get_kernel_and_bias(_mlp), intermidate_out),
+            if True:
+                _mlp = masking_all_layer(_mlp, X_train, y_train, X_test, y_test)
+                weights = _mlp.get_weights()
+                # weights = delet_kernel_with_intermidate_out_is_zero(get_kernel_and_bias(_mlp), intermidate_out)
+                visualize_network(weights,
                                   comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
                                           + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                                               _mlp.evaluate(X_test, y_test)[1]),
@@ -1550,8 +1553,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                                 _mlp, name=name,
                                                 save_fig=True, get_each_color=False,
                                                 get_intermidate_output=False,
-                                                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
-                                                mask=get_zero_output_index(_mlp, intermidate_out))
+                                                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))\
+                                                # ,mask=get_zero_output_index(_mlp, intermidate_out))
             # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     if total_sample_num > 0:
         result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
@@ -2040,6 +2043,15 @@ def shrink_all_layer(_mlp, X_train, y_train, X_test, y_test):
     print("saving weigths to -> {} {}".format(cf.Save_mlp_path, cf.Save_np_mlp_path))
     return
 
+def masking_all_layer(_mlp, X_train, y_train, X_test, y_test):
+    # 不要中間ノードにマスクをかける
+    from _tree_functions import masking_node
+    # 精度が下がらないノードは削除
+    for target_layer in range(1, len(get_layer_size_from_weight(_mlp.get_weights())) - 1):
+        X_train, y_train = shuffle_data(X_train, y_train)
+        print("masking {}th layer".format(target_layer))
+        _mlp = masking_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test, shrink_with_acc=True)
+    return _mlp
 
 shrinked_flag = False
 

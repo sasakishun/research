@@ -572,3 +572,76 @@ def calculate_tree_shape(input_size, output_size=1, child_num=2, is_image=False)
         else:
             shape.append(math.ceil(np.sqrt(shape[-1]) / child_num) ** 2)
     return [shape[i] * (output_size if i != 0 else 1) for i in range(len(shape))]
+
+# モデルの第layer層、node番目ノードを削除したモデルを返す
+def masking_node(weights, model, target_layer, target_node):
+    kernel_start, set_size = get_kernel_start_index_and_set_size(model)
+    parent_layer = target_layer + set_size
+
+    print("delete node:{} in layer:{}".format(target_node, target_layer))
+    """
+    # バイアス×親への重みを親ノードバイアスに伝播
+    for parent_node in range(len(weights[parent_layer + kernel_start + 1])):
+        weights[parent_layer + kernel_start + 1][parent_node] += \
+            weights[target_layer + kernel_start + 1][target_node] * \
+            weights[parent_layer + kernel_start][target_node][parent_node]
+    """
+    # 子ノードとの結合削除
+    for i in range(np.shape(weights[target_layer + kernel_start])[0]):
+        weights[target_layer + kernel_start][i][target_node] = 0
+    # 親ノードとの結合削除
+    for i in range(np.shape(weights[target_layer + kernel_start])[1]):
+        weights[target_layer + kernel_start][target_node][i] = 0
+    """
+    # バイアスノード削除
+    weights[target_layer + kernel_start + 1] = np.delete(weights[target_layer + kernel_start + 1],
+                                                         target_node)
+    # BNノード(x4層)削除
+    bn_layer_index = list(range(target_layer + set_size, target_layer + kernel_start + set_size)) \
+                     + list(range(target_layer + set_size + kernel_start + 2, target_layer + set_size + set_size))
+    print("bn_layer_index:{}".format(bn_layer_index))
+    print("kernel_start:{} set_size:{}".format(kernel_start, set_size))
+    for bn_layer in bn_layer_index:
+        weights[bn_layer] = np.delete(weights[bn_layer], target_node, 0)
+    """
+    return weights
+
+# 入力 : 全クラス分類モデル(model)、対象レイヤー番号(int)、訓練データ(np.array)、訓練ラベル(np.array)
+# 出力 : 不要ノードに繋がる重み、バイアス、BNパラメーターを削除したモデル(model)
+def masking_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_with_acc=False):
+    from binary__tree_main import show_weight, keep_mask_and_fit
+    weights = model.get_weights()
+    if batchNormalization_is_used(weights):
+        kernel_start, set_size = get_kernel_start_index_and_set_size(model)
+        target_layer = (target_layer - 1) * set_size  # weigthsリストが[重み、バイアス....]となっているため
+        print("BN is used")
+
+        # 「入力側との結合=0」のノードを検出
+        target_node = 0
+        while target_node < np.shape(weights[target_layer + kernel_start])[1]:
+            print("target_layer: {} target_node:{}".format(target_layer, target_node))
+            parent_layer = target_layer + set_size
+
+            if shrink_with_acc:
+                # target_layerを削除して性能検証
+                prev_acc = model.evaluate(X_train, y_train)[1]
+                target_deleted_weights = masking_node(copy.deepcopy(weights), model=model, target_layer=target_layer,
+                                                     target_node=target_node)
+                _model = myMLP(get_layer_size_from_weight(target_deleted_weights), set_weights=target_deleted_weights)
+                target_deleted_acc = _model.evaluate(X_train, y_train)[1]
+                print("target_deleted_acc:{:.4f} prev_acc:{:.4f}".format(target_deleted_acc, prev_acc))
+                # 性能減少->ノード削除しない
+                if target_deleted_acc < prev_acc:
+                    target_node += 1
+                    continue
+                # 性能減少しない->自身に繋がる子と親ノード重み削除
+                else:
+                    target_node += 1
+                    weights = target_deleted_weights
+            else:
+                target_node += 1
+
+        model = myMLP(get_layer_size_from_weight(weights), set_weights=weights)
+    else:
+        return model
+    return model
