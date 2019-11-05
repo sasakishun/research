@@ -71,7 +71,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                 _x = [j + line_pos - center_slip for j in range(input_size)]
                 _y = [(_correct_range[0] + _correct_range[1]) / 2 for _correct_range in correct_range[i]]
                 e = [(_correct_range[1] - _correct_range[0]) / 2 for _correct_range in correct_range[i]]
-                plt.errorbar(_x, _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i])
+                plt.errorbar(_x, _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i], elinewidth=1)
             else:
                 line_pos, center_slip = get_line_centersrip_pos(len(labels)//2, len(labels))
 
@@ -81,7 +81,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                     _x = [j + line_pos - center_slip for _ in range(len(x[i]))]
                     _y = np.array(x[i])[:, j]
                     plt.scatter(_x, _y, color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
-                                marker=".")
+                                marker=".", s=0.5)
                 ### 正解入力をプロット
 
                 ### 不正解入力をプロット
