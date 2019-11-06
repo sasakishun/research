@@ -1525,13 +1525,18 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                             _mlp.evaluate(X_test, y_test)[1]),
-                neuron_color=neuron_colors[_class][_sample],
+                neuron_color=None, # neuron_colors[_class][_sample],
                 dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
             # 正解訓練サンプル×ミスサンプルの図も作成
             #クラス0なのに、クラス1のラベルがついてる？
             print("_class:{}".format(_class))
-            show_intermidate_train_and_test(correct[0], correct[1],
-                                            [incorrect_intermediate_output[0][_class][_sample]], [np.eye(output_size)[_class]],
+            input_datas = [incorrect_intermediate_output[0][_class][_sample]]
+            input_labels =  [np.eye(output_size)[_class]]
+            for i in range(1, output_size):
+                if len(incorrect_intermediate_output[0][(_class+i)%output_size]) > 0:
+                    input_datas += [incorrect_intermediate_output[0][(_class + i) % output_size][0]]
+                    input_labels += [np.eye(output_size)[(_class + i) % output_size]]
+            show_intermidate_train_and_test(correct[0], correct[1],input_datas,input_labels,
                                             _mlp, name=name,
                                             save_fig=True, get_each_color=False,
                                             get_intermidate_output=False,
