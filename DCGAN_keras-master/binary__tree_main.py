@@ -1342,7 +1342,7 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
 
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
 # ミスニューロンを明示したネットワーク図を描画
-def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["correct_train", "miss_test"]):
+def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["CORRECT_train", "MISS_test"]):
     get_each_color = True
     each_color, corret_intermediate_output, incorrect_intermediate_output \
         = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
@@ -1400,7 +1400,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
             for layer in range(len(incorrect_intermediate_output)):
                 print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
-            if name[1][:4] == "miss":
+
+            _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
+            if name[1][:4] == "MISS":
                 child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
                 corrected_input = [copy.deepcopy(incorrect_intermediate_output[0][_class][_sample])]
                 ideal_hidden = []
@@ -1490,7 +1492,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 for _node, _input in enumerate(corrected_input[-1]):
                     print("diff {} vs {}".format(_input, incorrect_intermediate_output[0][_class][_sample][_node]))
                     # if _input != incorrect_intermediate_output[0][_class][_sample][_node]:
-                    if not (_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][_node] < _input + 0.0001):
+                    if not (_input - 0.0001 < incorrect_intermediate_output[0][_class][_sample][
+                        _node] < _input + 0.0001):
                         diff_nodes.append(_node)
                 result.append("diff_nodes(class:{} sample:{} len:{}): {}\ninput:{}\nafter{}"
                               .format(_class, _sample, len(diff_nodes), diff_nodes,
@@ -1503,15 +1506,16 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                     feed_forward(_mlp, [[corrected_input[0]]], target=None)[-1]))] +
                                     ["[{}]".format(np.argmax(feed_forward(_mlp, [[i]], target=None)[-1]))
                                      for i in corrected_input[1:]],
-                                comment="corrected_class[{}]_sample[{}]".format(_class, _sample))()
+                                comment="corrected_class[{}]_sample[{}]".format(_class, _sample),
+                                output=[feed_forward(_mlp, [[corrected_input[i]]], target=None)[-1]
+                                        for i in range(len(corrected_input))],
+                                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))()
                 for i, _hidden in enumerate(reversed(ideal_hidden)):
                     print("\nideal_hidden[{}]:{}".format(i, _hidden))
                     out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
                     for _out in out:
                         print("->{}".format(_out))
-                # exit()
 
-            _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # print("class:{} sample:{}".format(_class, _sample_num))
             # for layer in range(len(neuron_colors[_class][_sample])):
             # for node in range(len(neuron_colors[_class][_sample][layer])):
@@ -1519,28 +1523,30 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
             # parsing_miss_node(_mlp, neuron_colors[_class][_sample])
             # correct_range = get_correct_range(neuron_colors[_class][_sample])
-            intermidate_out = [_out[0] for _out in feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
+            intermidate_out = [_out[0] for _out in
+                               feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                             _mlp.evaluate(X_test, y_test)[1]),
-                neuron_color=None, # neuron_colors[_class][_sample],
+                neuron_color=None,  # neuron_colors[_class][_sample],
                 dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
             # 正解訓練サンプル×ミスサンプルの図も作成
-            #クラス0なのに、クラス1のラベルがついてる？
             print("_class:{}".format(_class))
             input_datas = [incorrect_intermediate_output[0][_class][_sample]]
-            input_labels =  [np.eye(output_size)[_class]]
-            for i in range(1, output_size):
-                if len(incorrect_intermediate_output[0][(_class+i)%output_size]) > 0:
-                    input_datas += [incorrect_intermediate_output[0][(_class + i) % output_size][0]]
-                    input_labels += [np.eye(output_size)[(_class + i) % output_size]]
-            show_intermidate_train_and_test(correct[0], correct[1],input_datas,input_labels,
+            input_labels = [np.eye(output_size)[_class]]
+            if name[1][:4] != "MISS":
+                for i in range(1, output_size):
+                    if len(incorrect_intermediate_output[0][(_class + i) % output_size]) > 0:
+                        input_datas += [incorrect_intermediate_output[0][(_class + i) % output_size][0]]
+                        input_labels += [np.eye(output_size)[(_class + i) % output_size]]
+            show_intermidate_train_and_test(correct[0], correct[1], input_datas, input_labels,
                                             _mlp, name=name,
                                             save_fig=True, get_each_color=False,
                                             get_intermidate_output=False,
-                                            dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
+                                            dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class,
+                                                                                   _sample_num))
             # 出力＝0のノード子孫を削除する場合
             if False:
                 # _mlp = masking_all_layer(_mlp, X_train, y_train, X_test, y_test)
@@ -1554,18 +1560,21 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                   intermidate_outpus=intermidate_out,
                                   dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
                 show_intermidate_train_and_test(correct[0], correct[1],
-                                                [incorrect_intermediate_output[0][_class][_sample]], [np.eye(output_size)[_class]],
+                                                [incorrect_intermediate_output[0][_class][_sample]],
+                                                [np.eye(output_size)[_class]],
                                                 _mlp, name=name,
                                                 save_fig=True, get_each_color=False,
                                                 get_intermidate_output=False,
-                                                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))\
-                                                # ,mask=get_zero_output_index(_mlp, intermidate_out))
-            # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
+                                                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class,
+                                                                                       _sample_num)) \
+                    # ,mask=get_zero_output_index(_mlp, intermidate_out))
+                # print("neuron_colors[{}][{}]\n{}".format(_class, _sample, neuron_colors[_class][_sample]))
     if total_sample_num > 0:
         result.append("correct_success_num:{} total_sample_num:{} success_rate:{}"
                       .format(correct_success_num, total_sample_num, 100. * correct_success_num / total_sample_num))
         write_result(result_path, result)
     return
+
 
 # 1入力データから、出力=0のマスク行列を返す
 def get_zero_output_index(_model, intermidate_out):
@@ -2048,6 +2057,7 @@ def shrink_all_layer(_mlp, X_train, y_train, X_test, y_test):
     print("saving weigths to -> {} {}".format(cf.Save_mlp_path, cf.Save_np_mlp_path))
     return
 
+
 def masking_all_layer(_mlp, X_train, y_train, X_test, y_test):
     # 不要中間ノードにマスクをかける
     from _tree_functions import masking_node
@@ -2057,6 +2067,7 @@ def masking_all_layer(_mlp, X_train, y_train, X_test, y_test):
         print("masking {}th layer".format(target_layer))
         _mlp = masking_nodes(_mlp, target_layer, X_train, y_train, X_test, y_test, shrink_with_acc=True)
     return _mlp
+
 
 shrinked_flag = False
 
@@ -2074,30 +2085,31 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
-        for i in range(len(X_train)):
-            intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
-            print(intermidate_out)
-            # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
-            # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,)
-            # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
-            # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,
-            # intermidate_outpus=intermidate_out)
+        # for i in range(len(X_train)):
+        # intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
+        # print(intermidate_out)
+        # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
+        # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,)
+        # mydraw(_mlp.get_weights(), acc=None, comment="class:{}->{}"
+        # .format(np.argmax(y_train[i]), np.argmax(intermidate_out[-1])), node_colors=None,
+        # intermidate_outpus=intermidate_out)
 
         # kernel_mask, bias_mask = get_kernel_bias_mask(_mlp)
         # _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask, child_num=CHILD_NUM)
         # feed_forward(_mlp, X_train, y_train)
         # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=False)
 
-        print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
-        print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
-        print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
-        print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
+        if False:
+            print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
+            print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
+            print("train_acc 1samples:{}".format(_mlp.evaluate(X_train, y_train, batch_size=1)))
+            print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         if not shrinked_flag:  # すでにshrinkしたモデルがあるならshrinked_flag==True
             shrink_all_layer(_mlp, X_train, y_train, X_test, y_test)
             exit()
 
         # 性能評価
-        evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
+        # evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
         """
         data, target = divide_data(X_train, y_train, dataset_category)
         for i in range(dataset_category):
@@ -2113,7 +2125,8 @@ class Main_test():
               format(_mlp.evaluate(X_test, y_test, batch_size=1)))
         """
         # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=True)
-        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False, save_fig=False)
+        show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False,
+                                          save_fig=False)
         print("finish")
         exit()
 

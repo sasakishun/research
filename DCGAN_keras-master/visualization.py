@@ -28,7 +28,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
 
     # plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
     input_size = len(x[0][0])
-    plt.figure(figsize=(input_size*2, 8), dpi=100)#  * input_size)
+    plt.figure(figsize=(input_size*2, 8), dpi=10)#  * input_size)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
