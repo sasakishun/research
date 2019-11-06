@@ -1537,8 +1537,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                             get_intermidate_output=False,
                                             dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
             # 出力＝0のノード子孫を削除する場合
-            if True:
-                _mlp = masking_all_layer(_mlp, X_train, y_train, X_test, y_test)
+            if False:
+                # _mlp = masking_all_layer(_mlp, X_train, y_train, X_test, y_test)
                 weights = _mlp.get_weights()
                 # weights = delet_kernel_with_intermidate_out_is_zero(get_kernel_and_bias(_mlp), intermidate_out)
                 visualize_network(weights,
