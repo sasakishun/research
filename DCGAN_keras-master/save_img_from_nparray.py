@@ -20,14 +20,15 @@ class SaveImgFromList:
             from visualization import my_makedirs
             my_makedirs(self.path)
             self.path += r"\{}.jpg".format(
-                "ex2_{}".format(tag[-1][1]))  # datetime.now().strftime("%Y%m%d%H%M%S") + comment)
+                "ex2_{}".format(tag[0][1]))  # datetime.now().strftime("%Y%m%d%H%M%S") + comment)
         else:
-            self.path += r"\corrected_img\{}.jpg".format(datetime.now().strftime("%Y%m%d%H%M%S") + comment)
+            self.path += r"\corrected_img\{}.jpg".format(datetime.now().strftime("%Y%m%d%H%M%S")
+                                                         + (comment if comment is not None else ""))
         self.output = output
 
     def __call__(self, *args, **kwargs):
         # テキストファイルとして保存
-        print("self.output:{}".format(self.output))
+        # print("self.output:{}".format(self.output))
         from binary__tree_main import write_result
         result = [str(self.imgs[0])]
         if self.output is not None:
@@ -43,11 +44,11 @@ class SaveImgFromList:
         if self.shape[0] == 1 or self.shape[1] == 1:
             return
         self.imgs = [(np.ones(np.shape(img)) - np.array(img)) * 255. for img in self.imgs]
-        for i in self.imgs:
-            print("imgs\n{}".format(i))
+        # for i in self.imgs:
+            # print("imgs\n{}".format(i))
         imgs = [Image.fromarray(img).convert('RGB') for img in self.imgs]
         fig = plt.figure(figsize=(6, 8 * len(imgs)))
-        print(imgs)
+        # print(imgs)
         for i, p in enumerate(imgs):
             ax = fig.add_subplot(1, len(imgs) + 1, i + 1)
             ax.imshow(imgs[i])  # , interpolation=p)
@@ -72,7 +73,7 @@ def colorize_pixel_diff(corrected, prev, shape):
     diff = np.ones((shape[0], shape[1], 3)) * 255
     for i in range(shape[0]):
         for j in range(shape[1]):
-            print("i:{} j:{}".format(i, j))
+            # print("i:{} j:{}".format(i, j))
             exaggerate = 100
             # 消えたピクセル
             if _diff[i][j] >= 1:

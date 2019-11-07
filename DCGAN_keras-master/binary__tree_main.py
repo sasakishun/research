@@ -54,7 +54,7 @@ no_mask = False
 dense_size = [64, 60, 32, 16, 10]
 CHILD_NUM = 2
 IS_IMAGE = False
-
+ADVERSARIAL_TEST = False
 
 def krkopt_data():
     _train = [[], []]
@@ -1189,7 +1189,7 @@ def artificasl_change(X_test, change_num=1):
 
 
 # 中間層出力を訓練テスト、正誤データごとに可視化
-def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True, artificial_error=False):
+def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True, artificial_error=False, adversarial_test_flag=False):
     if artificial_error:
         X_test, y_test = copy.deepcopy(X_train)[:100], copy.deepcopy(y_train)[:100]
         # 故意間違い発生前のデータ待避
@@ -1230,6 +1230,19 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                                       incorrect_data_test[_sample]))
                 _sample += 1
         write_result(path_w=result_path, str_list=result)
+
+    if adversarial_test:
+        visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                         [correct_data_test, correct_target_test],
+                                         original_data=[X_train, y_train, X_test, y_test],
+                                         name=["CORRECT_train", "ADVERSARIAL_test"],
+                                         adversarial_test_flag=adversarial_test_flag)
+        visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                         [correct_data_test, correct_target_test],
+                                         original_data=[X_train, y_train, X_test, y_test],
+                                         name=["CORRECT_train", "MISS_test"],
+                                         adversarial_test_flag=adversarial_test_flag)
+        return
 
     """
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
@@ -1339,10 +1352,27 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
                         _neuron)  # _neuron["color"])  # colors[_class]
     return neuron_colors
 
+def adversarial_test(model, data, correct_range):
+    hidden_output = [i[0][0] for i in feed_forward(model, [[data]])]
+    if False:
+        for i, _hidden in enumerate(hidden_output):
+            print("hidden[{}] : {}".format(i, _hidden))
+        print()
+        for i, correct in enumerate(correct_range):
+            print("correct_range[{}] : {}".format(i, correct))
+    mergin = 0.0
+    out_of_range_num = [0 for _ in hidden_output]
+    for i, (_data, _correct_range) in enumerate(zip(hidden_output, correct_range)):
+        for node_data, node_correct_range in zip(_data, _correct_range):
+            if node_data < node_correct_range[0] - mergin or node_correct_range[1] + mergin < node_data:
+                out_of_range_num[i] += 1
+    print("out_of_range_num:{}".format(out_of_range_num))
+    return out_of_range_num
 
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
 # ミスニューロンを明示したネットワーク図を描画
-def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["CORRECT_train", "MISS_test"]):
+def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["CORRECT_train", "MISS_test"],
+                                     adversarial_test_flag=False):
     get_each_color = True
     each_color, corret_intermediate_output, incorrect_intermediate_output \
         = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
@@ -1395,18 +1425,36 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     X_test = original_data[2]
     y_test = original_data[3]
 
+    # adversarialテストを実行
+    if adversarial_test_flag:
+        from generate_adversarial_example import get_adversarial_example
+        if name[1][:11] == "ADVERSARIAL":
+            adversarial_data\
+                = get_adversarial_example(_mlp, [corret_intermediate_output[0][_class] for _class in range(output_size)], img_shape=[Height, Width])
+            # adversarial_data, adversarial_target = divide_data(adversarial_data, adversarial_target, dataset_category)
+            for _class in range(len(adversarial_data)):
+                for _sample in range(len(adversarial_data[_class])):
+                    # ADVERSARIAL_EXAMPLEにおいてout_of_rangeになる数を集計
+                    adversarial_test(_mlp, adversarial_data[_class][_sample],
+                                     get_correct_range(neuron_colors[_class][0]))
+            print("adversarial")
+        else:
+            for _class in range(len(incorrect_intermediate_output[0])):
+                for _sample in range(len(incorrect_intermediate_output[0][_class])):
+                    # ADVERSARIAL_EXAMPLEにおいてout_of_rangeになる数を集計
+                    adversarial_test(_mlp, incorrect_intermediate_output[0][_class][_sample],
+                                     get_correct_range(neuron_colors[_class][_sample]))
+        return
     # ミスニューロンを明示したネットワーク図を描画
     for _class in range(len(neuron_colors)):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
-            for layer in range(len(incorrect_intermediate_output)):
-                print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
-
+            # for layer in range(len(incorrect_intermediate_output)):
+                # print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             if name[1][:4] == "MISS":
                 child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
                 corrected_input = [copy.deepcopy(incorrect_intermediate_output[0][_class][_sample])]
                 ideal_hidden = []
-
                 _out = feed_forward(_mlp, [[corrected_input[-1]]])[-1][0][0]
                 _out = sorted([[_out_, i] for i, _out_ in enumerate(_out)])
                 _out = [i[1] for i in _out]
@@ -2085,6 +2133,7 @@ class Main_test():
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
+
         # for i in range(len(X_train)):
         # intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
         # print(intermidate_out)
@@ -2126,7 +2175,7 @@ class Main_test():
         """
         # show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=True)
         show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False,
-                                          save_fig=False)
+                                          save_fig=False, adversarial_test_flag=ADVERSARIAL_TEST)
         print("finish")
         exit()
 
@@ -2612,6 +2661,7 @@ def arg_parse():
     parser.add_argument('--child_num', type=int)
     parser.add_argument('--shrinked', dest='shrinked', action='store_true')
     parser.add_argument('--is_image', dest='is_image', action='store_true')
+    parser.add_argument('--adversarial', dest='adversarial', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -2762,6 +2812,8 @@ if __name__ == '__main__':
         IS_IMAGE = True
         cf.Dataset += "imageTree_"
     cf.reload_path()
+    if args.adversarial:
+        ADVERSARIAL_TEST = True
     if args.train:
         main = Main_train()
         main.train(use_mbd=use_mbd, load_model=args.load_model)
