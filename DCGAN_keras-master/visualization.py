@@ -7,7 +7,7 @@ import config_mnist as cf
 import cv2
 
 def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None,
-              save_fig=True, get_each_color=False, layer_type=None, dir="", mask=None):
+              save_fig=True, get_each_color=False, layer_type=None, dir="", mask=None, error_bar=True):
     # x : [[クラス0の訓練データ(ノード数,サンプル数)], [クラス1..]...., []]
     """
     _max_list_size = 0
@@ -28,7 +28,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
 
     # plt.figure(figsize=(_max_list_size // 2 + 5, _max_list_size // 2 + 5), dpi=100)
     input_size = len(x[0][0])
-    plt.figure(figsize=(input_size*2, 8), dpi=10)#  * input_size)
+    plt.figure(figsize=(input_size*2, 8), dpi=100)#  * input_size)
     # colors = ["tomato", "black", "lightgreen"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     colors = [colors[0],
@@ -68,10 +68,11 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
             # for j in range(min(500, input_size)):
             if i < len(labels) // 2:
                 line_pos, center_slip = get_line_centersrip_pos(i, len(labels))
-                _x = [j + line_pos - center_slip for j in range(input_size)]
-                _y = [(_correct_range[0] + _correct_range[1]) / 2 for _correct_range in correct_range[i]]
-                e = [(_correct_range[1] - _correct_range[0]) / 2 for _correct_range in correct_range[i]]
-                plt.errorbar(_x, _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i], elinewidth=1)
+                if error_bar:
+                    _x = [j + line_pos - center_slip for j in range(input_size)]
+                    _y = [(_correct_range[0] + _correct_range[1]) / 2 for _correct_range in correct_range[i]]
+                    e = [(_correct_range[1] - _correct_range[0]) / 2 for _correct_range in correct_range[i]]
+                    plt.errorbar(_x, _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i], elinewidth=1)
             else:
                 line_pos, center_slip = get_line_centersrip_pos(len(labels)//2, len(labels))
 
