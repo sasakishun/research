@@ -8,7 +8,8 @@ import cv2
 
 class SaveImgFromList:
     def __init__(self, imgs, shape, tag=None, comment=None, dir=None, output=None):
-        self.imgs = [np.reshape(np.array(img), shape) for img in imgs]
+        np.set_printoptions(formatter={'float': '{: 0.3f}'.format})  # 桁を揃える
+        self.imgs = [np.reshape(np.array(img), shape) for img in [imgs[0], imgs[-1]]]
         self.shape = shape
         self.tag = tag
         if comment is not None:
@@ -18,7 +19,8 @@ class SaveImgFromList:
             self.path += r"\visualized_iris\hidden_output" + dir
             from visualization import my_makedirs
             my_makedirs(self.path)
-            self.path += r"\{}.jpg".format(datetime.now().strftime("%Y%m%d%H%M%S") + comment)
+            self.path += r"\{}.jpg".format(
+                "ex2_{}".format(tag[-1][1]))  # datetime.now().strftime("%Y%m%d%H%M%S") + comment)
         else:
             self.path += r"\corrected_img\{}.jpg".format(datetime.now().strftime("%Y%m%d%H%M%S") + comment)
         self.output = output
@@ -27,11 +29,16 @@ class SaveImgFromList:
         # テキストファイルとして保存
         print("self.output:{}".format(self.output))
         from binary__tree_main import write_result
-        result = [str(self.imgs[0]) + ("->" + str(self.output[0][0][0]) if self.output is not None else "") + self.tag[0], "->corrected to"]
+        result = [str(self.imgs[0])]
+        if self.output is not None:
+            result.append("-> " + str(self.output[0][0][0]) + " -> " + self.tag[0])
+        result.append("corrected ->")
         for i, img in enumerate(self.imgs):
             if i == 0:
                 continue
-            result.append(str(img) + ("->" + str(self.output[i][0][0]) if self.output is not None else "") + "->" + self.tag[i])
+            result.append(str(img))
+            if self.output is not None:
+                result.append("-> " + str(self.output[i][0][0]) + " -> " + self.tag[i])
         write_result(self.path[:-4] + ".txt", result)
         if self.shape[0] == 1 or self.shape[1] == 1:
             return
@@ -66,20 +73,23 @@ def colorize_pixel_diff(corrected, prev, shape):
     for i in range(shape[0]):
         for j in range(shape[1]):
             print("i:{} j:{}".format(i, j))
-            if _diff[i][j] >= 1: # 消えたピクセル
-                diff[i][j][0] = 255 - _diff[i][j]
-                diff[i][j][1] = 255 - _diff[i][j]
+            exaggerate = 100
+            # 消えたピクセル
+            if _diff[i][j] >= 1:
+                diff[i][j][0] = 255 - min(255., _diff[i][j] + exaggerate)
+                diff[i][j][1] = 255 - min(255., _diff[i][j] + exaggerate)
                 diff[i][j][2] = 255
-            elif _diff[i][j] <= -1: # 新たに出現したピクセル
+            # 新たに出現したピクセル
+            elif _diff[i][j] <= -1:
                 diff[i][j][0] = 255
-                diff[i][j][1] = 255 + _diff[i][j]
-                diff[i][j][2] = 255 + _diff[i][j]
+                diff[i][j][1] = 255 + max(-255., _diff[i][j] - exaggerate)
+                diff[i][j][2] = 255 + max(-255., _diff[i][j] - exaggerate)
             else:
                 diff[i][j][0] = prev[i][j]
                 diff[i][j][1] = prev[i][j]
                 diff[i][j][2] = prev[i][j]
-    print("_diff:{}".format(_diff))
-    print("diff:{}".format(diff))
+    # print("_diff:{}".format(_diff))
+    # print("diff:{}".format(diff))
     return np.array(diff).astype(np.uint8)
 
 
