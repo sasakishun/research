@@ -553,10 +553,10 @@ def write_result(path_w, str_list):
     # path_w = os.getcwd() + r"\result\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
     with open(path_w, mode='w') as f:
         for s in str_list:
-            print(s)
+            # print(s)
             f.write(str(s) + "\n")
-    with open(path_w) as f:
-        print(f.read())
+    # with open(path_w) as f:
+        # print(f.read())
 
 
 if __name__ == '__main__':

@@ -1232,6 +1232,48 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         write_result(path_w=result_path, str_list=result)
 
     if adversarial_test:
+        from generate_adversarial_example import get_adversarial_example, get_correct_ranges_from_data
+        correct_ranges = \
+            get_correct_ranges_from_data(_mlp, divide_data(correct_data_train,
+                                                           correct_target_train,
+                                                           dataset_category)[0])
+        _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
+                                                           correct_target_train,
+                                                           dataset_category)[0],
+                                [Height, Width],
+                                correct_ranges=correct_ranges)
+        model_size = get_layer_size_from_weight(_mlp.get_weights())
+        result = ["adversarial_example"]
+        _out = []
+        for _class in range(len(_datas)):
+            for _sample_data in _datas[_class]:
+                _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+        _sum = [0 for _ in model_size]
+        for _sample_out in _out:
+            for i in range(len(_sample_out)):
+                _sum[i] += _sample_out[i]
+        for i in range(len(_sum)):
+            _sum[i] /= len(_out)
+        result.append(_sum)
+        print("\n\n\n\n\n[CORRECT_TRAIN, CORRECT_TEST]")
+        result.append("\n[CORRECT_TRAIN, CORRECT_TEST]")
+        _out = []
+        _datas = divide_data(correct_data_test, correct_target_test, dataset_category)[0]
+        for _class in range(len(_datas)):
+            for _sample_data in _datas[_class]:
+                _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+        _sum = [0 for _ in model_size]
+        for _sample_out in _out:
+            for i in range(len(_sample_out)):
+                _sum[i] += _sample_out[i]
+        for i in range(len(_sum)):
+            _sum[i] /= len(_out)
+        result.append(_sum)
+        write_result(path_w=os.getcwd()
+                          + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
+                     str_list=result)
+        return
+        """
         visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                          [correct_data_test, correct_target_test],
                                          original_data=[X_train, y_train, X_test, y_test],
@@ -1243,7 +1285,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                                          name=["CORRECT_train", "MISS_test"],
                                          adversarial_test_flag=adversarial_test_flag)
         return
-
+        """
     """
     show_intermidate_train_and_test(correct_data_train, correct_target_train,
                                     correct_data_test, correct_target_test,
