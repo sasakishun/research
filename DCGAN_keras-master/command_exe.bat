@@ -1,5 +1,8 @@
 cls
+python binary__tree_main.py --iris --test --child_num 2 --shrinked --adversarial
+python binary__tree_main.py --wine --test --child_num 2 --shrinked --adversarial
 python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked --adversarial
+python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked --adversarial
 goto end
 python binary__tree_main.py --wine --test --child_num 2 --shrinked --adversarial
 python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked

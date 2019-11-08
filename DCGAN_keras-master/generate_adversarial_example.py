@@ -27,7 +27,8 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
                     _max = max(correct_inputs[_class], key=lambda x:x[i])[i]
                     # print("min:{}".format(_min))
                     # print("max:{}".format(_max))
-                    data.append(random.uniform(_min, _max))
+                    data.append(random.choice([random.uniform(_min, min(_max, _min+0.5)),
+                                               random.uniform(max(_min, _max-0.5), _max)]))
                     # data.append(sorted(correct_inputs[_class], key=lambda x:x[i])[j][i])
                     # data.append(random.choice(correct_inputs[_class])[i])
                 if np.argmax(feed_forward(model, [[data]], target=None)[-1]) == _class:

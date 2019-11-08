@@ -1241,9 +1241,9 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                                                            correct_target_train,
                                                            dataset_category)[0],
                                 [Height, Width],
-                                correct_ranges=correct_ranges)
+                                correct_ranges=correct_ranges, test=True)
         model_size = get_layer_size_from_weight(_mlp.get_weights())
-        result = ["adversarial_example"]
+        result = [cf.Dataset, "adversarial_example"]
         _out = []
         for _class in range(len(_datas)):
             for _sample_data in _datas[_class]:
@@ -1254,7 +1254,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                 _sum[i] += _sample_out[i]
         for i in range(len(_sum)):
             _sum[i] /= len(_out)
-        result.append(_sum)
+        result.append(["{:.4f}".format(i) for i in _sum])
         print("\n\n\n\n\n[CORRECT_TRAIN, CORRECT_TEST]")
         result.append("\n[CORRECT_TRAIN, CORRECT_TEST]")
         _out = []
@@ -1268,7 +1268,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                 _sum[i] += _sample_out[i]
         for i in range(len(_sum)):
             _sum[i] /= len(_out)
-        result.append(_sum)
+        result.append(["{:.4f}".format(i) for i in _sum])
         write_result(path_w=os.getcwd()
                           + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
                      str_list=result)
@@ -1402,13 +1402,13 @@ def adversarial_test(model, data, correct_range):
         print()
         for i, correct in enumerate(correct_range):
             print("correct_range[{}] : {}".format(i, correct))
-    mergin = 0.0
+    mergin = 0.1
     out_of_range_num = [0 for _ in hidden_output]
     for i, (_data, _correct_range) in enumerate(zip(hidden_output, correct_range)):
         for node_data, node_correct_range in zip(_data, _correct_range):
             if node_data < node_correct_range[0] - mergin or node_correct_range[1] + mergin < node_data:
                 out_of_range_num[i] += 1
-    print("out_of_range_num:{}".format(out_of_range_num))
+    # print("out_of_range_num:{}".format(out_of_range_num))
     return out_of_range_num
 
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
