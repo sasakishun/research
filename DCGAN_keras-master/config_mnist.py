@@ -25,7 +25,7 @@ File_extensions = ['.jpg', '.png']
 
 ## Training config
 Iteration = 10000# 0# 00
-Minibatch = 32# 64
+Minibatch = 64# 32# 64
 
 ## Test config
 ## The total number of generated images is Test_Minibatch * Test_num
