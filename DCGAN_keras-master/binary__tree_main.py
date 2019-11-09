@@ -1208,6 +1208,8 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         = show_intermidate_output(X_train, y_train, "train", _mlp, save_fig=save_fig, get_index=True)
     correct_data_test, correct_target_test, incorrect_data_test, incorrect_target_test, test_index \
         = show_intermidate_output(X_test, y_test, "test", _mlp, save_fig=save_fig, get_index=True)
+    # print("incorrect_data_test:{}".format(incorrect_data_test))
+    # print(feed_forward(_mlp, [[incorrect_data_test[0]]]))
 
     if artificial_error:
         # indexを辿ることで、故意間違いデータと変更前データの対応するペアが分かる
@@ -1235,14 +1237,30 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                 _sample += 1
         write_result(path_w=result_path, str_list=result)
 
-    if adversarial_test:
+    if adversarial_test_flag:
         from generate_adversarial_example import get_adversarial_example, get_correct_ranges_from_data
         correct_ranges = \
             get_correct_ranges_from_data(_mlp, divide_data(correct_data_train,
                                                            correct_target_train,
                                                            dataset_category)[0])
         model_size = get_layer_size_from_weight(_mlp.get_weights())
-        result = [cf.Dataset, r"CORRECT_TRAIN,CORRECT_TEST"]
+        result = [cf.Dataset, r"CORRECT_TRAIN,MISS_TEST"]
+        _out = []
+        if len(incorrect_data_test) > 0:
+            _datas = divide_data(incorrect_data_test, incorrect_target_test, dataset_category)[0]
+            result.append("sample_num(each class):{}".format([len(i) for i in _datas]))
+            for _class in range(len(_datas)):
+                for _sample_data in _datas[_class]:
+                    _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+            _sum = [0 for _ in model_size]
+            for _sample_out in _out:
+                for i in range(len(_sample_out)):
+                    _sum[i] += _sample_out[i]
+            for i in range(len(_sum)):
+                _sum[i] /= len(_out)
+            result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]) + "\n")
+
+        result.append(r"CORRECT_TRAIN,CORRECT_TEST")
         _out = []
         _datas = divide_data(correct_data_test, correct_target_test, dataset_category)[0]
         result.append("sample_num(each class):{}".format([len(i) for i in _datas]))
@@ -1257,6 +1275,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         for i in range(len(_sum)):
             _sum[i] /= len(_out)
         result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
+
         threadshould = [max([j for j in _out[i]]) for i in range(len(model_size))]
         result.append("threadshould:{}".format(threadshould))
         adversal_miss = 0
@@ -1644,11 +1663,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             print("_class:{}".format(_class))
             input_datas = [incorrect_intermediate_output[0][_class][_sample]]
             input_labels = [np.eye(output_size)[_class]]
-            if name[1][:4] != "MISS":
-                for i in range(1, output_size):
-                    if len(incorrect_intermediate_output[0][(_class + i) % output_size]) > 0:
-                        input_datas += [incorrect_intermediate_output[0][(_class + i) % output_size][0]]
-                        input_labels += [np.eye(output_size)[(_class + i) % output_size]]
+            # if name[1][:4] != "MISS":
+            for i in range(1, output_size):
+                if len(incorrect_intermediate_output[0][(_class + i) % output_size]) > 0:
+                    input_datas += [incorrect_intermediate_output[0][(_class + i) % output_size][0]]
+                    input_labels += [np.eye(output_size)[(_class + i) % output_size]]
             show_intermidate_train_and_test(correct[0], correct[1], input_datas, input_labels,
                                             _mlp, name=name,
                                             save_fig=True, get_each_color=False,
