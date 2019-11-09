@@ -798,11 +798,13 @@ class Main_train():
             if _mlp.evaluate(X_test, y_test)[1] < 0.9:
                 return 0
             # ネットワーク可視化
+            """
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="just before pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                             _mlp.evaluate(X_test, y_test)[1]))
+            """
             # magnitude-basedプルーニング
             _mlp = prune_and_update_mask(_mlp, X_train, y_train)
             # プルーニング後の再学習
@@ -813,12 +815,13 @@ class Main_train():
             evaluate_each_class(_mlp, X_train, y_train, X_test, y_test)
 
             # ネットワーク可視化(プルーニング後)
+            """
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="pruning_stage:{}\n".format(i)
                         + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
                                                             _mlp.evaluate(X_test, y_test)[1]))
-
+            """
             # モデル保存
             _mlp.save_weights(cf.Save_mlp_path)
             np.save(cf.Save_np_mlp_path, _mlp.get_weights())
@@ -1242,6 +1245,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         result = [cf.Dataset, r"CORRECT_TRAIN,CORRECT_TEST"]
         _out = []
         _datas = divide_data(correct_data_test, correct_target_test, dataset_category)[0]
+        result.append("sample_num(each class):{}".format([len(i) for i in _datas]))
         for _class in range(len(_datas)):
             for _sample_data in _datas[_class]:
                 _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
@@ -1252,16 +1256,18 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                 _sum[i] += _sample_out[i]
         for i in range(len(_sum)):
             _sum[i] /= len(_out)
-        result.append(["{:.4f}".format(i) for i in _sum])
+        result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
         threadshould = [max([j for j in _out[i]]) for i in range(len(model_size))]
+        result.append("threadshould:{}".format(threadshould))
         adversal_miss = 0
 
-        result.append("adversarial_example")
+        result.append("\nadversarial_example")
         _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
                                                            correct_target_train,
                                                            dataset_category)[0],
                                 [Height, Width],
                                 correct_ranges=correct_ranges, test=True)
+        result.append("sample_num(each class):{}".format([len(i) for i in _datas]))
         _out = []
         for _class in range(len(_datas)):
             for _sample_data in _datas[_class]:
@@ -1277,9 +1283,10 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
                 _sum[i] += _sample_out[i]
         for i in range(len(_sum)):
             _sum[i] /= len(_out)
-        result.append(["{:.4f}".format(i) for i in _sum])
+        result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
         result.append("advresarial_miss:{}/{} -> {:.4f}".format(adversal_miss, len(_out), adversal_miss/len(_out)))
-
+        result.append("train loss_acc{}".format(_mlp.evaluate(X_train, y_train)))
+        result.append("test  loss_acc{}".format(_mlp.evaluate(X_test, y_test)))
         write_result(path_w=os.getcwd()
                             + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
                      str_list=result)
