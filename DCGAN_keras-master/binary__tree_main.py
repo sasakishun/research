@@ -741,7 +741,7 @@ def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, 
     model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
                   bias_mask=bias_mask, set_weights=weights)
     # コールバック設定
-    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=1000, verbose=0, mode='auto')
+    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='auto')
     # tb_cb = keras.callbacks.TensorBoard(log_dir=".\log", histogram_freq=1) # 謎エラーが発生するため不使用
     # 学習
     valid_num = len(X_train) // 10
@@ -790,7 +790,7 @@ class Main_train():
 
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask,
                         child_num=CHILD_NUM, is_image=IS_IMAGE)  # myMLP(13, [5, 4, 2], 3)
-        for i in range(5):
+        for i in range(2):
             X_train, y_train = shuffle_data(X_train, y_train)
             # モデル学習
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
