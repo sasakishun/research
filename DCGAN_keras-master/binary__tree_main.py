@@ -795,7 +795,8 @@ class Main_train():
             # モデル学習
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
                                      kernel_mask=kernel_mask, bias_mask=None, epochs=cf.Iteration)
-
+            if _mlp.evaluate(X_test, y_test)[1] < 0.9:
+                return 0
             # ネットワーク可視化
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
@@ -825,7 +826,7 @@ class Main_train():
             print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
             print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
-        exit()
+        return _mlp.evaluate(X_test, y_test)[1]
         """
         hidden_size = get_layer_size_from_weight(_mlp.get_weights())
         from _model_weightGAN import masked_mlp
@@ -1237,31 +1238,14 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
             get_correct_ranges_from_data(_mlp, divide_data(correct_data_train,
                                                            correct_target_train,
                                                            dataset_category)[0])
-        _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
-                                                           correct_target_train,
-                                                           dataset_category)[0],
-                                [Height, Width],
-                                correct_ranges=correct_ranges, test=True)
         model_size = get_layer_size_from_weight(_mlp.get_weights())
-        result = [cf.Dataset, "adversarial_example"]
-        _out = []
-        for _class in range(len(_datas)):
-            for _sample_data in _datas[_class]:
-                _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
-        _sum = [0 for _ in model_size]
-        for _sample_out in _out:
-            for i in range(len(_sample_out)):
-                _sum[i] += _sample_out[i]
-        for i in range(len(_sum)):
-            _sum[i] /= len(_out)
-        result.append(["{:.4f}".format(i) for i in _sum])
-        print("\n\n\n\n\n[CORRECT_TRAIN, CORRECT_TEST]")
-        result.append("\n[CORRECT_TRAIN, CORRECT_TEST]")
+        result = [cf.Dataset, r"CORRECT_TRAIN,CORRECT_TEST"]
         _out = []
         _datas = divide_data(correct_data_test, correct_target_test, dataset_category)[0]
         for _class in range(len(_datas)):
             for _sample_data in _datas[_class]:
                 _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+                # result.append(_out[-1])
         _sum = [0 for _ in model_size]
         for _sample_out in _out:
             for i in range(len(_sample_out)):
@@ -1269,8 +1253,35 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         for i in range(len(_sum)):
             _sum[i] /= len(_out)
         result.append(["{:.4f}".format(i) for i in _sum])
+        threadshould = [max([j for j in _out[i]]) for i in range(len(model_size))]
+        adversal_miss = 0
+
+        result.append("adversarial_example")
+        _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
+                                                           correct_target_train,
+                                                           dataset_category)[0],
+                                [Height, Width],
+                                correct_ranges=correct_ranges, test=True)
+        _out = []
+        for _class in range(len(_datas)):
+            for _sample_data in _datas[_class]:
+                _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+                # result.append(_out[-1])
+                for i in range(len(model_size)):
+                    if _out[-1][i] > threadshould[i]:
+                        adversal_miss += 1
+                        break
+        _sum = [0 for _ in model_size]
+        for _sample_out in _out:
+            for i in range(len(_sample_out)):
+                _sum[i] += _sample_out[i]
+        for i in range(len(_sum)):
+            _sum[i] /= len(_out)
+        result.append(["{:.4f}".format(i) for i in _sum])
+        result.append("advresarial_miss:{}/{} -> {:.4f}".format(adversal_miss, len(_out), adversal_miss/len(_out)))
+
         write_result(path_w=os.getcwd()
-                          + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
+                            + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
                      str_list=result)
         return
         """
@@ -2219,7 +2230,7 @@ class Main_test():
         show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, artificial_error=False,
                                           save_fig=False, adversarial_test_flag=ADVERSARIAL_TEST)
         print("finish")
-        exit()
+        return
 
         ###全結合mlpとの比較
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
@@ -2858,7 +2869,9 @@ if __name__ == '__main__':
         ADVERSARIAL_TEST = True
     if args.train:
         main = Main_train()
-        main.train(use_mbd=use_mbd, load_model=args.load_model)
+        acc = 0
+        while acc < 0.9:
+            acc = main.train(use_mbd=use_mbd, load_model=args.load_model)
     if args.test:
         main = Main_test()
         main.test()

@@ -4,7 +4,7 @@ from binary__tree_main import *
 # 出力: 正解になるが不適切な入力データ
 # 正解訓練データをつぎはぎすることで入力空間では正しい分布
 # ->つぎはぎ合成画像がきれいすぎて、分布外になりにくい
-def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=None, test=False):
+def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=None, test=False, save_img=False):
     if correct_ranges is None:
         correct_ranges = get_correct_ranges_from_data(model, correct_inputs)
     shape = np.shape(model.get_weights()[0])[0]
@@ -20,7 +20,9 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
         # correctに収まるノイズ画像を作成し,datasに追加
         # 訓練データの一部を合成すればいい
         for _class in range(len(correct_inputs)):
-            for j in range(100):# len(correct_inputs[_class])):
+            j = 0
+            while j < 100:
+            # for j in range(100):# len(correct_inputs[_class])):
                 data = []
                 for i in range(model_size[0]):
                     _min = min(correct_inputs[_class], key=lambda x:x[i])[i]
@@ -37,12 +39,14 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
                     else:
                         out_of_range_num = None
                     datas[_class].append(np.array(data))
-                    SaveImgFromList([data, data],
-                                    [img_shape[0], img_shape[1]],
-                                    tag=["{}".format(_class), "{}".format(out_of_range_num)],
-                                    output=[feed_forward(model, [[data]], target=None)[-1],
-                                            feed_forward(model, [[data]], target=None)[-1]],
-                                    comment="{}".format(j))()
+                    j += 1
+                    if save_img:
+                        SaveImgFromList([data, data],
+                                        [img_shape[0], img_shape[1]],
+                                        tag=["{}".format(_class), "{}".format(out_of_range_num)],
+                                        output=[feed_forward(model, [[data]], target=None)[-1],
+                                                feed_forward(model, [[data]], target=None)[-1]],
+                                        comment="{}".format(j))()
 
             """
             if np.argmax(feed_forward(model, [[data]], target=None)[-1]) == target:

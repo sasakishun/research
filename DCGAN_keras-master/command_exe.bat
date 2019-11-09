@@ -1,16 +1,29 @@
+for /L %%i in (1,1,10) do (
 cls
-python binary__tree_main.py --iris --test --child_num 2 --shrinked --adversarial
-python binary__tree_main.py --wine --test --child_num 2 --shrinked --adversarial
+python binary__tree_main.py --iris --train --child_num 2
+python binary__tree_main.py --iris --test --child_num 2
+python binary__tree_main.py --iris --train --child_num 2 --shrinked --adversarial
+
+python binary__tree_main.py --wine --train --child_num 2
+python binary__tree_main.py --wine --test --child_num 2
+python binary__tree_main.py --wine --train --child_num 2 --shrinked --adversarial
+
+python binary__tree_main.py --digit --train --child_num 3 --is_image
+python binary__tree_main.py --digit --test --child_num 3 --is_image
 python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked --adversarial
+
+python binary__tree_main.py --mnist --train --child_num 9 --is_image
+python binary__tree_main.py --mnist --test --child_num 9 --is_image
+python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked --adversarial
+)
+goto end
+
 python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked --adversarial
 goto end
 python binary__tree_main.py --wine --test --child_num 2 --shrinked --adversarial
 python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked
 python binary__tree_main.py --wine --test --child_num 2 --shrinked
 goto end
-python binary__tree_main.py --iris --test --child_num 2 --shrinked
-python binary__tree_main.py --wine --test --child_num 2 --shrinked
-python binary__tree_main.py --iris --test --child_num 2 --shrinked
 python binary__tree_main.py --iris --test --child_num 2 --shrinked
 python binary__tree_main.py --wine --test --child_num 2 --shrinked
 python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked
