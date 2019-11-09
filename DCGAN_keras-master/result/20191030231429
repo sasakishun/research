@@ -1,4 +1,0 @@
-iris
-['CORRECT_train', 'MISS_test']
-diff_nodes(class:1 sample:0 len:2): [2, 3]
-correct_success_num:1 total_sample_num:1 success_rate:100.0

@@ -1,4 +1,0 @@
-wine
-['CORRECT_train', 'MISS_test']
-diff_nodes: [0, 1, 2, 4, 5, 6, 7, 8, 9, 10]
-correct_success_num:1 total_sample_num:1 success_rate:100.0
