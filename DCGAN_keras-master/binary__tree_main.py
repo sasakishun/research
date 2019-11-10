@@ -2739,7 +2739,9 @@ def arg_parse():
     parser.add_argument('--parity', dest='parity', action='store_true')
     parser.add_argument('--parity_shape', type=int)
     parser.add_argument('--child_num', type=int)
+    parser.add_argument('--thread', type=int)
     parser.add_argument('--shrinked', dest='shrinked', action='store_true')
+    parser.add_argument('--use_shrinked_model', dest='use_shrinked_model', action='store_true')
     parser.add_argument('--is_image', dest='is_image', action='store_true')
     parser.add_argument('--adversarial', dest='adversarial', action='store_true')
     args = parser.parse_args()
@@ -2876,8 +2878,9 @@ if __name__ == '__main__':
         dataset = "parity"
     dense_size[0] = input_size
     if args.shrinked:
-        cf.Shrinked = "_shrinked"
         shrinked_flag = True
+        if args.use_shrinked_model:
+            cf.Shrinked = "_shrinked"
     if args.binary_target >= 0:
         binary_flag = True
         binary_target = args.binary_target
@@ -2894,6 +2897,8 @@ if __name__ == '__main__':
     cf.reload_path()
     if args.adversarial:
         ADVERSARIAL_TEST = True
+    if args.thread:
+        cf.Dataset += str(args.thread) + "_"
     if args.train:
         main = Main_train()
         acc = 0

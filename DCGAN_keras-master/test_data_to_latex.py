@@ -3,24 +3,23 @@ def to_latex():
 
 
 if __name__ == '__main__':
-    iris_correct = [['0.0000', '2.0000', '2.0000'],
-                    ]
-    iris_miss = [['0.1053', '0.0000', '0.0000'],
-                    ]
+    iris_correct = [['0.1053', '0.0000', '0.0000'],
+                    ['0.1053', '0.0789', '0.0000'],]
+    iris_miss = [['0.0000', '2.0000', '2.0000'],
+                 ['0.0000', '2.0000', '2.0000'],]
     iris_adversarial = [['0.0000', '0.1767', '0.1067'],
-                    ]
+                        ['0.0000', '0.6233', '0.0933'],]
     wine_correct = [['0.1667', '0.0000', '0.0000', '0.0000', '0.0000'],
-                    ]
-    wine_miss = [['0.0000', '0.0000', '0.0000', '0.0000', '0.0000'],
-                    ]
+                    ['0.1765', '0.0588', '0.0588', '0.1176', '0.0000'],]
+    wine_miss = [['0.0000', '0.0000', '1.0000', '1.0000', '2.0000'],]
     wine_adversarial = [['0.0000', '0.8900', '0.3667', '0.4233', '0.2267'],
-                    ]
+                        ['0.0000', '0.2167', '0.4133', '0.2633', '0.1667']]
     digit_correct = [['0.0848', '0.3000', '0.0242'],
-                    ]
+                     ['0.0695', '0.3172', '0.0332']]
     digit_miss = [['0.8333', '2.9000', '1.8333'],
-                    ]
+                  ['0.8966', '2.1034', '2.0690']]
     digit_adversarial = [['0.0000', '5.5390', '0.1820'],
-                    ]
+                         ['0.0000', '5.8910', '0.1860']]
     mnist_correct = [['0.0089', '0.0113', '0.0001'],
                     ]
     mnist_miss = [['0.2654', '0.2165', '1.3911'],
@@ -94,23 +93,32 @@ if __name__ == '__main__':
 
 
     title = ["入力層", "第一中間層", "第二中間層", "第三中間層", "出力層"]
+    blank = "－"
     for target in [["correct", "miss"], ["correct", "adversarial"]]:
         for i in range(len(title) - 1):
             print("{}&{}/{} &{}/{} &{}/{} &{}/{} \\\\ \cline".format(
                 title[i],
-                iris[i][target[0]] if i < len(iris)-1 else "－", iris[i][target[1]] if i < len(iris)-1 else "－",
-                wine[i][target[0]] if i < len(wine)-1 else "－", wine[i][target[1]] if i < len(wine)-1 else "－",
-                digit[i][target[0]] if i < len(digit)-1 else "－", digit[i][target[1]] if i < len(digit)-1 else "－",
-                mnist[i][target[0]] if i < len(mnist)-1 else "－", mnist[i][target[1]] if i < len(mnist)-1 else "－",
+                "{:.2f}".format(iris[i][target[0]]) if i < len(iris)-1 else blank,
+                "{:.2f}".format(iris[i][target[1]]) if i < len(iris)-1 else blank,
+                "{:.2f}".format(wine[i][target[0]]) if i < len(wine)-1 else blank,
+                "{:.2f}".format(wine[i][target[1]]) if i < len(wine)-1 else blank,
+                "{:.2f}".format(digit[i][target[0]]) if i < len(digit)-1 else blank,
+                "{:.2f}".format(digit[i][target[1]]) if i < len(digit)-1 else blank,
+                "{:.2f}".format(mnist[i][target[0]]) if i < len(mnist)-1 else blank,
+                "{:.2f}".format(mnist[i][target[1]]) if i < len(mnist)-1 else blank,
             ) + r"{0-4}")
         for i in range(len(title)-1, len(title)):
             print("{}&{}/{} &{}/{} &{}/{} &{}/{} \\\\ \Hline".format(
                 title[i],
-                iris[-1][target[0]], iris[-1][target[1]],
-                wine[-1][target[0]], wine[-1][target[1]],
-                digit[-1][target[0]], digit[-1][target[1]],
-                mnist[-1][target[0]], mnist[-1][target[1]],
-            ) + r"{0-4}")
+                "{:.2f}".format(iris[-1][target[0]]),
+                "{:.2f}".format(iris[-1][target[1]]),
+                "{:.2f}".format(wine[-1][target[0]]),
+                "{:.2f}".format(wine[-1][target[1]]),
+                "{:.2f}".format(digit[-1][target[0]]),
+                "{:.2f}".format(digit[-1][target[1]]),
+                "{:.2f}".format(mnist[-1][target[0]]),
+                "{:.2f}".format(mnist[-1][target[1]]),
+            ))
         print()
 
 
