@@ -21,6 +21,7 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
         # 訓練データの一部を合成すればいい
         for _class in range(len(correct_inputs)):
             j = 0
+            print("    generating class[{}]".format(_class))
             while j < 100:
             # for j in range(100):# len(correct_inputs[_class])):
                 data = []

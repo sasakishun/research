@@ -1252,6 +1252,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
             for _class in range(len(_datas)):
                 for _sample_data in _datas[_class]:
                     _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+                    result.append(_out[-1])
             _sum = [0 for _ in model_size]
             for _sample_out in _out:
                 for i in range(len(_sample_out)):
@@ -1267,7 +1268,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         for _class in range(len(_datas)):
             for _sample_data in _datas[_class]:
                 _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
-                # result.append(_out[-1])
+                result.append(_out[-1])
         _sum = [0 for _ in model_size]
         for _sample_out in _out:
             for i in range(len(_sample_out)):
@@ -1276,7 +1277,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
             _sum[i] /= len(_out)
         result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
 
-        threadshould = [max([j for j in _out[i]]) for i in range(len(model_size))]
+        threadshould = [max([j[i] for j in _out]) for i in range(len(model_size))]
         result.append("threadshould:{}".format(threadshould))
         adversal_miss = 0
 
@@ -1291,7 +1292,7 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
         for _class in range(len(_datas)):
             for _sample_data in _datas[_class]:
                 _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
-                # result.append(_out[-1])
+                result.append(_out[-1])
                 for i in range(len(model_size)):
                     if _out[-1][i] > threadshould[i]:
                         adversal_miss += 1
