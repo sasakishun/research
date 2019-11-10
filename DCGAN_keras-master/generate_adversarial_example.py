@@ -4,7 +4,7 @@ from binary__tree_main import *
 # 出力: 正解になるが不適切な入力データ
 # 正解訓練データをつぎはぎすることで入力空間では正しい分布
 # ->つぎはぎ合成画像がきれいすぎて、分布外になりにくい
-def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=None, test=False, save_img=False):
+def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=None, test=False, save_img=False, random_flag=False):
     if correct_ranges is None:
         correct_ranges = get_correct_ranges_from_data(model, correct_inputs)
     shape = np.shape(model.get_weights()[0])[0]
@@ -16,14 +16,22 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
     # print("\n\n\n\n\n")
     model_size = get_layer_size_from_weight(model.get_weights())
     if correct_inputs is not  None:
-        datas = [[] for _ in range(len(correct_inputs))]
+        datas = [[] for _ in range(model_size[-1])]
         # correctに収まるノイズ画像を作成し,datasに追加
         # 訓練データの一部を合成すればいい
-        if model_size[0] == 784:
+        if random_flag:# model_size[0] == 784:
+            mergin = 100 # 0.05
+            _min = [min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0] for i in range(model_size[0])]
+            _max = [max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1] for i in range(model_size[0])]
             for j in range(1000):
                 if j % 100 == 0:
                     print("{} sample generated".format(j))
-                data = np.random.rand(shape)
+                data = [0 for _ in range(model_size[0])]# np.random.rand(shape)
+                for i in range(model_size[0]):
+                    # _min = min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0]
+                    # _max = max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1]
+                    data[i] = random.choice([random.uniform(_min[i], min(_max[i], _min[i] + mergin)),
+                                              random.uniform(max(_min[i], _max[i] - mergin), _max[i])])
                 datas[np.argmax(feed_forward(model, [[data]])[-1])].append(data)
             return datas
         for _class in range(len(correct_inputs)):
@@ -50,7 +58,8 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
                         out_of_range_num = None
                     datas[_class].append(np.array(data))
                     j += 1
-                    print("class:{}_{}".format(_class, j))
+                    if j % 10 == 0:
+                        print("class:{}_{}".format(_class, j))
                     if save_img:
                         SaveImgFromList([data, data],
                                         [img_shape[0], img_shape[1]],

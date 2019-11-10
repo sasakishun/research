@@ -1240,9 +1240,9 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     if adversarial_test_flag:
         from generate_adversarial_example import get_adversarial_example, get_correct_ranges_from_data
         correct_ranges = \
-            get_correct_ranges_from_data(_mlp, divide_data(correct_data_train,
-                                                           correct_target_train,
-                                                           dataset_category)[0])
+            get_correct_ranges_from_data(_mlp, [i[:1000] for i in divide_data(correct_data_train,
+                                                                              correct_target_train,
+                                                                              dataset_category)[0]])
         model_size = get_layer_size_from_weight(_mlp.get_weights())
         result = [cf.Dataset, r"CORRECT_TRAIN,MISS_TEST"]
         _out = []
@@ -1279,37 +1279,43 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
 
         threadshould = [max([j[i] for j in _out]) for i in range(len(model_size))]
         result.append("threadshould:{}".format(threadshould))
-        adversal_miss = 0
 
-        result.append("\nadversarial_example")
-        _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
-                                                           correct_target_train,
-                                                           dataset_category)[0],
-                                [Height, Width],
-                                correct_ranges=correct_ranges, test=True)
-        result.append("sample_num(each class):{}".format([len(i) for i in _datas]))
-        _out = []
-        for _class in range(len(_datas)):
-            for _sample_data in _datas[_class]:
-                _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
-                result.append(_out[-1])
-                for i in range(len(model_size)):
-                    if _out[-1][i] > threadshould[i]:
-                        adversal_miss += 1
-                        break
-        _sum = [0 for _ in model_size]
-        for _sample_out in _out:
-            for i in range(len(_sample_out)):
-                _sum[i] += _sample_out[i]
-        for i in range(len(_sum)):
-            _sum[i] /= len(_out)
-        result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
-        result.append("advresarial_miss:{}/{} -> {:.4f}".format(adversal_miss, len(_out), adversal_miss/len(_out)))
-        result.append("train loss_acc{}".format(_mlp.evaluate(X_train, y_train)))
-        result.append("test  loss_acc{}".format(_mlp.evaluate(X_test, y_test)))
-        write_result(path_w=os.getcwd()
-                            + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
-                     str_list=result)
+        for random_flag in [False, True]:
+            if not random_flag and (model_size[0] == 784):
+                continue
+            adversal_miss = 0
+            print("\nadversarial_example random_flag:{}".format(random_flag))
+            result.append("\nadversarial_example random_flag:{}".format(random_flag))
+            _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
+                                                               correct_target_train,
+                                                               dataset_category)[0],
+                                             [Height, Width],
+                                             correct_ranges=correct_ranges, test=True,
+                                             random_flag=random_flag)
+            result.append("sample_num(each class):{}".format([len(i) for i in _datas]))
+            _out = []
+            for _class in range(len(_datas)):
+                for _sample_data in _datas[_class]:
+                    _out.append(adversarial_test(_mlp, _sample_data, correct_ranges[_class]))
+                    result.append(_out[-1])
+                    for i in range(len(model_size)):
+                        if _out[-1][i] > threadshould[i]:
+                            adversal_miss += 1
+                            break
+            _sum = [0 for _ in model_size]
+            for _sample_out in _out:
+                for i in range(len(_sample_out)):
+                    _sum[i] += _sample_out[i]
+            for i in range(len(_sum)):
+                _sum[i] /= len(_out)
+            result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
+            result.append("advresarial_miss:{}/{} -> {:.4f}".format(adversal_miss, len(_out), adversal_miss/len(_out)))
+            result.append("train loss_acc{}".format(_mlp.evaluate(X_train, y_train)))
+            result.append("test  loss_acc{}".format(_mlp.evaluate(X_test, y_test)))
+            if random_flag:
+                write_result(path_w=os.getcwd()
+                                    + r"\result\adversarial_test_{}".format(datetime.now().strftime("%Y%m%d%H%M%S")),
+                             str_list=result)
         return
         """
         visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
