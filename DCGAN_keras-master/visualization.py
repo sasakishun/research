@@ -242,12 +242,13 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
     for i in range(len(out_of_range)):
         print("out_of_range[{}]:{}".format(i, [[k["sample"] for k in j] for j in out_of_range[i]]))
         correct_range_str += "out_of_range[{}]:{}\n".format(i, set(concate_elements([[k["sample"] for k in j] for j in out_of_range[i]])))
-    # for i in range(len(correct_range)):
-    # "correct_range[{}]:{}".format(i, correct_range[i]) + "\n"
-    plt.xlabel("{} node\n{}".format(comment, correct_range_str))
 
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
-    plt.title("ite:{} {} {}".format(ite, "test" if testflag else "train", comment+dir))
+    plt.xlabel("node number")
+    plt.ylabel("node output")
+    if False: # デバッグ用の画像タイトルと判例、軸ラベル
+        plt.xlabel("{} node\n{}".format(comment, correct_range_str))
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, fontsize=10)
+        plt.title("ite:{} {} {}".format(ite, "test" if testflag else "train", comment+dir))
     if not testflag:
         plt.ylabel("output")
     # y軸に1刻みにで小目盛り(minor locator)表示
