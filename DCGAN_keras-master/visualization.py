@@ -9,6 +9,7 @@ import cv2
 def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None,
               save_fig=True, get_each_color=False, layer_type=None, dir="", mask=None, error_bar=True):
     # x : [[クラス0の訓練データ(ノード数,サンプル数)], [クラス1..]...., []]
+    plt.rcParams["font.size"] = 18
     """
     _max_list_size = 0
     xtick_flag = False

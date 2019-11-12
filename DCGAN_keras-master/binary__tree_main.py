@@ -2900,11 +2900,11 @@ if __name__ == '__main__':
     if args.is_image:
         IS_IMAGE = True
         cf.Dataset += "imageTree_"
-    cf.reload_path()
     if args.adversarial:
         ADVERSARIAL_TEST = True
     if args.thread:
         cf.Dataset += str(args.thread) + "_"
+    cf.reload_path()
     if args.train:
         main = Main_train()
         acc = 0
