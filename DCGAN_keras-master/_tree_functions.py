@@ -563,6 +563,7 @@ def concate_elements(_list):
     return concated
 
 
+# 各層のノード数の設定（いろんな関数が参照）
 def calculate_tree_shape(input_size, output_size=1, child_num=2, is_image=False):
     import math
     shape = [input_size]
