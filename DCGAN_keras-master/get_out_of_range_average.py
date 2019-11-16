@@ -1,7 +1,6 @@
 import os
 from matplotlib import pyplot as plt
 from statistics import mean, median, variance, stdev
-from _model_weightGAN import my_makedirs
 from datetime import datetime
 
 datasets = ["iris", "wine", "digit", "mnist"]
@@ -166,97 +165,113 @@ class Aggregate_data:
             ))
 
 
-aggregate_data = Aggregate_data()
-# ファイルをオープンする
-dir = os.getcwd() + r"\result"
-hist_dir = os.getcwd() + r"\histgram"
-files = os.listdir(dir)
-for file in files:
-    # print(file)
-    test_data = open(dir + r"\{}".format(file), "r")
-    # 一行ずつ読み込んでは表示する
-    dataset = ""
-    out_of_range_average = []
-    ad_acc = 0
-    train_acc = 0
-    test_acc = 0
-    # 異常ノード発生数
-    CORRECT_TEST = []
-    MISS_TEST = []
-    adversarial_example_unRandom = []
-    adversarial_example_Random = []
-    data_type = ""
+def my_makedirs(path):
+    import os
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
-    for i, line in enumerate(test_data):
-        if i == 0:
-            if line[:4] == "iris":
-                dataset = "iris"
-            elif line[:4] == "wine":
-                dataset = "wine"
-            elif line[:5] == "digit":
-                dataset = "digit"
-            elif line[:5] == "mnist":
-                dataset = "mnist"
-        elif line[:20] == "out_of_range_average":
-            out_of_range_average.append(eval(line[20:]))
-        # 精度計算
-        elif line[:16] == "advresarial_miss":
-            for i in range(len(line)):
-                if line[i:i + 3] == "-> ":
-                    ad_acc = float(eval(line[i + 3:]))
-        elif line[:14] == "train loss_acc":
-            train_loss_acc = eval(line[14:])
-            train_acc = train_loss_acc[1]
-        elif line[:14] == "test  loss_acc":
-            test_loss_acc = eval(line[14:])
-            test_acc = test_loss_acc[1]
 
-        # 異常ノード発生数集計
-        elif line[:13] == "CORRECT_TRAIN":  # data_type -> MISS_TEST or CORRECT_TEST
-            data_type = line[14:]
-        elif line[:36] == "adversarial_example random_flag:True":
-            data_type = line[:19] + "_Random"
-        elif line[:37] == "adversarial_example random_flag:False":
-            data_type = line[:19] + "_unRandom"
-        elif line[0] == "[":
-            eval(data_type).append(eval(line))
+if __name__ == '__main__':
+    aggregate_data = Aggregate_data()
+    # ファイルをオープンする
+    dir = os.getcwd() + r"\result"
+    hist_dir = os.getcwd() + r"\histgram"
+    files = os.listdir(dir)
+    for file in files:
+        # print(file)
+        test_data = open(dir + r"\{}".format(file), "r")
+        # 一行ずつ読み込んでは表示する
+        dataset = ""
+        out_of_range_average = []
+        ad_acc = 0
+        train_acc = 0
+        test_acc = 0
+        # 異常ノード発生数
+        CORRECT_TEST = []
+        MISS_TEST = []
+        adversarial_example_unRandom = []
+        adversarial_example_Random = []
+        data_type = ""
 
-    # 1ファイル終了するごとにデータ集計・統計データ算出
-    ad_acc = reliability_test(CORRECT_TEST, adversarial_example_Random)
-    aggregate_data.set_data(dataset, out_of_range_average, ad_acc, train_acc=train_acc, test_acc=test_acc)
-    # reliability_test(CORRECT_TEST, MISS_TEST)
+        for i, line in enumerate(test_data):
+            if i == 0:
+                if line[:4] == "iris":
+                    dataset = "iris"
+                elif line[:4] == "wine":
+                    dataset = "wine"
+                elif line[:5] == "digit":
+                    dataset = "digit"
+                elif line[:5] == "mnist":
+                    dataset = "mnist"
+            elif line[:20] == "out_of_range_average":
+                out_of_range_average.append(eval(line[20:]))
+            # 精度計算
+            elif line[:16] == "advresarial_miss":
+                for i in range(len(line)):
+                    if line[i:i + 3] == "-> ":
+                        ad_acc = float(eval(line[i + 3:]))
+            elif line[:14] == "train loss_acc":
+                train_loss_acc = eval(line[14:])
+                train_acc = train_loss_acc[1]
+            elif line[:14] == "test  loss_acc":
+                test_loss_acc = eval(line[14:])
+                test_acc = test_loss_acc[1]
 
-    for i in range(len(CORRECT_TEST[0])):
-        plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in MISS_TEST]], stacked=False,
-                 label=["CORRECT_TEST", "MISS_TEST"])
-        plt.xlabel("the number of nodes outside the correct range")
-        plt.ylabel("frequency")
-        plt.legend()
-        if hist_dir is not None:
-            my_makedirs(hist_dir + r"\{}".format(dataset))
-        plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
-                    .format(dataset, i, "MISS_TEST", datetime.now().strftime("%Y%m%d%H%M%S")))
-        plt.close()
+            # 異常ノード発生数集計
+            elif line[:13] == "CORRECT_TRAIN":  # data_type -> MISS_TEST or CORRECT_TEST
+                data_type = line[14:]
+            elif line[:36] == "adversarial_example random_flag:True":
+                data_type = line[:19] + "_Random"
+            elif line[:37] == "adversarial_example random_flag:False":
+                data_type = line[:19] + "_unRandom"
+            elif line[0] == "[":
+                eval(data_type).append(eval(line))
 
-    for i in range(len(CORRECT_TEST[0])):
-        plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in adversarial_example_Random]], stacked=False,
-                 label=["CORRECT_TEST", "RANDOM_NOISE"])
-        plt.xlabel("the number of nodes outside the correct range")
-        plt.ylabel("frequency")
-        plt.legend()
-        plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
-                    .format(dataset, i, "RANDOM_NOISE", datetime.now().strftime("%Y%m%d%H%M%S")))
-        plt.close()
-    if False:
-        print("CORRECT_TEST:{}".format(CORRECT_TEST))
-        print("MISS_TEST:{}".format(MISS_TEST))
-        print("adversarial_example_unRandom:{}".format(adversarial_example_unRandom))
-        print("adversarial_example_Random:{}".format(adversarial_example_Random))
-        print("CORRECT_TEST:{}".format(len(CORRECT_TEST)))
-        print("MISS_TEST:{}".format(len(MISS_TEST)))
-        print("adversarial_example_unRandom:{}".format(len(adversarial_example_unRandom)))
-        print("adversarial_example_Random:{}".format(len(adversarial_example_Random)))
-        exit()
-    # ファイルをクローズする
-    test_data.close()
-aggregate_data.get_data()
+        # 1ファイル終了するごとにデータ集計・統計データ算出
+        ad_acc = reliability_test(CORRECT_TEST, adversarial_example_Random)
+        aggregate_data.set_data(dataset, out_of_range_average, ad_acc, train_acc=train_acc, test_acc=test_acc)
+        # reliability_test(CORRECT_TEST, MISS_TEST)
+
+        for i in range(len(CORRECT_TEST[0])):
+            # plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in MISS_TEST]], stacked=False,
+            # label=["CORRECT_TEST", "MISS_TEST"])
+            _min0 = min([x[i] for x in CORRECT_TEST])
+            _max0 = max([x[i] for x in CORRECT_TEST])
+            _min1 = min([x[i] for x in MISS_TEST])
+            _max1 = max([x[i] for x in MISS_TEST])
+            print([x[i] for x in CORRECT_TEST])
+            plt.hist([x[i] for x in CORRECT_TEST], label="CORRECT_TEST", alpha=0.6, normed=True)
+            # plt.hist([x[i] for x in MISS_TEST], label="MISS_TEST", alpha=0.6, normed=True)
+            plt.xlabel("the number of nodes outside the correct range")
+            plt.ylabel("frequency")
+            plt.legend()
+            plt.show()
+            exit()
+            if hist_dir is not None:
+                my_makedirs(hist_dir + r"\{}".format(dataset))
+            plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
+                        .format(dataset, i, "MISS_TEST", datetime.now().strftime("%Y%m%d%H%M%S")))
+            plt.close()
+
+        for i in range(len(CORRECT_TEST[0])):
+            plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in adversarial_example_Random]], stacked=False,
+                     label=["CORRECT_TEST", "RANDOM_NOISE"])
+            plt.xlabel("the number of nodes outside the correct range")
+            plt.ylabel("frequency")
+            plt.legend()
+            plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
+                        .format(dataset, i, "RANDOM_NOISE", datetime.now().strftime("%Y%m%d%H%M%S")))
+            plt.close()
+        if False:
+            print("CORRECT_TEST:{}".format(CORRECT_TEST))
+            print("MISS_TEST:{}".format(MISS_TEST))
+            print("adversarial_example_unRandom:{}".format(adversarial_example_unRandom))
+            print("adversarial_example_Random:{}".format(adversarial_example_Random))
+            print("CORRECT_TEST:{}".format(len(CORRECT_TEST)))
+            print("MISS_TEST:{}".format(len(MISS_TEST)))
+            print("adversarial_example_unRandom:{}".format(len(adversarial_example_unRandom)))
+            print("adversarial_example_Random:{}".format(len(adversarial_example_Random)))
+            exit()
+        # ファイルをクローズする
+        test_data.close()
+    aggregate_data.get_data()
