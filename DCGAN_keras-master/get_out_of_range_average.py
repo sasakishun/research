@@ -5,34 +5,43 @@ from statistics import mean, median, variance, stdev
 datasets = ["iris", "wine", "digit", "mnist"]
 
 
-def reliability_test(CORRECT_TEST, MISS_TEST):
+def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False):
     if len(MISS_TEST) == 0:
         return
     # 信頼判定テスト
-    adversarial_miss = 0
     # 各ノードごとに信頼性あり無しのスレッショルド設定
     threshold = [0 for _ in range(len(CORRECT_TEST[0]))]
     for node in range(len(CORRECT_TEST[0])):
         data = [x[node] for x in CORRECT_TEST]
-        # print("data:{}".format(data))
         _mean = mean(data)
         _median = median(data)
         _variance = variance(data)
         _stdev = stdev(data)
-        # print('平均: {0:.2f}'.format(_mean))
-        # print('中央値: {0:.2f}'.format(_median))
-        # print('分散: {0:.2f}'.format(_variance))
-        # print('標準偏差: {0:.2f}'.format(_stdev))
-        threshold[node] = _mean + 1. * _stdev # max(data)  # 3σ位置
+        threshold[node] = _mean + 2. * _stdev  # max(data)  # 3σ位置
+        if show_detail:
+            print("data:{}".format(data))
+            print('平均: {0:.2f}'.format(_mean))
+            print('中央値: {0:.2f}'.format(_median))
+            print('分散: {0:.2f}'.format(_variance))
+            print('標準偏差: {0:.2f}'.format(_stdev))
+    adversarial_miss = adversarial_miss_num(MISS_TEST, threshold)
+    correct_miss = adversarial_miss_num(CORRECT_TEST, threshold)
+    print("adversarial_miss {}/{} -> {:.2f}% correct_miss {}/{} {:.2f}%"
+          .format(adversarial_miss, len(MISS_TEST),
+                  100 * adversarial_miss / len(MISS_TEST),
+                  correct_miss, len(CORRECT_TEST),
+                  100 * correct_miss / len(CORRECT_TEST)))
+    return adversarial_miss / len(MISS_TEST)
+
+
+def adversarial_miss_num(MISS_TEST, threshold):
+    adversarial_miss = 0
     for miss_test in MISS_TEST:
         for node in range(len(miss_test)):
             if miss_test[node] > threshold[node]:
                 adversarial_miss += 1
                 break
-    print("adversarial_miss {}/{} -> {}%".format(adversarial_miss, len(MISS_TEST),
-                                                 100 * adversarial_miss / len(MISS_TEST)))
-
-    return adversarial_miss / len(MISS_TEST)
+    return adversarial_miss
 
 
 class Aggregate_data:
