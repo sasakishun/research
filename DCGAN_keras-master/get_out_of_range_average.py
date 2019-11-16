@@ -1,6 +1,8 @@
 import os
 from matplotlib import pyplot as plt
 from statistics import mean, median, variance, stdev
+from _model_weightGAN import my_makedirs
+from datetime import datetime
 
 datasets = ["iris", "wine", "digit", "mnist"]
 
@@ -167,6 +169,7 @@ class Aggregate_data:
 aggregate_data = Aggregate_data()
 # ファイルをオープンする
 dir = os.getcwd() + r"\result"
+hist_dir = os.getcwd() + r"\histgram"
 files = os.listdir(dir)
 for file in files:
     # print(file)
@@ -222,22 +225,28 @@ for file in files:
     ad_acc = reliability_test(CORRECT_TEST, adversarial_example_Random)
     aggregate_data.set_data(dataset, out_of_range_average, ad_acc, train_acc=train_acc, test_acc=test_acc)
     # reliability_test(CORRECT_TEST, MISS_TEST)
-    test_data.close()
-    continue
+
     for i in range(len(CORRECT_TEST[0])):
         plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in MISS_TEST]], stacked=False,
                  label=["CORRECT_TEST", "MISS_TEST"])
         plt.xlabel("the number of nodes outside the correct range")
         plt.ylabel("frequency")
         plt.legend()
-        plt.show()
+        if hist_dir is not None:
+            my_makedirs(hist_dir + r"\{}".format(dataset))
+        plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
+                    .format(dataset, i, data_type, datetime.now().strftime("%Y%m%d%H%M%S")))
+        plt.close()
+
     for i in range(len(CORRECT_TEST[0])):
         plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in adversarial_example_Random]], stacked=False,
-                 label=["CORRECT_TEST", "MISS_TEST"])
+                 label=["CORRECT_TEST", "RANDOM_NOISE"])
         plt.xlabel("the number of nodes outside the correct range")
         plt.ylabel("frequency")
         plt.legend()
-        plt.show()
+        plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
+                    .format(dataset, i, data_type, datetime.now().strftime("%Y%m%d%H%M%S")))
+        plt.close()
     if False:
         print("CORRECT_TEST:{}".format(CORRECT_TEST))
         print("MISS_TEST:{}".format(MISS_TEST))
