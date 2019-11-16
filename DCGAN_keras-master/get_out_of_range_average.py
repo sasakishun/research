@@ -235,7 +235,7 @@ for file in files:
         if hist_dir is not None:
             my_makedirs(hist_dir + r"\{}".format(dataset))
         plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
-                    .format(dataset, i, data_type, datetime.now().strftime("%Y%m%d%H%M%S")))
+                    .format(dataset, i, "MISS_TEST", datetime.now().strftime("%Y%m%d%H%M%S")))
         plt.close()
 
     for i in range(len(CORRECT_TEST[0])):
@@ -245,7 +245,7 @@ for file in files:
         plt.ylabel("frequency")
         plt.legend()
         plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
-                    .format(dataset, i, data_type, datetime.now().strftime("%Y%m%d%H%M%S")))
+                    .format(dataset, i, "RANDOM_NOISE", datetime.now().strftime("%Y%m%d%H%M%S")))
         plt.close()
     if False:
         print("CORRECT_TEST:{}".format(CORRECT_TEST))
