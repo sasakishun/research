@@ -64,6 +64,7 @@ class Aggregate_data:
         self.iris_correct = []
         self.iris_adversarial = []
         self.iris_random_noise_exclude_rate = []
+        self.iris_correct_test_exclude_rate = []
         self.iris_train_acc = []
         self.iris_test_acc = []
 
@@ -71,6 +72,7 @@ class Aggregate_data:
         self.wine_correct = []
         self.wine_adversarial = []
         self.wine_random_noise_exclude_rate = []
+        self.wine_correct_test_exclude_rate = []
         self.wine_train_acc = []
         self.wine_test_acc = []
 
@@ -78,6 +80,7 @@ class Aggregate_data:
         self.digit_correct = []
         self.digit_adversarial = []
         self.digit_random_noise_exclude_rate = []
+        self.digit_correct_test_exclude_rate = []
         self.digit_train_acc = []
         self.digit_test_acc = []
 
@@ -85,15 +88,17 @@ class Aggregate_data:
         self.mnist_correct = []
         self.mnist_adversarial = []
         self.mnist_random_noise_exclude_rate = []
+        self.mnist_correct_test_exclude_rate = []
         self.mnist_train_acc = []
         self.mnist_test_acc = []
 
 
-    def set_data(self, dataset, data, random_noise_exclude_rate, train_acc=None, test_acc=None):
+    def set_data(self, dataset, data, random_noise_exclude_rate, correct_test_exclude_rate, train_acc=None, test_acc=None):
         eval("self." + dataset + "_miss").append(data[0])
         eval("self." + dataset + "_correct").append(data[1])
         eval("self." + dataset + "_adversarial").append(data[-1])
         eval("self." + dataset + "_random_noise_exclude_rate").append(random_noise_exclude_rate)
+        eval("self." + dataset + "_correct_test_exclude_rate").append(correct_test_exclude_rate)
         if train_acc is not None:
             eval("self." + dataset + "_train_acc").append(train_acc)
         if test_acc is not None:
@@ -169,6 +174,14 @@ class Aggregate_data:
             sum(self.digit_random_noise_exclude_rate) * 100 / len(self.digit_random_noise_exclude_rate),
             sum(self.mnist_random_noise_exclude_rate) * 100 / len(self.mnist_random_noise_exclude_rate),
         ))
+        print()
+        print("正解保持率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+            100 - sum(self.iris_correct_test_exclude_rate) * 100 / len(self.iris_correct_test_exclude_rate),
+            100 - sum(self.wine_correct_test_exclude_rate) * 100 / len(self.wine_correct_test_exclude_rate),
+            100 - sum(self.digit_correct_test_exclude_rate) * 100 / len(self.digit_correct_test_exclude_rate),
+            100 - sum(self.mnist_correct_test_exclude_rate) * 100 / len(self.mnist_correct_test_exclude_rate),
+        ))
+
         for test_train in ["train", "test"]:
             print("分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
                 test_train,
@@ -257,7 +270,7 @@ if __name__ == '__main__':
             miss_excludes = _reliability["miss_excludes"]
             threshold = _reliability["threshold"]
             if name == "RANDOM_NOISE":
-                aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, train_acc=train_acc, test_acc=test_acc)
+                aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, correct_exclude, train_acc=train_acc, test_acc=test_acc)
 
             for i in range(len(_CORRECT_TEST[0])):
                 _min0 = min([x[i] for x in _CORRECT_TEST])
@@ -274,7 +287,7 @@ if __name__ == '__main__':
                          .format(miss_excludes[i] * 100),
                          alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
                 # 閾値による分類境界を表示
-                plt.axvline(x=math.ceil(threshold[i]) - 0.5, color="red")
+                plt.axvline(x=math.ceil(threshold[i]) - 0.5, color="red", label="μ+2σ line")
                 # fig = plt.figure()
                 ax = plt.subplot(111)
                 # plt.yscale('log') # 縦軸をlogにできる
