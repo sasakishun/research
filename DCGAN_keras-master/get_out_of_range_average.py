@@ -1,7 +1,9 @@
 import os
 from matplotlib import pyplot as plt
+import matplotlib.ticker as tick  # 目盛り操作に必要なライブラリを読み込みます
 from statistics import mean, median, variance, stdev
 from datetime import datetime
+import numpy as np
 
 datasets = ["iris", "wine", "digit", "mnist"]
 
@@ -225,6 +227,7 @@ if __name__ == '__main__':
             elif line[:37] == "adversarial_example random_flag:False":
                 data_type = line[:19] + "_unRandom"
             elif line[0] == "[":
+                # print("{} <- append :{}".format(eval(data_type), eval(line)))
                 eval(data_type).append(eval(line))
 
         # 1ファイル終了するごとにデータ集計・統計データ算出
@@ -232,36 +235,43 @@ if __name__ == '__main__':
         aggregate_data.set_data(dataset, out_of_range_average, ad_acc, train_acc=train_acc, test_acc=test_acc)
         # reliability_test(CORRECT_TEST, MISS_TEST)
 
-        for i in range(len(CORRECT_TEST[0])):
-            # plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in MISS_TEST]], stacked=False,
-            # label=["CORRECT_TEST", "MISS_TEST"])
-            _min0 = min([x[i] for x in CORRECT_TEST])
-            _max0 = max([x[i] for x in CORRECT_TEST])
-            _min1 = min([x[i] for x in MISS_TEST])
-            _max1 = max([x[i] for x in MISS_TEST])
-            print([x[i] for x in CORRECT_TEST])
-            plt.hist([x[i] for x in CORRECT_TEST], label="CORRECT_TEST", alpha=0.6, normed=True)
-            # plt.hist([x[i] for x in MISS_TEST], label="MISS_TEST", alpha=0.6, normed=True)
-            plt.xlabel("the number of nodes outside the correct range")
-            plt.ylabel("frequency")
-            plt.legend()
-            plt.show()
-            exit()
-            if hist_dir is not None:
-                my_makedirs(hist_dir + r"\{}".format(dataset))
-            plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
-                        .format(dataset, i, "MISS_TEST", datetime.now().strftime("%Y%m%d%H%M%S")))
-            plt.close()
+        # CORRECT,MISSごとのi番目の要素を参照
+        for _CORRECT_TEST, _MISS_TEST, name in \
+                zip([CORRECT_TEST, CORRECT_TEST], [MISS_TEST, adversarial_example_Random], ["MISS_TEST", "RANDOM_NOISE"]):
+            if len(_MISS_TEST) == 0:
+                continue
+            for i in range(len(_CORRECT_TEST[0])):
+                _min0 = min([x[i] for x in _CORRECT_TEST])
+                _max0 = max([x[i] for x in _CORRECT_TEST])
+                _min1 = min([x[i] for x in _MISS_TEST])
+                _max1 = max([x[i] for x in _MISS_TEST])
+                _range = (min(_min0, _min1), max(_max0, _max1))
+                binnum = _range[1] - _range[0] + 2
+                # print("binnum: {}".format(binnum))
+                plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST", alpha=0.6, normed=True,
+                         bins=np.arange(binnum)-0.5, align="mid")
+                plt.hist([x[i] for x in _MISS_TEST], label=name, alpha=0.6, normed=True,
+                         bins=np.arange(binnum)-0.5, align="mid")
+                # fig = plt.figure()
+                ax = plt.subplot(111)
+                ax_yticklocs = ax.yaxis.get_ticklocs()  # 目盛りの情報を取得
+                ax_yticklocs = list(map(lambda x: x * len(range(binnum)) * 1.0 / binnum,
+                                        ax_yticklocs))  # 元の目盛りの値にbinの幅を掛ける
+                ax.yaxis.set_ticklabels(list(map(lambda x: "%0.2f" % x, ax_yticklocs)))
+                plt.xlabel("the number of nodes outside the correct range")
+                plt.ylabel("frequency")
+                plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(1))
+                plt.gca().xaxis.set_major_locator(tick.MultipleLocator(1))
+                plt.legend()
+                # plt.show()
+                # exit()
+                path = hist_dir + r"\{}\{}".format(dataset, name)
+                if hist_dir is not None:
+                    my_makedirs(path)
+                plt.savefig(path + r"\{}_{}"
+                            .format("layer"+str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
+                plt.close()
 
-        for i in range(len(CORRECT_TEST[0])):
-            plt.hist([[x[i] for x in CORRECT_TEST], [x[i] for x in adversarial_example_Random]], stacked=False,
-                     label=["CORRECT_TEST", "RANDOM_NOISE"])
-            plt.xlabel("the number of nodes outside the correct range")
-            plt.ylabel("frequency")
-            plt.legend()
-            plt.savefig(hist_dir + r"\{}\layer{}_{}_{}"
-                        .format(dataset, i, "RANDOM_NOISE", datetime.now().strftime("%Y%m%d%H%M%S")))
-            plt.close()
         if False:
             print("CORRECT_TEST:{}".format(CORRECT_TEST))
             print("MISS_TEST:{}".format(MISS_TEST))
