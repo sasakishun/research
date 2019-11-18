@@ -4,6 +4,7 @@ import matplotlib.ticker as tick  # 目盛り操作に必要なライブラリ�
 from statistics import mean, median, variance, stdev
 from datetime import datetime
 import numpy as np
+import math
 
 datasets = ["iris", "wine", "digit", "mnist"]
 
@@ -34,7 +35,8 @@ def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False):
                   100 * adversarial_miss / len(MISS_TEST),
                   correct_miss, len(CORRECT_TEST),
                   100 * correct_miss / len(CORRECT_TEST)))
-    return adversarial_miss / len(MISS_TEST)
+    return {"correct_exclude": correct_miss / len(CORRECT_TEST), "miss_exclude": adversarial_miss / len(MISS_TEST),
+            "threshold": threshold}
 
 
 def adversarial_miss_num(MISS_TEST, threshold):
@@ -231,13 +233,17 @@ if __name__ == '__main__':
                 eval(data_type).append(eval(line))
 
         # 1ファイル終了するごとにデータ集計・統計データ算出
-        ad_acc = reliability_test(CORRECT_TEST, adversarial_example_Random)
-        aggregate_data.set_data(dataset, out_of_range_average, ad_acc, train_acc=train_acc, test_acc=test_acc)
+        _reliability = reliability_test(CORRECT_TEST, adversarial_example_Random)
+        correct_exclude = _reliability["correct_exclude"]
+        threshold = _reliability["threshold"]
+        miss_exclude = _reliability["miss_exclude"]
+        aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, train_acc=train_acc, test_acc=test_acc)
         # reliability_test(CORRECT_TEST, MISS_TEST)
 
         # CORRECT,MISSごとのi番目の要素を参照
         for _CORRECT_TEST, _MISS_TEST, name in \
-                zip([CORRECT_TEST, CORRECT_TEST], [MISS_TEST, adversarial_example_Random], ["MISS_TEST", "RANDOM_NOISE"]):
+                zip([CORRECT_TEST, CORRECT_TEST], [MISS_TEST, adversarial_example_Random],
+                    ["MISS_TEST", "RANDOM_NOISE"]):
             if len(_MISS_TEST) == 0:
                 continue
             for i in range(len(_CORRECT_TEST[0])):
@@ -248,20 +254,25 @@ if __name__ == '__main__':
                 _range = (min(_min0, _min1), max(_max0, _max1))
                 binnum = _range[1] - _range[0] + 2
                 # print("binnum: {}".format(binnum))
-                plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST", alpha=0.6, normed=True,
-                         bins=np.arange(binnum)-0.5, align="mid")
-                plt.hist([x[i] for x in _MISS_TEST], label=name, alpha=0.6, normed=True,
-                         bins=np.arange(binnum)-0.5, align="mid")
+                plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST"+"[{:.2f}% remain ]".format((1-correct_exclude) * 100),
+                         alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
+                plt.hist([x[i] for x in _MISS_TEST], label=name+"[{:.2f}% exclude]".format(miss_exclude * 100),
+                         alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
+                # 閾値による分類境界を表示
+                plt.axvline(x=math.ceil(threshold[i]) - 0.5, color="red")
                 # fig = plt.figure()
                 ax = plt.subplot(111)
+                # plt.yscale('log') # 縦軸をlogにできる
                 ax_yticklocs = ax.yaxis.get_ticklocs()  # 目盛りの情報を取得
                 ax_yticklocs = list(map(lambda x: x * len(range(binnum)) * 1.0 / binnum,
                                         ax_yticklocs))  # 元の目盛りの値にbinの幅を掛ける
                 ax.yaxis.set_ticklabels(list(map(lambda x: "%0.2f" % x, ax_yticklocs)))
+                # plt.ylim(0.01, )
+                plt.xlim(-0.5, )
                 plt.xlabel("the number of nodes outside the correct range")
                 plt.ylabel("frequency")
-                plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(1))
-                plt.gca().xaxis.set_major_locator(tick.MultipleLocator(1))
+                plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(math.ceil(binnum / 10)))
+                plt.gca().xaxis.set_major_locator(tick.MultipleLocator(math.ceil(binnum / 10)))
                 plt.legend()
                 # plt.show()
                 # exit()
@@ -269,7 +280,7 @@ if __name__ == '__main__':
                 if hist_dir is not None:
                     my_makedirs(path)
                 plt.savefig(path + r"\{}_{}"
-                            .format("layer"+str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
+                            .format("layer" + str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
                 plt.close()
 
         if False:
