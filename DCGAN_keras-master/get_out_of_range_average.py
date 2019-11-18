@@ -30,7 +30,7 @@ def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False):
             print('標準偏差: {0:.2f}'.format(_stdev))
     adversarial_miss = adversarial_miss_num(MISS_TEST, threshold)
     correct_miss = adversarial_miss_num(CORRECT_TEST, threshold)
-    print("adversarial_miss {}/{} -> {:.2f}% correct_miss {}/{} {:.2f}%"
+    print("adversarial_miss {}/{} -> {:.2f}% correct_miss {}/{} -> {:.2f}%"
           .format(adversarial_miss["total_adversarial_miss"], len(MISS_TEST),
                   100 * adversarial_miss["total_adversarial_miss"] / len(MISS_TEST),
                   correct_miss["total_adversarial_miss"], len(CORRECT_TEST),
@@ -63,36 +63,37 @@ class Aggregate_data:
         self.iris_miss = []
         self.iris_correct = []
         self.iris_adversarial = []
-        self.iris_ad_acc = []
+        self.iris_random_noise_exclude_rate = []
         self.iris_train_acc = []
         self.iris_test_acc = []
 
         self.wine_miss = []
         self.wine_correct = []
         self.wine_adversarial = []
-        self.wine_ad_acc = []
+        self.wine_random_noise_exclude_rate = []
         self.wine_train_acc = []
         self.wine_test_acc = []
 
         self.digit_miss = []
         self.digit_correct = []
         self.digit_adversarial = []
-        self.digit_ad_acc = []
+        self.digit_random_noise_exclude_rate = []
         self.digit_train_acc = []
         self.digit_test_acc = []
 
         self.mnist_miss = []
         self.mnist_correct = []
         self.mnist_adversarial = []
-        self.mnist_ad_acc = []
+        self.mnist_random_noise_exclude_rate = []
         self.mnist_train_acc = []
         self.mnist_test_acc = []
 
-    def set_data(self, dataset, data, ad_acc, train_acc=None, test_acc=None):
+
+    def set_data(self, dataset, data, random_noise_exclude_rate, train_acc=None, test_acc=None):
         eval("self." + dataset + "_miss").append(data[0])
         eval("self." + dataset + "_correct").append(data[1])
         eval("self." + dataset + "_adversarial").append(data[-1])
-        eval("self." + dataset + "_ad_acc").append(ad_acc)
+        eval("self." + dataset + "_random_noise_exclude_rate").append(random_noise_exclude_rate)
         if train_acc is not None:
             eval("self." + dataset + "_train_acc").append(train_acc)
         if test_acc is not None:
@@ -100,7 +101,7 @@ class Aggregate_data:
 
     def get_data(self):
         for _dataset in datasets:
-            for _category in ["miss", "correct", "adversarial", "ad_acc"]:
+            for _category in ["miss", "correct", "adversarial", "random_noise_exclude_rate"]:
                 for i in eval("self." + _dataset + "_" + _category):
                     print(_dataset + "_" + _category + ": " + "{}".format(i))
                 print("{}:{}".format("self." + _dataset + "_" + _category,
@@ -163,10 +164,10 @@ class Aggregate_data:
                 ))
             print()
         print("ノイズ排除率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
-            sum(self.iris_ad_acc) * 100 / len(self.iris_ad_acc),
-            sum(self.wine_ad_acc) * 100 / len(self.wine_ad_acc),
-            sum(self.digit_ad_acc) * 100 / len(self.digit_ad_acc),
-            sum(self.mnist_ad_acc) * 100 / len(self.mnist_ad_acc),
+            sum(self.iris_random_noise_exclude_rate) * 100 / len(self.iris_random_noise_exclude_rate),
+            sum(self.wine_random_noise_exclude_rate) * 100 / len(self.wine_random_noise_exclude_rate),
+            sum(self.digit_random_noise_exclude_rate) * 100 / len(self.digit_random_noise_exclude_rate),
+            sum(self.mnist_random_noise_exclude_rate) * 100 / len(self.mnist_random_noise_exclude_rate),
         ))
         for test_train in ["train", "test"]:
             print("分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
@@ -196,7 +197,7 @@ if __name__ == '__main__':
         # 一行ずつ読み込んでは表示する
         dataset = ""
         out_of_range_average = []
-        ad_acc = 0
+        random_noise_exclude_rate = 0
         train_acc = 0
         test_acc = 0
         # 異常ノード発生数
@@ -219,10 +220,10 @@ if __name__ == '__main__':
             elif line[:20] == "out_of_range_average":
                 out_of_range_average.append(eval(line[20:]))
             # 精度計算
-            elif line[:16] == "advresarial_miss":
+            elif line[:16] == "advresarial_miss" and data_type[:-7] == "_Random":
                 for i in range(len(line)):
                     if line[i:i + 3] == "-> ":
-                        ad_acc = float(eval(line[i + 3:]))
+                        random_noise_exclude_rate = float(eval(line[i + 3:]))
             elif line[:14] == "train loss_acc":
                 train_loss_acc = eval(line[14:])
                 train_acc = train_loss_acc[1]
@@ -243,8 +244,9 @@ if __name__ == '__main__':
 
         # CORRECT,MISSごとのi番目の要素を参照
         for _CORRECT_TEST, _MISS_TEST, name in \
-                zip([CORRECT_TEST, CORRECT_TEST], [MISS_TEST, adversarial_example_Random],
-                    ["MISS_TEST", "RANDOM_NOISE"]):
+                zip([CORRECT_TEST, CORRECT_TEST, CORRECT_TEST],
+                    [MISS_TEST, adversarial_example_Random, adversarial_example_unRandom],
+                    ["MISS_TEST", "RANDOM_NOISE", "RESTRICTED_RANDOM_NOISE"]):
             if len(_MISS_TEST) == 0:
                 continue
             # 1ファイル終了するごとにデータ集計・統計データ算出
@@ -254,7 +256,7 @@ if __name__ == '__main__':
             correct_excludes = _reliability["correct_excludes"]
             miss_excludes = _reliability["miss_excludes"]
             threshold = _reliability["threshold"]
-            if name[1] == "RANDOM_NOISE":
+            if name == "RANDOM_NOISE":
                 aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, train_acc=train_acc, test_acc=test_acc)
 
             for i in range(len(_CORRECT_TEST[0])):
@@ -295,7 +297,7 @@ if __name__ == '__main__':
                 plt.savefig(path + r"\{}_{}"
                             .format("layer" + str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
                 plt.close()
-            exit()
+            # exit()
         if False:
             print("CORRECT_TEST:{}".format(CORRECT_TEST))
             print("MISS_TEST:{}".format(MISS_TEST))
