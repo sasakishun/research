@@ -31,22 +31,31 @@ def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False):
     adversarial_miss = adversarial_miss_num(MISS_TEST, threshold)
     correct_miss = adversarial_miss_num(CORRECT_TEST, threshold)
     print("adversarial_miss {}/{} -> {:.2f}% correct_miss {}/{} {:.2f}%"
-          .format(adversarial_miss, len(MISS_TEST),
-                  100 * adversarial_miss / len(MISS_TEST),
-                  correct_miss, len(CORRECT_TEST),
-                  100 * correct_miss / len(CORRECT_TEST)))
-    return {"correct_exclude": correct_miss / len(CORRECT_TEST), "miss_exclude": adversarial_miss / len(MISS_TEST),
-            "threshold": threshold}
+          .format(adversarial_miss["total_adversarial_miss"], len(MISS_TEST),
+                  100 * adversarial_miss["total_adversarial_miss"] / len(MISS_TEST),
+                  correct_miss["total_adversarial_miss"], len(CORRECT_TEST),
+                  100 * correct_miss["total_adversarial_miss"] / len(CORRECT_TEST)))
+    return {"correct_exclude": correct_miss["total_adversarial_miss"] / len(CORRECT_TEST),
+            "miss_exclude": adversarial_miss["total_adversarial_miss"] / len(MISS_TEST),
+            "threshold": threshold,
+            "correct_excludes": [i / len(CORRECT_TEST) for i in correct_miss["adversarial_misses"]],
+            "miss_excludes": [i / len(MISS_TEST) for i in adversarial_miss["adversarial_misses"]],
+            }
 
 
 def adversarial_miss_num(MISS_TEST, threshold):
-    adversarial_miss = 0
+    adversarial_misses = [0 for _ in range(len(MISS_TEST[0]))]
+    total_adversarial_miss = 0
     for miss_test in MISS_TEST:
-        for node in range(len(miss_test)):
-            if miss_test[node] > threshold[node]:
-                adversarial_miss += 1
-                break
-    return adversarial_miss
+        miss_occur = False
+        for layer in range(len(miss_test)):
+            if miss_test[layer] > threshold[layer]:
+                adversarial_misses[layer] += 1
+                miss_occur = True
+        if miss_occur:
+            total_adversarial_miss += 1
+    return {"total_adversarial_miss": total_adversarial_miss,
+            "adversarial_misses": adversarial_misses}
 
 
 class Aggregate_data:
@@ -232,20 +241,22 @@ if __name__ == '__main__':
                 # print("{} <- append :{}".format(eval(data_type), eval(line)))
                 eval(data_type).append(eval(line))
 
-        # 1ファイル終了するごとにデータ集計・統計データ算出
-        _reliability = reliability_test(CORRECT_TEST, adversarial_example_Random)
-        correct_exclude = _reliability["correct_exclude"]
-        threshold = _reliability["threshold"]
-        miss_exclude = _reliability["miss_exclude"]
-        aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, train_acc=train_acc, test_acc=test_acc)
-        # reliability_test(CORRECT_TEST, MISS_TEST)
-
         # CORRECT,MISSごとのi番目の要素を参照
         for _CORRECT_TEST, _MISS_TEST, name in \
                 zip([CORRECT_TEST, CORRECT_TEST], [MISS_TEST, adversarial_example_Random],
                     ["MISS_TEST", "RANDOM_NOISE"]):
             if len(_MISS_TEST) == 0:
                 continue
+            # 1ファイル終了するごとにデータ集計・統計データ算出
+            _reliability = reliability_test(_CORRECT_TEST, _MISS_TEST)
+            correct_exclude = _reliability["correct_exclude"]
+            miss_exclude = _reliability["miss_exclude"]
+            correct_excludes = _reliability["correct_excludes"]
+            miss_excludes = _reliability["miss_excludes"]
+            threshold = _reliability["threshold"]
+            if name[1] == "RANDOM_NOISE":
+                aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, train_acc=train_acc, test_acc=test_acc)
+
             for i in range(len(_CORRECT_TEST[0])):
                 _min0 = min([x[i] for x in _CORRECT_TEST])
                 _max0 = max([x[i] for x in _CORRECT_TEST])
@@ -254,9 +265,11 @@ if __name__ == '__main__':
                 _range = (min(_min0, _min1), max(_max0, _max1))
                 binnum = _range[1] - _range[0] + 2
                 # print("binnum: {}".format(binnum))
-                plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST"+"[{:.2f}% remain ]".format((1-correct_exclude) * 100),
+                plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST" + "[{:.2f}% remain ]"
+                         .format((1 - correct_excludes[i]) * 100),
                          alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
-                plt.hist([x[i] for x in _MISS_TEST], label=name+"[{:.2f}% exclude]".format(miss_exclude * 100),
+                plt.hist([x[i] for x in _MISS_TEST], label=name + "[{:.2f}% exclude]"
+                         .format(miss_excludes[i] * 100),
                          alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
                 # 閾値による分類境界を表示
                 plt.axvline(x=math.ceil(threshold[i]) - 0.5, color="red")
@@ -282,7 +295,7 @@ if __name__ == '__main__':
                 plt.savefig(path + r"\{}_{}"
                             .format("layer" + str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
                 plt.close()
-
+            exit()
         if False:
             print("CORRECT_TEST:{}".format(CORRECT_TEST))
             print("MISS_TEST:{}".format(MISS_TEST))
