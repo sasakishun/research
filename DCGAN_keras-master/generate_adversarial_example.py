@@ -1,10 +1,12 @@
 from binary__tree_main import *
 
+
 # 入力: model, クラスごとに分かれた正解訓練データ
 # 出力: 正解になるが不適切な入力データ
 # 正解訓練データをつぎはぎすることで入力空間では正しい分布
 # ->つぎはぎ合成画像がきれいすぎて、分布外になりにくい
-def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=None, test=False, save_img=False, random_flag=False):
+def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=None, test=False, save_img=False,
+                            random_flag=False):
     if correct_ranges is None:
         correct_ranges = get_correct_ranges_from_data(model, correct_inputs)
     shape = np.shape(model.get_weights()[0])[0]
@@ -12,26 +14,26 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
     # print(np.random.rand(shape))
     # print("\n\n\n\n\n")
     # for i in correct_inputs:
-        # print(i)
+    # print(i)
     # print("\n\n\n\n\n")
     model_size = get_layer_size_from_weight(model.get_weights())
-    if correct_inputs is not  None:
+    if correct_inputs is not None:
         datas = [[] for _ in range(model_size[-1])]
         # correctに収まるノイズ画像を作成し,datasに追加
         # 訓練データの一部を合成すればいい
-        if random_flag:# model_size[0] == 784:
-            mergin = 100 # 0.05
+        if random_flag:  # model_size[0] == 784:
+            mergin = 100  # 0.05
             _min = [min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0] for i in range(model_size[0])]
             _max = [max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1] for i in range(model_size[0])]
             for j in range(1000):
                 if j % 100 == 0:
                     print("{} sample generated".format(j))
-                data = [0 for _ in range(model_size[0])]# np.random.rand(shape)
+                data = [0 for _ in range(model_size[0])]  # np.random.rand(shape)
                 for i in range(model_size[0]):
                     # _min = min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0]
                     # _max = max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1]
                     data[i] = random.choice([random.uniform(_min[i], min(_max[i], _min[i] + mergin)),
-                                              random.uniform(max(_min[i], _max[i] - mergin), _max[i])])
+                                             random.uniform(max(_min[i], _max[i] - mergin), _max[i])])
                 datas[np.argmax(feed_forward(model, [[data]])[-1])].append(data)
             return datas
         for _class in range(len(correct_inputs)):
@@ -40,15 +42,15 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
             mergin = 0.05
             while j < 100:
                 # mergin += 0.002
-            # for j in range(100):# len(correct_inputs[_class])):
+                # for j in range(100):# len(correct_inputs[_class])):
                 data = []
                 for i in range(model_size[0]):
-                    _min = min(correct_inputs[_class], key=lambda x:x[i])[i]
-                    _max = max(correct_inputs[_class], key=lambda x:x[i])[i]
+                    _min = min(correct_inputs[_class], key=lambda x: x[i])[i]
+                    _max = max(correct_inputs[_class], key=lambda x: x[i])[i]
                     # print("min:{}".format(_min))
                     # print("max:{}".format(_max))
-                    data.append(random.choice([random.uniform(_min, min(_max, _min+mergin)),
-                                               random.uniform(max(_min, _max-mergin), _max)]))
+                    data.append(random.choice([random.uniform(_min, min(_max, _min + mergin)),
+                                               random.uniform(max(_min, _max - mergin), _max)]))
                     # data.append(sorted(correct_inputs[_class], key=lambda x:x[i])[j][i])
                     # data.append(random.choice(correct_inputs[_class])[i])
                 if np.argmax(feed_forward(model, [[data]], target=None)[-1]) == _class:
@@ -90,11 +92,16 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
             target.append(np.eye(model_size[-1])[np.argmax(feed_forward(model, [[_data]], target=None)[-1])])
         return data, target
 
+
 # 入力: クラス分けされた訓練データ(クラス数,サンプル数)
-def get_correct_ranges_from_data(model, data):
+def get_correct_ranges_from_data(model, data, get_norm_sigma=False):
     model_size = get_layer_size_from_weight(model.get_weights())
+    if get_norm_sigma:
+        each_node_outs = [[[[] for _ in range(node_num)] for node_num in model_size] for _ in range(model_size[-1])]
+
     # (クラス, 層, ノード, 正解範囲)
-    correct_ranges = [[[[float("inf"), -float("inf")] for _ in range(layer_num)] for layer_num in model_size] for _ in range(model_size[-1])]
+    correct_ranges = [[[[float("inf"), -float("inf")] for _ in range(node_num)] for node_num in model_size] for _ in
+                      range(model_size[-1])]
     print("get_correct_ranges_from_data.....")
     for _class in range(model_size[-1]):
         print("class[{}]".format(_class))
@@ -102,11 +109,37 @@ def get_correct_ranges_from_data(model, data):
             hidden_out = [i[0][0] for i in feed_forward(model, [[_sample]], target=None)]
             for _layer in range(len(model_size)):
                 for _node in range(model_size[_layer]):
-                    # print("correct_range:{}".format(correct_ranges[_class][_layer][_node]))
-                    # print("hidden_out[_layer][_node]:{}".format(hidden_out[_layer][_node]))
-                    correct_ranges[_class][_layer][_node][0] = min(correct_ranges[_class][_layer][_node][0], hidden_out[_layer][_node])
-                    correct_ranges[_class][_layer][_node][1] = max(correct_ranges[_class][_layer][_node][1], hidden_out[_layer][_node])
-    return correct_ranges
+                    correct_ranges[_class][_layer][_node][0] = min(correct_ranges[_class][_layer][_node][0],
+                                                                   hidden_out[_layer][_node])
+                    correct_ranges[_class][_layer][_node][1] = max(correct_ranges[_class][_layer][_node][1],
+                                                                   hidden_out[_layer][_node])
+                    if get_norm_sigma:
+                        each_node_outs[_class][_layer][_node].append(hidden_out[_layer][_node])
+    if get_norm_sigma:
+        from statistics import mean, median, variance, stdev
+        from scipy.stats import norm
+
+        _mean = [[[mean(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
+                  _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
+        _variance = [[[variance(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
+                      _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
+        """
+        # 正規分布における、「正常範囲境界」の「小さい方の出力」
+        _edge_output = [[[variance(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
+                   _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
+       """
+        pdfs = [[[lambda x: (norm.pdf(x,
+                                      mean(each_node_outs[_class][_layer][_node]),
+                                      variance(each_node_outs[_class][_layer][_node]))
+                             if (correct_ranges[_class][_layer][_node][0] <= x <= correct_ranges[_class][_layer][_node][1])
+                             else 0)
+                  for _node in range(node_num)]
+                 for _layer, node_num in enumerate(model_size)]
+                for _class in range(model_size[-1])]
+        return correct_ranges, {"mean": _mean, "variance": _variance, "pdf": pdfs}
+    else:
+        return correct_ranges
+
 
 if __name__ == '__main__':
     _mlp = load_weights_and_generate_mlp()

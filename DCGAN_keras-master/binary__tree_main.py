@@ -56,6 +56,7 @@ CHILD_NUM = 2
 IS_IMAGE = False
 ADVERSARIAL_TEST = False
 
+
 def krkopt_data():
     _train = [[], []]
     file_data = open("krkopt.data", "r")
@@ -1193,7 +1194,8 @@ def artificasl_change(X_test, change_num=1):
 
 
 # 中間層出力を訓練テスト、正誤データごとに可視化
-def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True, artificial_error=False, adversarial_test_flag=False):
+def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, save_fig=True, artificial_error=False,
+                                      adversarial_test_flag=False):
     if artificial_error:
         X_test, y_test = copy.deepcopy(X_train)[:100], copy.deepcopy(y_train)[:100]
         # 故意間違い発生前のデータ待避
@@ -1309,7 +1311,8 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
             for i in range(len(_sum)):
                 _sum[i] /= len(_out)
             result.append("out_of_range_average" + str(["{:.4f}".format(i) for i in _sum]))
-            result.append("advresarial_miss:{}/{} -> {:.4f}".format(adversal_miss, len(_out), adversal_miss/len(_out)))
+            result.append(
+                "advresarial_miss:{}/{} -> {:.4f}".format(adversal_miss, len(_out), adversal_miss / len(_out)))
             result.append("train loss_acc{}".format(_mlp.evaluate(X_train, y_train)))
             result.append("test  loss_acc{}".format(_mlp.evaluate(X_test, y_test)))
             if random_flag:
@@ -1377,15 +1380,7 @@ def get_miss_nodes(out_of_ranges):
             for _node in range(len(out_of_ranges[_layer][_class])):  # ノード番号(0,1,2,3....)
                 for _sample in out_of_ranges[_layer][_class][_node]:
                     missed[_class].append(_sample)
-                    # for i in range(class_num):
-                    # print("out_of_ranges[-1][{}]:{}".format(i, out_of_ranges[-1][i]))
-                    # for j in range(class_num):
-                    # missed[i] += out_of_ranges[-1][i][j]
-    # print("missed:{}".format(missed))
-    # missed = [sorted(set(_missed), key=_missed.index) if len(i) > 0 else [] for _missed in missed]
-    # missed = [list(set(i)) if len(i) > 0 else [] for i in missed]
     missed = [list(set([j["sample"] for j in i])) if len(i) > 0 else [] for i in missed]
-    # print("missed:{}".format(missed))
 
     miss_nodes = [[[[] for _ in range(len(out_of_ranges))]  # 層数
                    for j in range(len(missed[i]))]  # クラスiのミスサンプル数
@@ -1397,7 +1392,6 @@ def get_miss_nodes(out_of_ranges):
         for _sample in range(len(missed[_class])):
             sample_num_to_index[_class][str(missed[_class][_sample])] = _sample
 
-    # print("miss_nodes:{}".format(miss_nodes))
     print("len(miss_nodes):{}".format(len(miss_nodes)))
     print("sample_to_num_index:{}".format(sample_num_to_index))
     # shape(クラス数, ミスサンプルインデックス(0,1,2), 層番号)->その層でのミスノード番号のリスト
@@ -1438,6 +1432,7 @@ def get_neuron_color_list_from_out_of_range_nodes(out_of_ranges, layer_sizes):
                         _neuron)  # _neuron["color"])  # colors[_class]
     return neuron_colors
 
+
 def adversarial_test(model, data, correct_range):
     hidden_output = [i[0][0] for i in feed_forward(model, [[data]])]
     if False:
@@ -1455,6 +1450,7 @@ def adversarial_test(model, data, correct_range):
     # print("out_of_range_num:{}".format(out_of_range_num))
     return out_of_range_num
 
+
 # 入力 : _mlp, 正解対象, 間違い対象, 元データ(train_data, train_target, test_data, test_target, 名前リスト)
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["CORRECT_train", "MISS_test"],
@@ -1470,53 +1466,44 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     total_sample_num = 0
 
     model_shape = get_layer_size_from_weight(_mlp.get_weights())
-    # for _class in range(len(each_color)):
-    # for _layer in range(len(each_color[_class])):
-    # for _node in range(len(each_color[_class][_layer])):
-    # print("each_color[{}][{}][{}]:{}".format(_class, _layer, _node, each_color[_class][_layer][_node]))
-    """
-    print("each_color:{}".format(each_color))
-    print("name:{}".format(name))
-    print("correct:{} miss:{}".format(len(correct[0]), len(incorrect[0])))
-    exit()
-    for _class in range(len(each_color)):
-        for _layer in range(len(each_color[_class])):
-            for _node in range(len(each_color[_class][_layer])):
-                print("out_of_ranges[{}][{}][{}]:{}".format(_class, _layer, _node,
-                                                                 out_of_ranges[_class][_layer][_node]))
-    """
-
     # miss_nodes: shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
-    """
-    miss_nodes, sample_num_to_index = get_miss_nodes(out_of_ranges)
-    print("sample_num_to_index:{}".format(sample_num_to_index))
-    for i, _miss_nodes in enumerate(miss_nodes):
-        for j, _miss in enumerate(_miss_nodes):
-            print("miss_nodes[{}][{}]:{}".format(i, j, _miss))
-    neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
-                                                                  get_layer_size_from_weight(_mlp.get_weights()))
-    print("neuron_colors:{}".format(neuron_colors))
-    """
     miss_nodes, sample_num_to_index = get_miss_nodes(each_color)
     print("sample_num_to_index:{}".format(sample_num_to_index))
-    # print("miss_nodes:{}".format(miss_nodes))
     neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
                                                                   get_layer_size_from_weight(_mlp.get_weights()))
-    # print("\nneuron_colors")
-    # for i in range(len(neuron_colors)):
-    # print(neuron_colors[i])
-
     X_train = original_data[0]
     y_train = original_data[1]
     X_test = original_data[2]
     y_test = original_data[3]
 
+    print(np.shape([i[:1000] for i in divide_data(correct[0], correct[1], dataset_category)[0]]))
+
+    # 正解範囲を算出
+    from generate_adversarial_example import get_correct_ranges_from_data
+    # 平均と分散を算出
+    correct_ranges, mean_variance\
+        = get_correct_ranges_from_data(_mlp,
+                                       [i[:1000] for i in divide_data(correct[0], correct[1], dataset_category)[0]],
+                                       get_norm_sigma=True)
+    # 平均分散を求め、正常範囲境界(平均から離れている方)の確率＝0に
+    # なるよう上下圧縮し確率を出す
+    # 正常範囲境界(平均から離れている方)を計算
+    # 正規分布
+
+    for _class in range(model_shape[-1]):
+        print("\ncorrect_ranges\n{}".format(correct_ranges[_class]))
+        print("\nmeans\n{}".format(mean_variance["mean"][_class]))
+        print("\nvariances\n{}".format(mean_variance["variance"][_class]))
+        print("\npdfs\n{}".format(mean_variance["pdf"][_class][0][0](10)))
+    exit()
     # adversarialテストを実行
     if adversarial_test_flag:
         from generate_adversarial_example import get_adversarial_example
         if name[1][:11] == "ADVERSARIAL":
-            adversarial_data\
-                = get_adversarial_example(_mlp, [corret_intermediate_output[0][_class] for _class in range(output_size)], img_shape=[Height, Width])
+            adversarial_data \
+                = get_adversarial_example(_mlp,
+                                          [corret_intermediate_output[0][_class] for _class in range(output_size)],
+                                          img_shape=[Height, Width])
             # adversarial_data, adversarial_target = divide_data(adversarial_data, adversarial_target, dataset_category)
             for _class in range(len(adversarial_data)):
                 for _sample in range(len(adversarial_data[_class])):
@@ -1534,8 +1521,6 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # ミスニューロンを明示したネットワーク図を描画
     for _class in range(len(neuron_colors)):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
-            # for layer in range(len(incorrect_intermediate_output)):
-                # print("hidden:{}", format(incorrect_intermediate_output[layer][_class][_sample]))
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             if name[1][:4] == "MISS":
                 child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
@@ -1650,13 +1635,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     for _out in out:
                         print("->{}".format(_out))
 
-            # print("class:{} sample:{}".format(_class, _sample_num))
-            # for layer in range(len(neuron_colors[_class][_sample])):
-            # for node in range(len(neuron_colors[_class][_sample][layer])):
-            # print("neuron_colors[{}][{}][{}][{}]\n{}".format(
-            # _class, _sample, layer, node, neuron_colors[_class][_sample][layer][node]))
-            # parsing_miss_node(_mlp, neuron_colors[_class][_sample])
-            # correct_range = get_correct_range(neuron_colors[_class][_sample])
+            # 中間出力
             intermidate_out = [_out[0] for _out in
                                feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
             visualize_network(
@@ -1666,11 +1645,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                                             _mlp.evaluate(X_test, y_test)[1]),
                 neuron_color=None,  # neuron_colors[_class][_sample],
                 dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
+
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))
             input_datas = [incorrect_intermediate_output[0][_class][_sample]]
             input_labels = [np.eye(output_size)[_class]]
-            # if name[1][:4] != "MISS":
             for i in range(1, output_size):
                 if len(incorrect_intermediate_output[0][(_class + i) % output_size]) > 0:
                     input_datas += [incorrect_intermediate_output[0][(_class + i) % output_size][0]]
