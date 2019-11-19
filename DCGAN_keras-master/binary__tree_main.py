@@ -1481,7 +1481,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 正解範囲を算出
     from generate_adversarial_example import get_correct_ranges_from_data
     # 平均と分散を算出
-    correct_ranges, pdfs\
+    correct_ranges, pdfs \
         = get_correct_ranges_from_data(_mlp,
                                        [i[:1000] for i in divide_data(correct[0], correct[1], dataset_category)[0]],
                                        get_pdfs=True)
@@ -1490,12 +1490,6 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 正常範囲境界(平均から離れている方)を計算
     # 正規分布
 
-    for _class in range(model_shape[-1]):
-        print("\ncorrect_ranges\n{}".format(correct_ranges[_class]))
-        # print("\nmeans\n{}".format(mean_variance["mean"][_class]))
-        # print("\nstdev\n{}".format(mean_variance["stdev"][_class]))
-        print("\npdfs\n{}".format(pdfs(_class, 0, 0, 0)))
-    exit()
     # adversarialテストを実行
     if adversarial_test_flag:
         from generate_adversarial_example import get_adversarial_example
@@ -1522,6 +1516,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     for _class in range(len(neuron_colors)):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
+            # 間違い修正アルゴリズム
             if name[1][:4] == "MISS":
                 child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
                 corrected_input = [copy.deepcopy(incorrect_intermediate_output[0][_class][_sample])]
@@ -1638,6 +1633,20 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # 中間出力
             intermidate_out = [_out[0] for _out in
                                feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
+            for _layer in range(len(model_shape)):
+                for _node in range(model_shape[_layer]):
+                    print("\ntarget:{} layer:{} node:{} out:{:.2f}".format(_class, _layer, _node,
+                                                                           intermidate_out[_layer][_node]))
+                    _softmaxed_pdf = softmax(
+                        [pdfs(i, _layer, _node, intermidate_out[_layer][_node]) for i in range(model_shape[-1])])
+                    for _all_class in range(model_shape[-1]):
+                        print("pdfs[{}][{}][{}]:{:.2f}({:.2f}%) correct_range[{:.2f}-{:.2f}]"
+                              .format(_all_class, _layer, _node,
+                                      pdfs(_all_class, _layer, _node, intermidate_out[_layer][_node]),
+                                      _softmaxed_pdf[_all_class]*100,
+                                      correct_ranges[_all_class][_layer][_node][0],
+                                      correct_ranges[_all_class][_layer][_node][1]))
+            exit()
             visualize_network(
                 weights=get_kernel_and_bias(_mlp),
                 comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)

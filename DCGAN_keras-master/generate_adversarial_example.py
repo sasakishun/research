@@ -1,4 +1,4 @@
-# from binary__tree_main import *
+from binary__tree_main import *
 
 
 # 入力: model, クラスごとに分かれた正解訓練データ
