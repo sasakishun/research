@@ -1,4 +1,4 @@
-from binary__tree_main import *
+# from binary__tree_main import *
 
 
 # 入力: model, クラスごとに分かれた正解訓練データ
@@ -94,9 +94,9 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
 
 
 # 入力: クラス分けされた訓練データ(クラス数,サンプル数)
-def get_correct_ranges_from_data(model, data, get_norm_sigma=False):
+def get_correct_ranges_from_data(model, data, get_pdfs=False):
     model_size = get_layer_size_from_weight(model.get_weights())
-    if get_norm_sigma:
+    if get_pdfs:
         each_node_outs = [[[[] for _ in range(node_num)] for node_num in model_size] for _ in range(model_size[-1])]
 
     # (クラス, 層, ノード, 正解範囲)
@@ -113,34 +113,81 @@ def get_correct_ranges_from_data(model, data, get_norm_sigma=False):
                                                                    hidden_out[_layer][_node])
                     correct_ranges[_class][_layer][_node][1] = max(correct_ranges[_class][_layer][_node][1],
                                                                    hidden_out[_layer][_node])
-                    if get_norm_sigma:
+                    if get_pdfs:
                         each_node_outs[_class][_layer][_node].append(hidden_out[_layer][_node])
-    if get_norm_sigma:
+    if get_pdfs:
         from statistics import mean, median, variance, stdev
-        from scipy.stats import norm
-
         _mean = [[[mean(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
                   _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
-        _variance = [[[variance(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
-                      _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
+        _stdev = [[[stdev(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
+                   _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
         """
         # 正規分布における、「正常範囲境界」の「小さい方の出力」
-        _edge_output = [[[variance(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
+        _edge_output = [[[stdev(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
                    _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
        """
-        pdfs = [[[lambda x: (norm.pdf(x,
+
+        if False:
+            for _class in range(model_size[-1]):
+                for _layer in range(len(model_size)):
+                    for _node in range(model_size[_layer]):
+                        print("class:{} layer:{} node:{}\ncorrect_range:{}\nmean:{:.2f}\nstdev:{:.2f}\n"
+                              .format(_class, _layer, _node, correct_ranges[_class][_layer][_node],
                                       mean(each_node_outs[_class][_layer][_node]),
-                                      variance(each_node_outs[_class][_layer][_node]))
-                             if (correct_ranges[_class][_layer][_node][0] <= x <= correct_ranges[_class][_layer][_node][1])
+                                      stdev(each_node_outs[_class][_layer][_node])))
+        pdfs = PDFs(correct_ranges=correct_ranges, mean=_mean, stdev=_stdev)
+        """
+        pdfs = [[[lambda x: (pdf_output(x,
+                                        mean(each_node_outs[_class][_layer][_node]),
+                                        stdev(each_node_outs[_class][_layer][_node]))
+                             if correct_ranges[_class][_layer][_node][0] <= x <= correct_ranges[_class][_layer][_node][
+            1]
                              else 0)
-                  for _node in range(node_num)]
-                 for _layer, node_num in enumerate(model_size)]
+                  for _node in range(model_size[_layer])]
+                 for _layer in range(len(model_size))]
                 for _class in range(model_size[-1])]
-        return correct_ranges, {"mean": _mean, "variance": _variance, "pdf": pdfs}
+        print("correct_ranges\n{}".format(correct_ranges))
+        print("\ncorrect_range\n{}".format(correct_ranges[0][0][0][0]))
+        for _class in range(model_size[-1]):
+            for _layer in range(len(model_size)):
+                for _node in range(model_size[_layer]):
+                    print("class:{} layer:{} node:{}\ncorrect_range:{}\nlambda:{}\n"
+                          .format(_class, _layer, _node, correct_ranges[_class][_layer][_node],
+                                  pdfs[_class][_layer][_node]))
+                    print("\npdfs\n{}".format(pdfs[_class][_layer][_node](0)))
+        """
+        for i in range(100):
+            print("pdf({}):{}".format(i / 100, pdfs(0, 0, 0, correct_ranges[0][0][0][0] + i / 100)))
+        return correct_ranges, pdfs
     else:
         return correct_ranges
 
 
+def pdf_output(x, mean, stdev):
+    import numpy as np
+    return np.exp(-((x - mean) ** 2) / (2 * stdev ** 2))  # / np.sqrt(2 * np.pi * (stdev ** 2))
+
+
+class PDFs:
+    def __init__(self, correct_ranges, mean, stdev):
+        self.correct_ranges = correct_ranges
+        self.mean = mean
+        self.stdev = stdev
+
+    def __call__(self, _class, _layer, _node, x, *args, **kwargs):
+        return pdf_output(x, self.mean[_class][_layer][_node], self.stdev[_class][_layer][_node]) \
+            if self.correct_ranges[_class][_layer][_node][0] <= x \
+               <= self.correct_ranges[_class][_layer][_node][1] else 0
+
+    def means(self):
+        return self.mean
+
+    def stdev(self):
+        return self.stdev
+
 if __name__ == '__main__':
+    for i in range(1000):
+        print("{}: {}".format(i / 100, pdf_output(i / 100, 0, 1)))
+    exit()
     _mlp = load_weights_and_generate_mlp()
     adversarial_example = get_adversarial_example(_mlp, 0)

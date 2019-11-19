@@ -1481,10 +1481,10 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 正解範囲を算出
     from generate_adversarial_example import get_correct_ranges_from_data
     # 平均と分散を算出
-    correct_ranges, mean_variance\
+    correct_ranges, pdfs\
         = get_correct_ranges_from_data(_mlp,
                                        [i[:1000] for i in divide_data(correct[0], correct[1], dataset_category)[0]],
-                                       get_norm_sigma=True)
+                                       get_pdfs=True)
     # 平均分散を求め、正常範囲境界(平均から離れている方)の確率＝0に
     # なるよう上下圧縮し確率を出す
     # 正常範囲境界(平均から離れている方)を計算
@@ -1492,9 +1492,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
 
     for _class in range(model_shape[-1]):
         print("\ncorrect_ranges\n{}".format(correct_ranges[_class]))
-        print("\nmeans\n{}".format(mean_variance["mean"][_class]))
-        print("\nvariances\n{}".format(mean_variance["variance"][_class]))
-        print("\npdfs\n{}".format(mean_variance["pdf"][_class][0][0](10)))
+        # print("\nmeans\n{}".format(mean_variance["mean"][_class]))
+        # print("\nstdev\n{}".format(mean_variance["stdev"][_class]))
+        print("\npdfs\n{}".format(pdfs(_class, 0, 0, 0)))
     exit()
     # adversarialテストを実行
     if adversarial_test_flag:
