@@ -156,8 +156,6 @@ def get_correct_ranges_from_data(model, data, get_pdfs=False):
                                   pdfs[_class][_layer][_node]))
                     print("\npdfs\n{}".format(pdfs[_class][_layer][_node](0)))
         """
-        for i in range(100):
-            print("pdf({}):{}".format(i / 100, pdfs(0, 0, 0, correct_ranges[0][0][0][0] + i / 100)))
         return correct_ranges, pdfs
     else:
         return correct_ranges

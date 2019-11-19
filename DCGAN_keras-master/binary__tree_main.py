@@ -1633,27 +1633,36 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # 中間出力
             intermidate_out = [_out[0] for _out in
                                feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
+
+            _pdfs = [[[pdfs(i, _layer, _node, intermidate_out[_layer][_node]) for i in range(model_shape[-1])]
+                      for _node in range(model_shape[_layer])]
+                     for _layer in range(len(model_shape))]
+            _softmax = lambda x: x/np.sum(x)
+            _softmaxed_pdfs = [[_softmax([pdfs(i, _layer, _node, intermidate_out[_layer][_node])
+                                         for i in range(model_shape[-1])])
+                                for _node in range(model_shape[_layer])]
+                               for _layer in range(len(model_shape))]
             for _layer in range(len(model_shape)):
                 for _node in range(model_shape[_layer]):
                     print("\ntarget:{} layer:{} node:{} out:{:.2f}".format(_class, _layer, _node,
                                                                            intermidate_out[_layer][_node]))
-                    _softmaxed_pdf = softmax(
-                        [pdfs(i, _layer, _node, intermidate_out[_layer][_node]) for i in range(model_shape[-1])])
                     for _all_class in range(model_shape[-1]):
                         print("pdfs[{}][{}][{}]:{:.2f}({:.2f}%) correct_range[{:.2f}-{:.2f}]"
                               .format(_all_class, _layer, _node,
                                       pdfs(_all_class, _layer, _node, intermidate_out[_layer][_node]),
-                                      _softmaxed_pdf[_all_class]*100,
+                                      _softmaxed_pdfs[_layer][_node][_all_class]*100,
                                       correct_ranges[_all_class][_layer][_node][0],
                                       correct_ranges[_all_class][_layer][_node][1]))
+            for target_class in range(model_shape[-1]):
+                visualize_network(
+                    weights=get_kernel_and_bias(_mlp),
+                    comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
+                            + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                                _mlp.evaluate(X_test, y_test)[1]),
+                    neuron_color=None,  # neuron_colors[_class][_sample],
+                    dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
+                    annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class)
             exit()
-            visualize_network(
-                weights=get_kernel_and_bias(_mlp),
-                comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
-                        + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
-                                                            _mlp.evaluate(X_test, y_test)[1]),
-                neuron_color=None,  # neuron_colors[_class][_sample],
-                dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num))
 
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))

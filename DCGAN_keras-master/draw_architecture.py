@@ -18,7 +18,13 @@ class Neuron():
         self.x = x
         self.y = y
 
-    def draw(self, text="", color=None):
+    def draw(self, text="", color=None, annotation=None):
+        for _class, _annotation in enumerate(annotation):
+            if _annotation is not None:
+                _text_annotation = pyplot.text(self.x, self.y - 10 - 10 * _class,
+                                               "{}: {:.2f}%".format(_class, _annotation * 100),
+                                               fontsize=neuron_radius * 10, color="black")
+                pyplot.gca()._add_text(_text_annotation)
         if color is None:
             color = [{"color": "black"}]
         for i, _color in enumerate(color):
@@ -51,13 +57,14 @@ class Neuron():
 
 
 class Layer():
-    def __init__(self, network, number_of_neurons, weights, non_active_neurons=None, node_color=None):
+    def __init__(self, network, number_of_neurons, weights, non_active_neurons=None, node_color=None, annotation=None):
         self.previous_layer = self.__get_previous_layer(network)
         self.y = self.__calculate_layer_y_position()
         self.neurons = self.__intialise_neurons(number_of_neurons)
         self.weights = weights
         self.neuron_color = node_color if node_color is not None else [[{"color": "black"}] for _ in
                                                                        range(number_of_neurons)]
+        self.annotation = annotation
         if non_active_neurons:
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
@@ -118,25 +125,33 @@ class Layer():
             if self.previous_layer:
                 for previous_layer_neuron_index in range(len(self.previous_layer.neurons)):
                     previous_layer_neuron = self.previous_layer.neurons[previous_layer_neuron_index]
+                    # weightsを転置しているため、weights[接続先親ノード番号、子ノード番号]が重みとなる
                     weight = self.previous_layer.weights[this_layer_neuron_index, previous_layer_neuron_index]
+                    # 親が同じ重み同士で、表示重みの太さを割合化
+                    _sum = np.sum([abs(i) ** 4 for i in self.previous_layer.weights[this_layer_neuron_index]])
+                    # print("weight[?][{}] -> sum:{}".format(this_layer_neuron_index, _sum))
+                    # print(self.previous_layer.weights[this_layer_neuron_index])
+                    linewidth = np.sign(weight) * weight ** 4 / _sum if _sum > 0 else 0
+                    # linewidth = weight / np.max(abs(self.previous_layer.weights))
                     # print("weight:{}".format(weight))
                     # print("alpha:{}".format(weight / np.max(abs(self.previous_layer.weights))))
                     # print("weight:{}".format(self.previous_layer.weights))
                     # print("max_weight:{}".format(np.max(abs(self.previous_layer.weights))))
-                    self.__line_between_two_neurons(neuron, previous_layer_neuron,
-                                                    linewidth=weight / np.max(abs(self.previous_layer.weights)))
+                    self.__line_between_two_neurons(neuron, previous_layer_neuron, linewidth=linewidth)
                     # weightはスカラー値であり、重みの大きさ＝結合の太さ(linewidth)とする
                     # 正の重みは赤、負の重みは青で表示
                     # linewidthだと整数値しか扱えない -> 透明度で結合強度を表現した方がいい
-            neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index])
+            neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index],
+                        annotation=self.annotation[this_layer_neuron_index])
 
 
 class NeuralNetwork():
     def __init__(self):
         self.layers = []
 
-    def add_layer(self, number_of_neurons, weights=None, non_active_neurons=None, node_color=None):
-        layer = Layer(self, number_of_neurons, weights, non_active_neurons, node_color=node_color)
+    def add_layer(self, number_of_neurons, weights=None, non_active_neurons=None, node_color=None, annotation=None):
+        layer = Layer(self, number_of_neurons, weights, non_active_neurons, node_color=node_color,
+                      annotation=annotation)
         self.layers.append(layer)
 
     """
@@ -158,9 +173,9 @@ class NeuralNetwork():
                            labelleft=False,
                            labelright=False,
                            labeltop=False)
-        pyplot.xlabel("input")
+        # pyplot.xlabel("input")
         if not os.path.exists(path):  # ディレクトリがないとき新規作成
-            path = r"C:\Users\xeno\Documents\research\DCGAN_keras-master\visualized_iris\network_architecture"
+            path = os.getcwd() + r"\visualized_iris\network_architecture"
             print("path:{}".format(path))
         if dir is not None:
             from visualization import my_makedirs
@@ -169,6 +184,9 @@ class NeuralNetwork():
             path += r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
         else:
             path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y%m%d%H%M%S")), "architecture")
+        for _frame in ["right", "top", "bottom", "left"]:
+            pyplot.gca().spines[_frame].set_visible(False)
+        pyplot.tick_params(color='white')
         pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0, dpi=200)
         print("saved to -> {}".format(path))
         # pyplot.show()
@@ -182,75 +200,88 @@ class NeuralNetwork():
 # いらないノード重みとその子孫だけ消せる
 def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus):
     _kernel = [i for i in _kernel if i.ndim == 2]
-    for parent_layer in reversed(range(1, len(intermidate_outpus)-1)):
+    for parent_layer in reversed(range(1, len(intermidate_outpus) - 1)):
         for parent_node in range(len(intermidate_outpus[parent_layer])):
             if intermidate_outpus[parent_layer][parent_node] == 0:
                 # 出力0に繋がる重みを0初期化、子ノード出力も0に
-                for _child in range(len(intermidate_outpus[parent_layer-1])):
-                    if _kernel[parent_layer-1][_child][parent_node] != 0:
+                for _child in range(len(intermidate_outpus[parent_layer - 1])):
+                    if _kernel[parent_layer - 1][_child][parent_node] != 0:
                         print("parent_layer:{} parent_nodes:{} _child:{} parent_out:{}"
                               .format(parent_layer, parent_node, _child, intermidate_outpus[parent_layer][parent_node]))
                         # 親に繋がる子ノード出力を0に(入力層以外)
                         if parent_layer - 1 > 0:
-                            intermidate_outpus[parent_layer-1][_child] = 0
+                            intermidate_outpus[parent_layer - 1][_child] = 0
                         # 子から親に繋がる重みも0に
-                        _kernel[parent_layer-1][_child][parent_node] = 0
+                        _kernel[parent_layer - 1][_child][parent_node] = 0
     # 入力層から順に、子ノードとの結合がないノードの重み削除
-    for parent_layer in range(1, len(intermidate_outpus)-1):
+    for parent_layer in range(1, len(intermidate_outpus) - 1):
         for parent_node in range(len(intermidate_outpus[parent_layer])):
             # 子ノードと結合があるか確認
             connect = False
-            for child_node in range(len(intermidate_outpus[parent_layer-1])):
-                if _kernel[parent_layer-1][child_node][parent_node] != 0:
+            for child_node in range(len(intermidate_outpus[parent_layer - 1])):
+                if _kernel[parent_layer - 1][child_node][parent_node] != 0:
                     connect = True
                     break
             if not connect:
-                for parent_parent_node in range(len(intermidate_outpus[parent_layer+1])):
+                for parent_parent_node in range(len(intermidate_outpus[parent_layer + 1])):
                     _kernel[parent_layer][parent_node][parent_parent_node] = 0
     return _kernel
 
 
-def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None):
+def extruct_weight_of_target_class(_weights, target_class, annotation=None):
+    # target_class以外の重みを削除
+    parents = [target_class]
+    weights = [np.zeros(np.shape(i)) for i in _weights]
+    for layer, _weight in reversed(list(enumerate(_weights))):
+        child = []
+        for i in range(len(_weight)):
+            for j in parents:
+                if _weight[i][j] != 0:
+                    weights[layer][i][j] = _weight[i][j]
+                    child.append(i)
+            if annotation is not None:
+                # parents以外の親ノード
+                for j in (set(list(range(np.shape(_weight)[1]))) - set(parents)):
+                    annotation[layer+1][j] = [None for _ in annotation[layer][j]]
+        parents = child
+    for i in (set(list(range(np.shape(weights[0])[0]))) - set(parents)):
+        annotation[0][i] = [None for _ in annotation[0][i]]
+    return weights
+
+
+def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None, annotation=None,
+           target_class=None):
     vertical_distance_between_layers = 6
     horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
     number_of_neurons_in_widest_layer = 4
+    pyplot.tick_params(labelbottom=False,
+                       labelleft=False,
+                       labelright=False,
+                       labeltop=False)
+
     network = NeuralNetwork()
     print("_weights:{}".format(_weights))
     _weights = [i for i in _weights if i.ndim == 2]  # kernelだけ抽出
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
+    if target_class is not None:
+        _weights = extruct_weight_of_target_class(_weights, target_class, annotation=annotation)
 
     weights = []
     nodes = []
-    # print("_weights:{}\n{}".format([np.shape(weight) for weight in _weights], _weights))
     for i in range(np.shape(_weights)[0]):
-        # print("\n_weights[{}]:{}\n{}".format(i, np.shape(_weights[i]), _weights[i]))
         if _weights[i].ndim == 2:
             nodes.append(np.shape(_weights[i])[0])
             weights.append(_weights[i])
-            # print("add weights")
-            # print("weights[{}]:{}\n{}".format(i, np.shape(weights), weights))
-            # for i in range(np.shape(_weights[0])[0]):
-            # for j in range(np.shape(_weights[0])[1]):
-    global max_weight
-    for weight in weights:
-        max_weight = max(max_weight, np.max(abs(weight)))
-    print("max_weight:{}".format(max_weight))
-
     nodes.append(np.shape(weights[-1])[1])
-    # print("weights:{}\n{}".format([np.shape(weight) for weight in weights], weights))
-    # for i in range(len(nodes)-1):
-    # weights.append(np.ones((nodes[i+1], nodes[i])))
-
     print("nodes of each layer:{}".format(nodes))
-    # print("weights:{}".format([np.shape(weights[i]) for i in range(len(weights))]))
-    # print("_weights:{}".format([np.shape(_weights[i]) for i in range(len(_weights))]))
 
     for i in range(len(nodes) - 1):
         network.add_layer(nodes[i], weights[i].T, non_active_neurons[i] if non_active_neurons is not None else None,
-                          node_color=node_colors[i] if node_colors is not None else None)
-    network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None)
-    # print("weights:\n{}".format(weights))
+                          node_color=node_colors[i] if node_colors is not None else None,
+                          annotation=annotation[i] if annotation is not None else None)
+    network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None,
+                      annotation=annotation[-1] if annotation is not None else None)
     path = os.getcwd() + r"\visualized_iris\network_architecture"
     return network.draw(path=path, acc=acc, comment=comment, dir=dir)
 
