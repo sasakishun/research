@@ -19,13 +19,16 @@ class Neuron():
         self.y = y
 
     def draw(self, text="", color=None, annotation=None):
+        global vertical_distance_between_layers
+        global horizontal_distance_between_neurons
         for _class, _annotation in enumerate(annotation):
             if _annotation is not None:
                 _text_annotation = pyplot.text(self.x,
-                                               self.y - 2 -  neuron_radius * 5 * _class,# vertical_distance_between_layers * _class / len(annotation),
+                                               self.y - 2 -  neuron_radius * 10 * _class,
+                                               # vertical_distance_between_layers * _class / len(annotation),
                                                "{}: {:.2f}%".format(chr(_class + ord("A")),
                                                                     _annotation * 100),
-                                               fontsize=neuron_radius * 10, color="black")
+                                               fontsize=neuron_radius * 5, color="black")
                 pyplot.gca()._add_text(_text_annotation)
         if color is None:
             color = [{"color": "black"}]
@@ -321,7 +324,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     print("nodes of each layer:{}".format(nodes))
 
     global vertical_distance_between_layers
-    vertical_distance_between_layers = nodes[-1] * 20
+    vertical_distance_between_layers = nodes[-1] * 100
     global horizontal_distance_between_neurons
     horizontal_distance_between_neurons = nodes[0] / 2
     print("vertical_distance_between_layers:{}".format(vertical_distance_between_layers))
