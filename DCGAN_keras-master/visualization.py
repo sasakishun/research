@@ -7,7 +7,7 @@ import config_mnist as cf
 import cv2
 
 def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=None, correct=None, incorrect=None,
-              save_fig=True, get_each_color=False, layer_type=None, dir="", mask=None, error_bar=True):
+              save_fig=True, get_each_color=False, layer_type=None, dir="", mask=None, error_bar=True, ):
     # x : [[クラス0の訓練データ(ノード数,サンプル数)], [クラス1..]...., []]
     plt.rcParams["font.size"] = 18
     """
@@ -73,7 +73,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                     _x = [j + line_pos - center_slip for j in range(input_size)]
                     _y = [(_correct_range[0] + _correct_range[1]) / 2 for _correct_range in correct_range[i]]
                     e = [(_correct_range[1] - _correct_range[0]) / 2 for _correct_range in correct_range[i]]
-                    plt.errorbar(_x, _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i], elinewidth=1)
+                    plt.errorbar([_x_ + 1 for _x_ in _x], _y, yerr=e, fmt='None', capsize=5, capthick=1, ecolor=colors[i], elinewidth=1)
             else:
                 line_pos, center_slip = get_line_centersrip_pos(len(labels)//2, len(labels))
 
@@ -82,7 +82,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                 if i < len(labels) // 2:
                     _x = [j + line_pos - center_slip for _ in range(len(x[i]))]
                     _y = np.array(x[i])[:, j]
-                    plt.scatter(_x, _y, color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
+                    plt.scatter([_x_ + 1 for _x_ in _x], _y, color=colors[i], label=(i if not labels else labels[i]) if j == 0 else None,
                                 marker=".", s=0.5)
                 ### 正解入力をプロット
 
@@ -111,7 +111,7 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         else:  # 訓練データの出力範囲外となったクラス
                             _out[0].append(_x[k])
                             _out[1].append(_y[k])
-                            plt.annotate(k, (_x[k], _y[k]), size=10)
+                            plt.annotate(k, (_x[k]+1, _y[k]), size=10)
                             out_of_range[i % (len(labels) // 2)][int(_x[k])]\
                                 .append({"sample": k, "color": colors[i % (len(labels) // 2)], "value":_y[k]})
                             # out_of_range[i%(len(labels)//2)].append(k)
@@ -231,9 +231,9 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                                         out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "white", "value": _y[k]})
                                         print("white used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
                             """
-                    plt.scatter(_in[0], _in[1], color=colors[i % (len(labels) // 2)],
+                    plt.scatter([_x_ + 1 for _x_ in _in[0]], _in[1], color=colors[i % (len(labels) // 2)],
                                 label=(i if not labels else labels[i]) if j == 0 else None, marker=".")
-                    plt.scatter(_out[0], _out[1], color=colors[i % (len(labels) // 2)],
+                    plt.scatter([_x_ + 1 for _x_ in _out[0]], _out[1], color=colors[i % (len(labels) // 2)],
                                 label=(i if not labels else labels[i]) if j == 0 else None, marker="x")
                     ### 不正解入力をプロット
 

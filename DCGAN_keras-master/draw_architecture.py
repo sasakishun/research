@@ -21,8 +21,10 @@ class Neuron():
     def draw(self, text="", color=None, annotation=None):
         for _class, _annotation in enumerate(annotation):
             if _annotation is not None:
-                _text_annotation = pyplot.text(self.x, self.y - 10 - 10 * _class,
-                                               "{}: {:.2f}%".format(_class, _annotation * 100),
+                _text_annotation = pyplot.text(self.x,
+                                               self.y - 2 -  neuron_radius * 5 * _class,# vertical_distance_between_layers * _class / len(annotation),
+                                               "{}: {:.2f}%".format(chr(_class + ord("A")),
+                                                                    _annotation * 100),
                                                fontsize=neuron_radius * 10, color="black")
                 pyplot.gca()._add_text(_text_annotation)
         if color is None:
@@ -167,7 +169,7 @@ class NeuralNetwork():
             layer.draw()
         if acc is not None:
             comment += " acc:{:.4f}".format(acc)
-        pyplot.title(comment)
+        # pyplot.title(comment)
         pyplot.axis('scaled')
         pyplot.tick_params(labelbottom=False,
                            labelleft=False,
@@ -187,7 +189,7 @@ class NeuralNetwork():
         for _frame in ["right", "top", "bottom", "left"]:
             pyplot.gca().spines[_frame].set_visible(False)
         pyplot.tick_params(color='white')
-        pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0, dpi=200)
+        pyplot.savefig(path, bbox_inches="tight", pad_inches=0.0, dpi=2000)
         print("saved to -> {}".format(path))
         # pyplot.show()
         pyplot.close()
@@ -228,7 +230,14 @@ def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus):
     return _kernel
 
 
+# 子ノードと結合がある重みのみ抽出
 def extruct_weight_of_target_class(_weights, target_class, annotation=None):
+    weights = []
+    for i in range(np.shape(_weights)[0]):
+        if _weights[i].ndim == 2:
+            weights.append(_weights[i])
+    _weights = weights
+
     # target_class以外の重みを削除
     parents = [target_class]
     weights = [np.zeros(np.shape(i)) for i in _weights]
@@ -240,19 +249,53 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
                     weights[layer][i][j] = _weight[i][j]
                     child.append(i)
             if annotation is not None:
+                for _layer, _annotation in enumerate(annotation):
+                    print("annotation[{}]:{}".format(_layer, _annotation))
                 # parents以外の親ノード
                 for j in (set(list(range(np.shape(_weight)[1]))) - set(parents)):
-                    annotation[layer+1][j] = [None for _ in annotation[layer][j]]
+                    print("layer:{} j:{}".format(layer , j))
+                    annotation[layer+1][j] = [None for _ in annotation[layer+1][j]]
         parents = child
     for i in (set(list(range(np.shape(weights[0])[0]))) - set(parents)):
         annotation[0][i] = [None for _ in annotation[0][i]]
-    return weights
+
+    # weightsとannotationのNoneの部分を削除
+    for layer in range(len(weights)):
+        node = 0
+        while node < len(weights[layer]):
+            if annotation[layer][node][0] is None:
+                print("annotation[{}][{}] is deleted".format(layer, node))
+                del annotation[layer][node]
+                for _weight_ in weights[layer]:
+                    print(_weight_)
+                weights[layer] = np.delete(weights[layer], node, 0)
+                if layer > 0:
+                    weights[layer-1] = np.delete(weights[layer-1], node, 1)
+                print("deleted")
+            else:
+                node +=1
+
+    # 出力層ノードも削除
+    del annotation[-1][:target_class]
+    del annotation[-1][1:]
+    for i in range(target_class):
+        weights[-1] = np.delete(weights[-1], 0, 1)
+    for i in weights:
+        print(i)
+    for i in range(1, np.shape(weights[-1])[1]):
+        weights[-1] = np.delete(weights[-1], 1, 1)
+    print("deleted_weights")
+    for i in weights:
+        print(i)
+    print("deleted_annotation")
+    for i in annotation:
+        print(i)
+
+    return weights, annotation
 
 
 def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None, annotation=None,
            target_class=None):
-    vertical_distance_between_layers = 6
-    horizontal_distance_between_neurons = 2
     neuron_radius = 0.5
     number_of_neurons_in_widest_layer = 4
     pyplot.tick_params(labelbottom=False,
@@ -260,13 +303,14 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
                        labelright=False,
                        labeltop=False)
 
-    network = NeuralNetwork()
     print("_weights:{}".format(_weights))
     _weights = [i for i in _weights if i.ndim == 2]  # kernelだけ抽出
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
     if target_class is not None:
-        _weights = extruct_weight_of_target_class(_weights, target_class, annotation=annotation)
-
+        _weights, annotation = extruct_weight_of_target_class(_weights, target_class, annotation=annotation)
+        for i in _weights:
+            if len(i) == 0:
+                return
     weights = []
     nodes = []
     for i in range(np.shape(_weights)[0]):
@@ -276,6 +320,14 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     nodes.append(np.shape(weights[-1])[1])
     print("nodes of each layer:{}".format(nodes))
 
+    global vertical_distance_between_layers
+    vertical_distance_between_layers = nodes[-1] * 20
+    global horizontal_distance_between_neurons
+    horizontal_distance_between_neurons = nodes[0] / 2
+    print("vertical_distance_between_layers:{}".format(vertical_distance_between_layers))
+    print("horizontal_distance_between_neurons:{}".format(horizontal_distance_between_neurons))
+
+    network = NeuralNetwork()
     for i in range(len(nodes) - 1):
         network.add_layer(nodes[i], weights[i].T, non_active_neurons[i] if non_active_neurons is not None else None,
                           node_color=node_colors[i] if node_colors is not None else None,

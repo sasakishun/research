@@ -1512,6 +1512,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     adversarial_test(_mlp, incorrect_intermediate_output[0][_class][_sample],
                                      get_correct_range(neuron_colors[_class][_sample]))
         return
+
     # ミスニューロンを明示したネットワーク図を描画
     for _class in range(len(neuron_colors)):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
@@ -1633,11 +1634,10 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # 中間出力
             intermidate_out = [_out[0] for _out in
                                feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
-
             _pdfs = [[[pdfs(i, _layer, _node, intermidate_out[_layer][_node]) for i in range(model_shape[-1])]
                       for _node in range(model_shape[_layer])]
                      for _layer in range(len(model_shape))]
-            _softmax = lambda x: x/np.sum(x)
+            _softmax = lambda x: x/np.sum(x) if np.sum(x) > 0 else np.zeros(np.shape(x))
             _softmaxed_pdfs = [[_softmax([pdfs(i, _layer, _node, intermidate_out[_layer][_node])
                                          for i in range(model_shape[-1])])
                                 for _node in range(model_shape[_layer])]
@@ -1662,7 +1662,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     neuron_color=None,  # neuron_colors[_class][_sample],
                     dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
                     annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class)
-            exit()
+            # exit()
 
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))
