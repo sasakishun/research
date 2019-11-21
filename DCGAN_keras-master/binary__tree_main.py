@@ -1347,13 +1347,13 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # incorrect_data_test, incorrect_target_test \
     # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
-                                     [incorrect_data_test, incorrect_target_test],
-                                     original_data=[X_train, y_train, X_test, y_test],
-                                     name=["CORRECT_train", "MISS_test"])
-    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [correct_data_test, correct_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "CORRECT_test"])
+    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                     [incorrect_data_test, incorrect_target_test],
+                                     original_data=[X_train, y_train, X_test, y_test],
+                                     name=["CORRECT_train", "MISS_test"])
     exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
@@ -1661,7 +1661,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                                                 _mlp.evaluate(X_test, y_test)[1]),
                     neuron_color=None,  # neuron_colors[_class][_sample],
                     dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
-                    annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class)
+                    annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class,
+                    label_class = _class)
             # exit()
 
             # 正解訓練サンプル×ミスサンプルの図も作成
