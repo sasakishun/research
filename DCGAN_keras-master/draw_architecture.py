@@ -34,14 +34,12 @@ class Neuron():
         global vertical_distance_between_layers
         global horizontal_distance_between_neurons
         _neuron_radius = neuron_radius * 30
-
         # 分類クラス数が多い場合は、分類先以外のクラスをグレー塗り
         if len(annotation) == 10 and label_class is not None:
             print("label_class:{}".format(label_class))
             print("annotation:{}".format(annotation))
-            annotation = [annotation[label_class],
-                          np.sum(annotation[:label_class]) + np.sum(annotation[label_class+1:])]
-            _colors = [colors[label_class], "white"]
+            # annotation = [annotation[label_class], np.sum(annotation[:label_class]) + np.sum(annotation[label_class+1:])]
+            _colors = [colors[i] if i == label_class else "white" for i in range(len(annotation))]
         else:
             _colors = colors[:len(annotation)]
         if np.sum(annotation) == 0:
@@ -57,6 +55,7 @@ class Neuron():
                    )
         # pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=True, color="gray"))
         pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=False, color="black"))
+        pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=0.1, fill=True, color="black"))
         # pyplot.gca().add_patch(p)
 
         if False:
@@ -200,7 +199,7 @@ class Layer():
                     _sum = np.sum([abs(i) ** 4 for i in self.previous_layer.weights[this_layer_neuron_index]])
                     # print("weight[?][{}] -> sum:{}".format(this_layer_neuron_index, _sum))
                     # print(self.previous_layer.weights[this_layer_neuron_index])
-                    linewidth = np.sign(weight) * weight ** 4 / _sum if _sum > 0 else 0
+                    linewidth = 2 * np.sign(weight) * weight ** 4 / _sum if _sum > 0 else 0
                     # linewidth = weight / np.max(abs(self.previous_layer.weights))
                     # print("weight:{}".format(weight))
                     # print("alpha:{}".format(weight / np.max(abs(self.previous_layer.weights))))
