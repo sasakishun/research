@@ -35,58 +35,59 @@ class Neuron():
         global horizontal_distance_between_neurons
         _neuron_radius = neuron_radius * 30
         # 分類クラス数が多い場合は、分類先以外のクラスをグレー塗り
-        if len(annotation) == 10 and label_class is not None:
-            print("label_class:{}".format(label_class))
-            print("annotation:{}".format(annotation))
-            # annotation = [annotation[label_class], np.sum(annotation[:label_class]) + np.sum(annotation[label_class+1:])]
-            _colors = [colors[i] if i == label_class else "white" for i in range(len(annotation))]
-        else:
-            _colors = colors[:len(annotation)]
-        if np.sum(annotation) == 0:
-            annotation = [1/len(annotation) for _ in annotation]
-        pyplot.pie(x = annotation,
-                   radius=_neuron_radius,
-                   counterclock=False,
-                   center=(self.x, self.y),
-                   colors=_colors,
-                   startangle=90,
-                   # labels=["{:.2f}%".format(_annotation * 100) for _class, _annotation in enumerate(annotation)],
-                   # textprops = {'fontsize': neuron_radius*5}
-                   )
-        # pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=True, color="gray"))
-        pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=False, color="black"))
-        pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=0.1, fill=True, color="black"))
-        # pyplot.gca().add_patch(p)
+        if annotation is not None:
+            if len(annotation) == 10 and label_class is not None:
+                print("label_class:{}".format(label_class))
+                print("annotation:{}".format(annotation))
+                # annotation = [annotation[label_class], np.sum(annotation[:label_class]) + np.sum(annotation[label_class+1:])]
+                _colors = [colors[i] if i == label_class else "white" for i in range(len(annotation))]
+            else:
+                _colors = colors[:len(annotation)]
+            if np.sum(annotation) == 0:
+                annotation = [1 / len(annotation) for _ in annotation]
+            pyplot.pie(x=annotation,
+                       radius=_neuron_radius,
+                       counterclock=False,
+                       center=(self.x, self.y),
+                       colors=_colors,
+                       startangle=90,
+                       # labels=["{:.2f}%".format(_annotation * 100) for _class, _annotation in enumerate(annotation)],
+                       # textprops = {'fontsize': neuron_radius*5}
+                       )
+            # pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=True, color="gray"))
+            pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=False, color="black"))
+            pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=0.1, fill=True, color="black"))
+            # pyplot.gca().add_patch(p)
 
-        if False:
-            for _class, _annotation in enumerate(annotation):
-                if _annotation is not None:
-                    _text_annotation = pyplot.text(self.x,
-                                                   self.y - 2 -  neuron_radius * 10 * _class,
-                                                   # vertical_distance_between_layers * _class / len(annotation),
-                                                   "{}: {:.2f}%".format(chr(_class + ord("A")),
-                                                                        _annotation * 100),
-                                                   fontsize=neuron_radius * 5, color="black")
-                    pyplot.gca()._add_text(_text_annotation)
-                if False:
-                    # 中心座標(0.5, 0.5), 半径0.4, 切込み位置0°, 60°
-                    if _annotation > 0.01:
-                        w = pat.Wedge(center=(self.x, self.y), r=_neuron_radius,
-                                      theta1=90 - 360*sum(annotation[:_class+1]),
-                                      theta2=90 - 360*sum(annotation[:_class]),
-                                      color=colors[_class],
-                                      edgecolor="white")
-                        # Axesに扇形を追加
-                        pyplot.gca().add_patch(w)
+            if False:
+                for _class, _annotation in enumerate(annotation):
+                    if _annotation is not None:
+                        _text_annotation = pyplot.text(self.x,
+                                                       self.y - 2 - neuron_radius * 10 * _class,
+                                                       # vertical_distance_between_layers * _class / len(annotation),
+                                                       "{}: {:.2f}%".format(chr(_class + ord("A")),
+                                                                            _annotation * 100),
+                                                       fontsize=neuron_radius * 5, color="black")
+                        pyplot.gca()._add_text(_text_annotation)
+                    if False:
+                        # 中心座標(0.5, 0.5), 半径0.4, 切込み位置0°, 60°
+                        if _annotation > 0.01:
+                            w = pat.Wedge(center=(self.x, self.y), r=_neuron_radius,
+                                          theta1=90 - 360 * sum(annotation[:_class + 1]),
+                                          theta2=90 - 360 * sum(annotation[:_class]),
+                                          color=colors[_class],
+                                          edgecolor="white")
+                            # Axesに扇形を追加
+                            pyplot.gca().add_patch(w)
 
-                # 円を表示する場合
-                if False:
-                    circle = pyplot.Circle((self.x, self.y),
-                                           radius=_neuron_radius * sum(annotation[:_class+1]),# 5,
-                                           facecolor=colors[_class], edgecolor=colors[_class])
-                    pyplot.gca().add_patch(circle)
+                    # 円を表示する場合
+                    if False:
+                        circle = pyplot.Circle((self.x, self.y),
+                                               radius=_neuron_radius * sum(annotation[:_class + 1]),  # 5,
+                                               facecolor=colors[_class], edgecolor=colors[_class])
+                        pyplot.gca().add_patch(circle)
         # 異常ノードの場合(白は数値のみ描画するために使用)
-        if False:
+        else:
             if color is None:
                 color = [{"color": "black"}]
             for i, _color in enumerate(color):
@@ -104,7 +105,8 @@ class Neuron():
                                                width=0.5)
                         # 異常ノードの場合(白は数値のみ描画するために使用)
                         _text_correct_range = pyplot.text(self.x + 4, self.y - 12, "[{:.2f}, {:.2f}]".format(
-                            _color["correct_range"][0], _color["correct_range"][1]) if "correct_range" in _color else None,
+                            _color["correct_range"][0],
+                            _color["correct_range"][1]) if "correct_range" in _color else None,
                                                           fontsize=neuron_radius * 10, color="gray")
                         pyplot.gca()._add_text(_text_correct_range)
 
@@ -120,7 +122,8 @@ class Neuron():
 
 
 class Layer():
-    def __init__(self, network, number_of_neurons, weights, non_active_neurons=None, node_color=None, annotation=None, label_class=None, is_image=False):
+    def __init__(self, network, number_of_neurons, weights, non_active_neurons=None, node_color=None, annotation=None,
+                 label_class=None, is_image=False):
         self.previous_layer = self.__get_previous_layer(network)
         self.y = self.__calculate_layer_y_position()
         self.neurons = self.__intialise_neurons(number_of_neurons, is_image)
@@ -128,7 +131,7 @@ class Layer():
         self.neuron_color = node_color if node_color is not None else [[{"color": "black"}] for _ in
                                                                        range(number_of_neurons)]
         self.annotation = annotation
-        self.label_class=label_class
+        self.label_class = label_class
         if non_active_neurons:
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
@@ -146,7 +149,7 @@ class Layer():
                 neuron = Neuron(x, self.y -
                                 horizontal_distance_between_neurons * np.sqrt(number_of_neurons)
                                 * (iteration // np.sqrt(number_of_neurons))
-                                - horizontal_distance_between_neurons) # 40)
+                                - horizontal_distance_between_neurons)  # 40)
                 neurons.append(neuron)
                 x += horizontal_distance_between_neurons * (64 / np.sqrt(number_of_neurons))
             else:
@@ -180,6 +183,9 @@ class Layer():
         line_y_data = (neuron1.y - y_adjustment, neuron2.y + y_adjustment)
         # line = pyplot.Line2D(line_x_data, line_y_data, linewidth=linewidth)
         color = "red" if linewidth > 0 else "blue"
+
+        color = "black"
+
         linewidth = abs(linewidth)
         if linewidth > 0.:
             linewidth = max(0.4, linewidth)
@@ -210,7 +216,7 @@ class Layer():
                     # 正の重みは赤、負の重みは青で表示
                     # linewidthだと整数値しか扱えない -> 透明度で結合強度を表現した方がいい
             neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index],
-                        annotation=self.annotation[this_layer_neuron_index],
+                        annotation=self.annotation[this_layer_neuron_index] if self.annotation is not None else None,
                         label_class=self.label_class)
 
 
@@ -254,7 +260,8 @@ class NeuralNetwork():
             my_makedirs(path)
             path += r"\{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         else:
-            path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S")), "architecture")
+            path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S")),
+                                     "architecture")
         for _frame in ["right", "top", "bottom", "left"]:
             pyplot.gca().spines[_frame].set_visible(False)
         pyplot.tick_params(color='white')
@@ -322,8 +329,8 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
                     print("annotation[{}]:{}".format(_layer, _annotation))
                 # parents以外の親ノード
                 for j in (set(list(range(np.shape(_weight)[1]))) - set(parents)):
-                    print("layer:{} j:{}".format(layer , j))
-                    annotation[layer+1][j] = [None for _ in annotation[layer+1][j]]
+                    print("layer:{} j:{}".format(layer, j))
+                    annotation[layer + 1][j] = [None for _ in annotation[layer + 1][j]]
         parents = child
     # 入力層は消さないでおく
     if False:
@@ -341,10 +348,10 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
                     print(_weight_)
                 weights[layer] = np.delete(weights[layer], node, 0)
                 if layer > 0:
-                    weights[layer-1] = np.delete(weights[layer-1], node, 1)
+                    weights[layer - 1] = np.delete(weights[layer - 1], node, 1)
                 print("deleted")
             else:
-                node +=1
+                node += 1
 
     # 出力層ノードも削除
     del annotation[-1][:target_class]
@@ -397,7 +404,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     if nodes[0] == 64 or nodes[0] == 784:
         horizontal_distance_between_neurons = np.sqrt(nodes[0]) / 2
     else:
-        horizontal_distance_between_neurons = nodes[0] / 2
+        horizontal_distance_between_neurons = nodes[0] / 2  # + 2 # ノード間隔をあけるためのマージン
     print("vertical_distance_between_layers:{}".format(vertical_distance_between_layers))
     print("horizontal_distance_between_neurons:{}".format(horizontal_distance_between_neurons))
 
@@ -507,18 +514,58 @@ def active_route(_weights, acc, comment="", binary_target=-1, using_nodes=[], ac
 
 
 if __name__ == "__main__":
-    vertical_distance_between_layers = 6
-    horizontal_distance_between_neurons = 2
-    neuron_radius = 0.5
-    number_of_neurons_in_widest_layer = 4
+    # vertical_distance_between_layers = 6
+    # horizontal_distance_between_neurons = 2
+    # neuron_radius = 0.5
+    # number_of_neurons_in_widest_layer = 4
     network = NeuralNetwork()
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
 
-    nodes = [13, 10, 7, 3]
+    nodes = [8, 4, 2, 1]
     weights = []
     for i in range(len(nodes) - 1):
-        weights.append(np.ones((nodes[i], nodes[i + 1])))
+        weights.append(np.zeros((nodes[i], nodes[i + 1])))
+    for _weight in weights:
+        for i in range(np.shape(_weight)[0]):
+            # for j in range(np.shape(_weight)[1]):
+            _weight[i][i // 2] = 1
     print(weights)
+    weights[0][0, 0] = 2
+    weights[0][4, 2] = 2
+    weights[0][5, 2] = 2
+    weights[0][7, 3] = 2
+    weights[1][0, 0] = 4
+    weights[1][2, 1] = 4
+    # weights[1][3, 1] = 4
+    weights[2][0, 0] = 4
+    annotation = [[[0, 0, 0] for _ in range(_node)] for _node in nodes]
+    annotation[0][0] = [1, 0.8, 0.9]
+    annotation[0][1] = [0.8, 0.9, 1]
+    annotation[0][2] = [1.2, 1, 1]
+    annotation[0][3] = [1.2, 1, 1]
+    annotation[0][4] = [1.3, 1, 1]
+    annotation[0][5] = [1.3, 0.9, 1.2]
+    annotation[0][6] = [0.5, 1, 0.8]
+    annotation[0][7] = [1.3, 0.7, 0.9]
+    for layer in range(len(weights)):
+        for node in range(np.shape(weights[layer])[1]):
+            print("node:{} child:{} {}".format(node, node * 2, node * 2 + 1))
+            for i in range(3):
+                annotation[layer + 1][node][i] = \
+                    annotation[layer][node * 2][i] * weights[layer][node * 2][node] + \
+                    annotation[layer][node * 2 + 1][i] * weights[layer][node * 2 + 1][node]
+            for i in range(3):
+                if annotation[layer + 1][node][i] == max(annotation[layer + 1][node]):
+                    annotation[layer + 1][node][i] *= 2
+                if annotation[layer + 1][node][i] == min(annotation[layer + 1][node]):
+                    annotation[layer + 1][node][i] /= 2
+                if annotation[layer + 1][node][i] < 0.1:
+                    annotation[layer + 1][node][i] = 0
+
+    for i in annotation:
+        print(i)
+    mydraw(weights, annotation=annotation, label_class=0)
+    exit()
     weights[0][0:2, :6] = -0.4
     weights[0][2:, ] = 0.5
     weights[1][0:2, :6] = -0.2
