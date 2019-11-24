@@ -1653,16 +1653,18 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                       _softmaxed_pdfs[_layer][_node][_all_class]*100,
                                       correct_ranges[_all_class][_layer][_node][0],
                                       correct_ranges[_all_class][_layer][_node][1]))
-            for target_class in range(model_shape[-1]):
-                visualize_network(
-                    weights=get_kernel_and_bias(_mlp),
-                    comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
-                            + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
-                                                                _mlp.evaluate(X_test, y_test)[1]),
-                    neuron_color=None,  # neuron_colors[_class][_sample],
-                    dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
-                    annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class,
-                    label_class = _class)
+            if False:
+                # ネットワークを可視化（各ノード確率、重み）
+                for target_class in range(model_shape[-1]):
+                    visualize_network(
+                        weights=get_kernel_and_bias(_mlp),
+                        comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
+                                + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                                    _mlp.evaluate(X_test, y_test)[1]),
+                        neuron_color=None,  # neuron_colors[_class][_sample],
+                        dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
+                        annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class,
+                        label_class=_class)
             # exit()
 
             # 正解訓練サンプル×ミスサンプルの図も作成
