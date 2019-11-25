@@ -496,6 +496,8 @@ def tree_mlp(input_size, output_size, kernel_mask=None, bias_mask=None, child_nu
     return myMLP(hidden_size, kernel_mask, bias_mask)
 
 
+# 入力: hidden_size = ノード数のリスト
+# 出力: 木構造重み
 def get_tree_kernel_mask(hidden_size, child_num=2, show_mask=False, is_image=False):
     import math
     kernel_mask = [np.zeros((hidden_size[i - 1], hidden_size[i])) for i in range(1, len(hidden_size))]
@@ -542,6 +544,8 @@ def get_tree_kernel_mask(hidden_size, child_num=2, show_mask=False, is_image=Fal
                         ((j % (hidden_size[i] // output_size)) // (child_num * image_size)) * math.ceil(image_size / child_num)
                         + ((j % (hidden_size[i] // output_size)) % image_size) // child_num
                         + (hidden_size[i + 1] // output_size) * _class] = 1
+            # 出力層に近いほどノード数が少なくなるよう調整
+            # child_num = 2  # max(2, int(child_num / 3))
     if show_mask:
         for i in range(len(kernel_mask)):
             print("kernel_mask[{}]:{}".format(i, kernel_mask[i]))

@@ -565,6 +565,7 @@ def concate_elements(_list):
 
 
 # 各層のノード数の設定（いろんな関数が参照）
+# 木構造に対応するの重み設定は別関数(get_tree_kernel_mask())で定義
 def calculate_tree_shape(input_size, output_size=1, child_num=2, is_image=False):
     import math
     shape = [input_size]
@@ -573,7 +574,12 @@ def calculate_tree_shape(input_size, output_size=1, child_num=2, is_image=False)
             shape.append(math.ceil(shape[-1] / child_num))
         else:
             shape.append(math.ceil(np.sqrt(shape[-1]) / child_num) ** 2)
+            # 出力層に近いほどノード数が少なくなるよう調整
+            # child_num = 2  # max(2, int(child_num / 3)) # 8*8->3*3->2*2->1*1
+    print("node_nums:{}".format([shape[i] for i in range(len(shape))]))
+    # exit()
     return [shape[i] * (output_size if i != 0 else 1) for i in range(len(shape))]
+
 
 # モデルの第layer層、node番目ノードを削除したモデルを返す
 def masking_node(weights, model, target_layer, target_node):
