@@ -1659,7 +1659,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                       _softmaxed_pdfs[_layer][_node][_all_class]*100,
                                       correct_ranges[_all_class][_layer][_node][0],
                                       correct_ranges[_all_class][_layer][_node][1]))
-            if False:
+            if True:
                 # ネットワークを可視化（各ノード確率、重み）
                 for target_class in range(model_shape[-1]):
                     visualize_network(
