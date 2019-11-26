@@ -1470,8 +1470,13 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # miss_nodes: shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
     miss_nodes, sample_num_to_index = get_miss_nodes(each_color)
     print("sample_num_to_index:{}".format(sample_num_to_index))
-    neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
+
+    # MNISTでneuron_colorを使うとメモリエラー
+    if model_shape[0] != 784:
+        neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
                                                                   get_layer_size_from_weight(_mlp.get_weights()))
+    else:
+        neuron_colors = None
     X_train = original_data[0]
     y_train = original_data[1]
     X_test = original_data[2]
@@ -1515,7 +1520,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         return
 
     # ミスニューロンを明示したネットワーク図を描画
-    for _class in range(len(neuron_colors)):
+    for _class in range(len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
             _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             # 間違い修正アルゴリズム
