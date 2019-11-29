@@ -1491,7 +1491,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 平均と分散を算出
     correct_ranges, pdfs \
         = get_correct_ranges_from_data(_mlp,
-                                       [i[:10] for i in divide_data(correct[0], correct[1], dataset_category)[0]],
+                                       [i for i in divide_data(correct[0], correct[1], dataset_category)[0]],
                                        get_pdfs=True)
     # 平均分散を求め、正常範囲境界(平均から離れている方)の確率＝0に
     # なるよう上下圧縮し確率を出す
