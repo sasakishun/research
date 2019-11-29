@@ -118,77 +118,78 @@ def visualize(x, y, labels, ite, testflag, showflag=False, comment="", y_range=N
                         # plt.annotate(k, (_x[k], _y[k]), size=10)
                         ### 正解範囲に入っていたらo,それ以外はx
 
-                        # どの分類クラスに入っているか、色を指定して返す
-                        # i % (len(labels) // 2) = 現在参照サンプルのクラス番号
-                        target_class = i % (len(labels) // 2)
                         if get_each_color:
-                            # print("_class:{} _node:{} _sample:{}".format(i % (len(labels) // 2), j, k))
-                            if layer_type == "output": # 出力層の場合
-                                # 参照サンプルがsoftmax最大値ノードである場合
-                                if np.argmax(np.array([x[i][k][_node] for _node in range(input_size)])) == j:
-                                    # 参照サンプルが間違い出力である場合
-                                    # j: 現在参照しているノード番号
-                                    if j != target_class:
-                                        out_of_range_with_color[target_class][j].append(
-                                            {"sample": k, "color": colors[j], "value": _y[k],
-                                             "correct_range":correct_range[target_class][j]})
-                                        # print("output:{} i % (len(labels) // 2):{}"
-                                              # .format(np.array([x[i][k][_node] for _node in range(input_size)]), i % (len(labels) // 2)))
+                            # どの分類クラスに入っているか、色を指定して返す
+                            # i % (len(labels) // 2) = 現在参照サンプルのクラス番号
+                            target_class = i % (len(labels) // 2)
+                            if get_each_color:
+                                # print("_class:{} _node:{} _sample:{}".format(i % (len(labels) // 2), j, k))
+                                if layer_type == "output": # 出力層の場合
+                                    # 参照サンプルがsoftmax最大値ノードである場合
+                                    if np.argmax(np.array([x[i][k][_node] for _node in range(input_size)])) == j:
+                                        # 参照サンプルが間違い出力である場合
+                                        # j: 現在参照しているノード番号
+                                        if j != target_class:
+                                            out_of_range_with_color[target_class][j].append(
+                                                {"sample": k, "color": colors[j], "value": _y[k],
+                                                 "correct_range":correct_range[target_class][j]})
+                                            # print("output:{} i % (len(labels) // 2):{}"
+                                                  # .format(np.array([x[i][k][_node] for _node in range(input_size)]), i % (len(labels) // 2)))
+                                        else:
+                                            out_of_range_with_color[target_class][j].append(
+                                                {"sample": k, "color": "white", "value": _y[k],
+                                                 "correct_range":correct_range[target_class][int(_x[k])]})
                                     else:
                                         out_of_range_with_color[target_class][j].append(
                                             {"sample": k, "color": "white", "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
-                                else:
-                                    out_of_range_with_color[target_class][j].append(
-                                        {"sample": k, "color": "white", "value": _y[k],
-                                             "correct_range":correct_range[target_class][j]})
-                            elif layer_type == "input":  # 入力層の場合
-                                belong_no_class = True
-                                # 異常ノードである場合
-                                if not((correct_range[target_class][int(_x[k])][0] + mergin["under"] < _y[k])\
-                                               and (_y[k] < mergin["over"] + correct_range[target_class][int(_x[k])][1])):
-                                    for _class in range(class_num):
-                                        if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
-                                                and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
+                                                 "correct_range":correct_range[target_class][j]})
+                                elif layer_type == "input":  # 入力層の場合
+                                    belong_no_class = True
+                                    # 異常ノードである場合
+                                    if not((correct_range[target_class][int(_x[k])][0] + mergin["under"] < _y[k])\
+                                                   and (_y[k] < mergin["over"] + correct_range[target_class][int(_x[k])][1])):
+                                        for _class in range(class_num):
+                                            if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
+                                                    and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
+                                                out_of_range_with_color[target_class][int(_x[k])].append(
+                                                    {"sample": k, "color": colors[_class], "value": _y[k],
+                                                 "correct_range":correct_range[target_class][int(_x[k])]})
+                                                belong_no_class = False
+                                        if belong_no_class:  # どのクラス分布にも当てはまらない場合
                                             out_of_range_with_color[target_class][int(_x[k])].append(
-                                                {"sample": k, "color": colors[_class], "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
-                                            belong_no_class = False
-                                    if belong_no_class:  # どのクラス分布にも当てはまらない場合
+                                                {"sample": k, "color": "gray", "value": _y[k],
+                                                 "correct_range":correct_range[target_class][int(_x[k])]})
+                                            # print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
+                                    # 正常ノードである場合
+                                    else:
                                         out_of_range_with_color[target_class][int(_x[k])].append(
-                                            {"sample": k, "color": "gray", "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
-                                        # print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
-                                # 正常ノードである場合
-                                else:
-                                    out_of_range_with_color[target_class][int(_x[k])].append(
-                                        {"sample": k, "color": "white", "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
-                            else: # 中間層の場合
-                                belong_no_class = True
-                                # 異常ノードである場合
-                                if not((correct_range[target_class][int(_x[k])][0] + mergin["under"] < _y[k])\
-                                               and (_y[k] < mergin["over"] + correct_range[target_class][int(_x[k])][1])):
-                                    for _class in range(class_num):
-                                        if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
-                                                and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
+                                            {"sample": k, "color": "white", "value": _y[k],
+                                                 "correct_range":correct_range[target_class][int(_x[k])]})
+                                else: # 中間層の場合
+                                    belong_no_class = True
+                                    # 異常ノードである場合
+                                    if not((correct_range[target_class][int(_x[k])][0] + mergin["under"] < _y[k])\
+                                                   and (_y[k] < mergin["over"] + correct_range[target_class][int(_x[k])][1])):
+                                        for _class in range(class_num):
+                                            if (correct_range[_class][int(_x[k])][0] + mergin["under"] < _y[k]) \
+                                                    and (_y[k] < mergin["over"] + correct_range[_class][int(_x[k])][1]):
+                                                out_of_range_with_color[target_class][int(_x[k])].append(
+                                                    {"sample": k, "color": colors[_class], "value": _y[k],
+                                                 "correct_range":correct_range[target_class][int(_x[k])]})
+                                                belong_no_class = False
+                                        if belong_no_class:  # どのクラス分布にも当てはまらない場合
+                                            # if _y[k] < mergin["under"] or mergin["over"] < _y[k]: # 出力!=0
                                             out_of_range_with_color[target_class][int(_x[k])].append(
-                                                {"sample": k, "color": colors[_class], "value": _y[k],
-                                             "correct_range":correct_range[target_class][int(_x[k])]})
-                                            belong_no_class = False
-                                    if belong_no_class:  # どのクラス分布にも当てはまらない場合
-                                        # if _y[k] < mergin["under"] or mergin["over"] < _y[k]: # 出力!=0
+                                                {"sample": k, "color": "gray", "value": _y[k],
+                                                 "correct_range":correct_range[target_class][int(_x[k])]})
+                                            # print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
+                                            # else:# 出力≒0
+                                                # out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "white", "value": _y[k]})
+                                                # print("white used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
+                                    else:
                                         out_of_range_with_color[target_class][int(_x[k])].append(
-                                            {"sample": k, "color": "gray", "value": _y[k],
+                                            {"sample": k, "color": "white", "value": _y[k],
                                              "correct_range":correct_range[target_class][int(_x[k])]})
-                                        # print("gray used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
-                                        # else:# 出力≒0
-                                            # out_of_range_with_color[i % (len(labels) // 2)][int(_x[k])].append({"sample": k, "color": "white", "value": _y[k]})
-                                            # print("white used _class:{} _node:{}".format(i % (len(labels) // 2), int(_x[k])))
-                                else:
-                                    out_of_range_with_color[target_class][int(_x[k])].append(
-                                        {"sample": k, "color": "white", "value": _y[k],
-                                         "correct_range":correct_range[target_class][int(_x[k])]})
                         # 単純に各ノードが収まる訓練正解分布の色で着色
                         """
                         if get_each_color:

@@ -24,6 +24,7 @@ colors = [colors[0],
           colors[7],
           colors[9]]  # 色指定
 
+MNIST=False
 
 class Neuron():
     def __init__(self, x, y):
@@ -33,7 +34,7 @@ class Neuron():
     def draw(self, text="", color=None, annotation=None, label_class=None):
         global vertical_distance_between_layers
         global horizontal_distance_between_neurons
-        _neuron_radius = neuron_radius * 30
+        _neuron_radius = neuron_radius
         # 分類クラス数が多い場合は、分類先以外のクラスをグレー塗り
         if annotation is not None:
             if len(annotation) == 10 and label_class is not None:
@@ -63,7 +64,7 @@ class Neuron():
                 for _class, _annotation in enumerate(annotation):
                     if _annotation is not None:
                         _text_annotation = pyplot.text(self.x,
-                                                       self.y - 2 - neuron_radius * 10 * _class,
+                                                       self.y - 2 - neuron_radius / 3 * _class,
                                                        # vertical_distance_between_layers * _class / len(annotation),
                                                        "{}: {:.2f}%".format(chr(_class + ord("A")),
                                                                             _annotation * 100),
@@ -141,26 +142,27 @@ class Layer():
         # image_flag == Trueだと入力:64を8*8にして可視化
         neurons = []
         x = self.__calculate_left_margin_so_layer_is_centered(
-            int(np.sqrt(number_of_neurons) if is_image else number_of_neurons))
+            int(np.sqrt(number_of_neurons) if is_image
+                else number_of_neurons))
         for iteration in range(number_of_neurons):
             if is_image:
                 if iteration % int(np.sqrt(number_of_neurons)) == 0:
-                    x = self.__calculate_left_margin_so_layer_is_centered(np.sqrt(number_of_neurons))
-                neuron = Neuron(x, self.y -
-                                horizontal_distance_between_neurons * np.sqrt(number_of_neurons)
-                                * (iteration // np.sqrt(number_of_neurons))
-                                - horizontal_distance_between_neurons)  # 40)
+                    x = self.__calculate_left_margin_so_layer_is_centered(int(np.sqrt(number_of_neurons)))
+                neuron = Neuron(x,
+                                self.y - horizontal_distance_between_neurons
+                                * (iteration // np.sqrt(number_of_neurons)))  # 40)
                 neurons.append(neuron)
-                x += horizontal_distance_between_neurons * (64 / np.sqrt(number_of_neurons))
+                x += horizontal_distance_between_neurons
             else:
                 neuron = Neuron(x, self.y)
                 neurons.append(neuron)
-                # print("number of neurons:{}".format(number_of_neurons))
-                x += horizontal_distance_between_neurons * (64 / number_of_neurons)
+                x += horizontal_distance_between_neurons
         return neurons
 
     def __calculate_left_margin_so_layer_is_centered(self, number_of_neurons):
-        return horizontal_distance_between_neurons * (16 / number_of_neurons) \
+        global horizontal_distance_between_neurons
+        global number_of_neurons_in_widest_layer
+        return horizontal_distance_between_neurons\
                * (number_of_neurons_in_widest_layer - number_of_neurons) / 2
 
     def __calculate_layer_y_position(self):
@@ -229,15 +231,8 @@ class NeuralNetwork():
         layer = Layer(self, number_of_neurons, weights, non_active_neurons, node_color=node_color,
                       annotation=annotation, label_class=label_class,
                       is_image=is_image)
+        print("number_od_neurons:{} is_image:{}".format(number_of_neurons, is_image))
         self.layers.append(layer)
-
-    """
-    def draw(self):
-        for layer in self.layers:
-            layer.draw()
-        pyplot.axis('scaled')
-        pyplot.show()
-    """
 
     def draw(self, path, acc=None, comment="", dir=None):
         for layer in self.layers:
@@ -325,11 +320,11 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
                     weights[layer][i][j] = _weight[i][j]
                     child.append(i)
             if annotation is not None:
-                for _layer, _annotation in enumerate(annotation):
-                    print("annotation[{}]:{}".format(_layer, _annotation))
+                # for _layer, _annotation in enumerate(annotation):
+                    # print("annotation[{}]:{}".format(_layer, _annotation))
                 # parents以外の親ノード
                 for j in (set(list(range(np.shape(_weight)[1]))) - set(parents)):
-                    print("layer:{} j:{}".format(layer, j))
+                    # print("layer:{} j:{}".format(layer, j))
                     annotation[layer + 1][j] = [None for _ in annotation[layer + 1][j]]
         parents = child
     # 入力層は消さないでおく
@@ -375,7 +370,6 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
 def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None, annotation=None,
            target_class=None, label_class=None):
     neuron_radius = 0.5
-    number_of_neurons_in_widest_layer = 4
     pyplot.tick_params(labelbottom=False,
                        labelleft=False,
                        labelright=False,
@@ -399,14 +393,17 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     print("nodes of each layer:{}".format(nodes))
 
     global vertical_distance_between_layers
-    vertical_distance_between_layers = nodes[-1] * 100
     global horizontal_distance_between_neurons
+    global number_of_neurons_in_widest_layer
+    global neuron_radius
+    horizontal_distance_between_neurons = 200  # np.sqrt(nodes[0]) / 2
+    vertical_distance_between_layers = 600
     if nodes[0] == 64 or nodes[0] == 784:
-        horizontal_distance_between_neurons = np.sqrt(nodes[0]) / 2
+        number_of_neurons_in_widest_layer = np.sqrt(nodes[0])
+        neuron_radius = horizontal_distance_between_neurons / 2
     else:
-        horizontal_distance_between_neurons = nodes[0] / 2  # + 2 # ノード間隔をあけるためのマージン
-    print("vertical_distance_between_layers:{}".format(vertical_distance_between_layers))
-    print("horizontal_distance_between_neurons:{}".format(horizontal_distance_between_neurons))
+        number_of_neurons_in_widest_layer = nodes[0]
+        neuron_radius = horizontal_distance_between_neurons / 2  * 0.8
 
     network = NeuralNetwork()
     for i in range(len(nodes) - 1):
@@ -414,7 +411,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
                           node_color=node_colors[i] if node_colors is not None else None,
                           annotation=annotation[i] if annotation is not None else None,
                           label_class=label_class,
-                          is_image=True if (i == 0 and nodes[0] == 64) else False)
+                          is_image=True if (i == 0 and (nodes[0] == 64 or nodes[0] == 784)) else False)
     network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None,
                       annotation=annotation[-1] if annotation is not None else None,
                       label_class=label_class)
@@ -520,51 +517,52 @@ if __name__ == "__main__":
     # number_of_neurons_in_widest_layer = 4
     network = NeuralNetwork()
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
-
-    nodes = [8, 4, 2, 1]
-    weights = []
-    for i in range(len(nodes) - 1):
-        weights.append(np.zeros((nodes[i], nodes[i + 1])))
-    for _weight in weights:
-        for i in range(np.shape(_weight)[0]):
-            # for j in range(np.shape(_weight)[1]):
-            _weight[i][i // 2] = 1
-    print(weights)
-    weights[0][0, 0] = 2
-    weights[0][4, 2] = 2
-    weights[0][5, 2] = 2
-    weights[0][7, 3] = 2
-    weights[1][0, 0] = 4
-    weights[1][2, 1] = 4
-    # weights[1][3, 1] = 4
-    weights[2][0, 0] = 4
-    annotation = [[[0, 0, 0] for _ in range(_node)] for _node in nodes]
-    annotation[0][0] = [1, 0.8, 0.9]
-    annotation[0][1] = [0.8, 0.9, 1]
-    annotation[0][2] = [1.2, 1, 1]
-    annotation[0][3] = [1.2, 1, 1]
-    annotation[0][4] = [1.3, 1, 1]
-    annotation[0][5] = [1.3, 0.9, 1.2]
-    annotation[0][6] = [0.5, 1, 0.8]
-    annotation[0][7] = [1.3, 0.7, 0.9]
-    for layer in range(len(weights)):
-        for node in range(np.shape(weights[layer])[1]):
-            print("node:{} child:{} {}".format(node, node * 2, node * 2 + 1))
-            for i in range(3):
-                annotation[layer + 1][node][i] = \
-                    annotation[layer][node * 2][i] * weights[layer][node * 2][node] + \
-                    annotation[layer][node * 2 + 1][i] * weights[layer][node * 2 + 1][node]
-            for i in range(3):
-                if annotation[layer + 1][node][i] == max(annotation[layer + 1][node]):
-                    annotation[layer + 1][node][i] *= 2
-                if annotation[layer + 1][node][i] == min(annotation[layer + 1][node]):
-                    annotation[layer + 1][node][i] /= 2
-                if annotation[layer + 1][node][i] < 0.1:
-                    annotation[layer + 1][node][i] = 0
-
-    for i in annotation:
-        print(i)
-    mydraw(weights, annotation=annotation, label_class=0)
+    annotation = None
+    # nodes = [13, 5, 1]
+    for nodes in [[4, 3, 3], [13, 5, 2], [64, 5, 1], [784, 5, 10]]:
+        weights = []
+        for i in range(len(nodes) - 1):
+            weights.append(np.zeros((nodes[i], nodes[i + 1])))
+        if False:
+            for _weight in weights:
+                for i in range(np.shape(_weight)[0]):
+                    # for j in range(np.shape(_weight)[1]):
+                    _weight[i][i // 2] = 1
+            print(weights)
+            weights[0][0, 0] = 2
+            weights[0][4, 2] = 2
+            weights[0][5, 2] = 2
+            weights[0][7, 3] = 2
+            weights[1][0, 0] = 4
+            weights[1][2, 1] = 4
+            # weights[1][3, 1] = 4
+            weights[2][0, 0] = 4
+            annotation = [[[0, 0, 0] for _ in range(_node)] for _node in nodes]
+            annotation[0][0] = [1, 0.8, 0.9]
+            annotation[0][1] = [0.8, 0.9, 1]
+            annotation[0][2] = [1.2, 1, 1]
+            annotation[0][3] = [1.2, 1, 1]
+            annotation[0][4] = [1.3, 1, 1]
+            annotation[0][5] = [1.3, 0.9, 1.2]
+            annotation[0][6] = [0.5, 1, 0.8]
+            annotation[0][7] = [1.3, 0.7, 0.9]
+            for layer in range(len(weights)):
+                for node in range(np.shape(weights[layer])[1]):
+                    print("node:{} child:{} {}".format(node, node * 2, node * 2 + 1))
+                    for i in range(3):
+                        annotation[layer + 1][node][i] = \
+                            annotation[layer][node * 2][i] * weights[layer][node * 2][node] + \
+                            annotation[layer][node * 2 + 1][i] * weights[layer][node * 2 + 1][node]
+                    for i in range(3):
+                        if annotation[layer + 1][node][i] == max(annotation[layer + 1][node]):
+                            annotation[layer + 1][node][i] *= 2
+                        if annotation[layer + 1][node][i] == min(annotation[layer + 1][node]):
+                            annotation[layer + 1][node][i] /= 2
+                        if annotation[layer + 1][node][i] < 0.1:
+                            annotation[layer + 1][node][i] = 0
+            for i in annotation:
+                print(i)
+        mydraw(weights, annotation=annotation, label_class=0, dir="\practice")
     exit()
     weights[0][0:2, :6] = -0.4
     weights[0][2:, ] = 0.5

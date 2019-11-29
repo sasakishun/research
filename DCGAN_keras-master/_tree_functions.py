@@ -509,6 +509,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
 
 
     ### 正解データと不正解データに分割 shape:(層数, クラス数, サンプル数, 中間層出力)
+    print("正解データと不正解データに分割 shape:(層数, クラス数, サンプル数, 中間層出力)")
     train_intermediate_output = [[predict_intermidate_output(_mlp, [train_data[j]],
                                                              i)  # list(intermediate_layer_model[i].predict([train_data[j]]))
                                   if len(train_data[j]) > 0 else []
@@ -532,31 +533,34 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
     ###入力を可視化
 
     ###中間層出力を可視化
-    import time
-    for i in range(len(train_intermediate_output)):
-        time.sleep(1)
-        layer_type = "hidden"
-        if i == 0:
-            layer_type = "input"
-        elif i == len(train_intermediate_output) - 1:
-            layer_type = "output"
-        print("visualizing_layer:{}".format(i))
-        out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
-                                       None, labels, ite=cf.Iteration,
-                                       testflag=True, showflag=False,
-                                       comment="layer:{} ".format(i + 1), save_fig=save_fig,
-                                       get_each_color=get_each_color, layer_type=layer_type,
-                                       dir=dir,
-                                       mask=mask[i] if mask is not None else None))
-        ###中間層出力を可視化
-        # for i in range(dataset_category):
-        # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))
-    ### 各層出力を可視化
-    if get_intermidate_output:
-        return out_of_ranges, train_intermediate_output, test_intermediate_output
+    if get_each_color:
+        import time
+        for i in range(len(train_intermediate_output)):
+            time.sleep(1)
+            layer_type = "hidden"
+            if i == 0:
+                layer_type = "input"
+            elif i == len(train_intermediate_output) - 1:
+                layer_type = "output"
+            print("visualizing_layer:{}".format(i))
+            out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
+                                           None, labels, ite=cf.Iteration,
+                                           testflag=True, showflag=False,
+                                           comment="layer:{} ".format(i + 1), save_fig=save_fig,
+                                           get_each_color=get_each_color, layer_type=layer_type,
+                                           dir=dir,
+                                           mask=mask[i] if mask is not None else None))
+            ###中間層出力を可視化
+            # for i in range(dataset_category):
+            # print("acc class[{}]:{}".format(i, _mlp.evaluate(test_data[i], test_target[i])[1]))
+        ### 各層出力を可視化
+        if get_intermidate_output:
+            return out_of_ranges, train_intermediate_output, test_intermediate_output
+        else:
+            return out_of_ranges
     else:
-        return out_of_ranges
-
+        if get_intermidate_output:
+            return train_intermediate_output, test_intermediate_output
 
 def concate_elements(_list):
     concated = []

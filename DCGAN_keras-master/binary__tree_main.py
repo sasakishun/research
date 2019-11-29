@@ -1456,27 +1456,29 @@ def adversarial_test(model, data, correct_range):
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["CORRECT_train", "MISS_test"],
                                      adversarial_test_flag=False):
-    get_each_color = True
-    each_color, corret_intermediate_output, incorrect_intermediate_output \
-        = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
-                                          save_fig=False, get_each_color=get_each_color, get_intermidate_output=True)
+    model_shape = get_layer_size_from_weight(_mlp.get_weights())
+    if model_shape[0] != 784:
+        each_color, corret_intermediate_output, incorrect_intermediate_output \
+            = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
+                                              save_fig=False, get_each_color=True,
+                                              get_intermidate_output=True)
+        # miss_nodes: shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
+        miss_nodes, sample_num_to_index = get_miss_nodes(each_color)
+        print("sample_num_to_index:{}".format(sample_num_to_index))
+        neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
+                                                                  get_layer_size_from_weight(_mlp.get_weights()))
+    else:
+        corret_intermediate_output, incorrect_intermediate_output \
+            = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
+                                              save_fig=False, get_each_color=False, get_intermidate_output=True)
+        neuron_colors = None
+        sample_num_to_index = None
     # 実験結果書き込み用パス
     result_path = os.getcwd() + r"\result\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
     result = [dataset, copy.deepcopy(name)]
     correct_success_num = 0
     total_sample_num = 0
 
-    model_shape = get_layer_size_from_weight(_mlp.get_weights())
-    # miss_nodes: shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
-    miss_nodes, sample_num_to_index = get_miss_nodes(each_color)
-    print("sample_num_to_index:{}".format(sample_num_to_index))
-
-    # MNISTでneuron_colorを使うとメモリエラー
-    if model_shape[0] != 784:
-        neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
-                                                                  get_layer_size_from_weight(_mlp.get_weights()))
-    else:
-        neuron_colors = None
     X_train = original_data[0]
     y_train = original_data[1]
     X_test = original_data[2]
@@ -1489,7 +1491,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 平均と分散を算出
     correct_ranges, pdfs \
         = get_correct_ranges_from_data(_mlp,
-                                       [i[:1000] for i in divide_data(correct[0], correct[1], dataset_category)[0]],
+                                       [i[:10] for i in divide_data(correct[0], correct[1], dataset_category)[0]],
                                        get_pdfs=True)
     # 平均分散を求め、正常範囲境界(平均から離れている方)の確率＝0に
     # なるよう上下圧縮し確率を出す
@@ -1522,7 +1524,10 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # ミスニューロンを明示したネットワーク図を描画
     for _class in range(len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
-            _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
+            if sample_num_to_index is not None:
+                _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
+            else:
+                _sample_num = _sample
             # 間違い修正アルゴリズム
             if name[1][:4] == "MISS":
                 child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])

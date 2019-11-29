@@ -1,5 +1,9 @@
-from binary__tree_main import *
-
+from binary__tree_main import get_layer_size_from_weight,\
+    feed_forward,\
+    adversarial_test,\
+    SaveImgFromList
+import numpy as np
+import random
 
 # 入力: model, クラスごとに分かれた正解訓練データ
 # 出力: 正解になるが不適切な入力データ
@@ -117,24 +121,30 @@ def get_correct_ranges_from_data(model, data, get_pdfs=False):
                         each_node_outs[_class][_layer][_node].append(hidden_out[_layer][_node])
     if get_pdfs:
         from statistics import mean, median, variance, stdev
-        print("class:{}".format([_class for _class in range(model_size[-1])]))
-        print("layer node_sum:{}".format([["_layer:{} node_sum:{}".format(_layer, node_num)
-                                           for _layer, node_num in enumerate(model_size)]
-                                          for _class in range(model_size[-1])]))
 
-        for _class in range(model_size[-1]):
-            print("class:{}".format(_class))
-            for _layer, node_num in enumerate(model_size):
-                print("    layer:{} node_sum:{}".format(_layer, node_num))
-                for _node in range(node_num):
-                    print("        each_node_outs[{}][{}][{}]:{}".
-                          format(_class, _layer, _node, each_node_outs[_class][_layer][_node]))
+        # デバッグ用
+        if False:
+            print("class:{}".format([_class for _class in range(model_size[-1])]))
+            print("layer node_sum:{}".format([["_layer:{} node_sum:{}".format(_layer, node_num)
+                                               for _layer, node_num in enumerate(model_size)]
+                                              for _class in range(model_size[-1])]))
 
-        _mean = [[[mean(each_node_outs[_class][_layer][_node])
+            for _class in range(model_size[-1]):
+                print("class:{}".format(_class))
+                for _layer, node_num in enumerate(model_size):
+                    print("    layer:{} node_sum:{}".format(_layer, node_num))
+                    for _node in range(node_num):
+                        print("each_node_out:{}".format(each_node_outs[_class][_layer][_node]))
+                        print("random_mean:{}".format(mean(np.random.random(np.shape(each_node_outs[_class][_layer][_node])))))
+                        if False:
+                            print("\n        mean[{}][{}][{}]:{}".
+                                  format(_class, _layer, _node, mean(np.array(each_node_outs[_class][_layer][_node]))))
+
+        _mean = [[[mean([float(i) for i in each_node_outs[_class][_layer][_node]])
                    for _node in range(node_num)]
                   for _layer, node_num in enumerate(model_size)]
                  for _class in range(model_size[-1])]
-        _stdev = [[[stdev(each_node_outs[_class][_layer][_node])
+        _stdev = [[[stdev([float(i) for i in each_node_outs[_class][_layer][_node]])
                     for _node in range(node_num)]
                    for _layer, node_num in enumerate(model_size)]
                   for _class in range(model_size[-1])]
@@ -180,7 +190,7 @@ def get_correct_ranges_from_data(model, data, get_pdfs=False):
 
 def pdf_output(x, mean, stdev):
     import numpy as np
-    return np.exp(-((x - mean) ** 2) / (2 * stdev ** 2))  # / np.sqrt(2 * np.pi * (stdev ** 2))
+    return np.exp(-((x - mean) ** 2) / (2 * stdev ** 2)) / np.sqrt(2 * np.pi * (stdev ** 2))
 
 
 class PDFs:
@@ -204,5 +214,6 @@ if __name__ == '__main__':
     for i in range(1000):
         print("{}: {}".format(i / 100, pdf_output(i / 100, 0, 1)))
     exit()
+    from binary__tree_main import load_weights_and_generate_mlp
     _mlp = load_weights_and_generate_mlp()
     adversarial_example = get_adversarial_example(_mlp, 0)
