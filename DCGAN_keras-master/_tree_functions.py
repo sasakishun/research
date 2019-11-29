@@ -540,6 +540,7 @@ def show_intermidate_train_and_test(train_data, train_target, test_data, test_ta
             layer_type = "input"
         elif i == len(train_intermediate_output) - 1:
             layer_type = "output"
+        print("visualizing_layer:{}".format(i))
         out_of_ranges.append(visualize(train_intermediate_output[i] + test_intermediate_output[i],
                                        None, labels, ite=cf.Iteration,
                                        testflag=True, showflag=False,

@@ -117,10 +117,27 @@ def get_correct_ranges_from_data(model, data, get_pdfs=False):
                         each_node_outs[_class][_layer][_node].append(hidden_out[_layer][_node])
     if get_pdfs:
         from statistics import mean, median, variance, stdev
-        _mean = [[[mean(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
-                  _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
-        _stdev = [[[stdev(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
-                   _layer, node_num in enumerate(model_size)] for _class in range(model_size[-1])]
+        print("class:{}".format([_class for _class in range(model_size[-1])]))
+        print("layer node_sum:{}".format([["_layer:{} node_sum:{}".format(_layer, node_num)
+                                           for _layer, node_num in enumerate(model_size)]
+                                          for _class in range(model_size[-1])]))
+
+        for _class in range(model_size[-1]):
+            print("class:{}".format(_class))
+            for _layer, node_num in enumerate(model_size):
+                print("    layer:{} node_sum:{}".format(_layer, node_num))
+                for _node in range(node_num):
+                    print("        each_node_outs[{}][{}][{}]:{}".
+                          format(_class, _layer, _node, each_node_outs[_class][_layer][_node]))
+
+        _mean = [[[mean(each_node_outs[_class][_layer][_node])
+                   for _node in range(node_num)]
+                  for _layer, node_num in enumerate(model_size)]
+                 for _class in range(model_size[-1])]
+        _stdev = [[[stdev(each_node_outs[_class][_layer][_node])
+                    for _node in range(node_num)]
+                   for _layer, node_num in enumerate(model_size)]
+                  for _class in range(model_size[-1])]
         """
         # 正規分布における、「正常範囲境界」の「小さい方の出力」
         _edge_output = [[[stdev(each_node_outs[_class][_layer][_node]) for _node in range(node_num)] for
