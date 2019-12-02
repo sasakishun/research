@@ -9,7 +9,7 @@ import math
 datasets = ["iris", "wine", "digit", "mnist"]
 
 
-def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False):
+def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False, sigma_coefficient=None):
     if len(MISS_TEST) == 0:
         return
     # 信頼判定テスト
@@ -21,7 +21,10 @@ def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False):
         _median = median(data)
         _variance = variance(data)
         _stdev = stdev(data)
-        threshold[node] = _mean + 2. * _stdev  # max(data)  # 3σ位置
+        if sigma_coefficient is not None:
+            threshold[node] = _mean + sigma_coefficient * _stdev  # max(data)  # 3σ位置
+        else:
+            threshold[node] = max(data)
         if show_detail:
             print("data:{}".format(data))
             print('平均: {0:.2f}'.format(_mean))
@@ -65,6 +68,8 @@ class Aggregate_data:
         self.iris_adversarial = []
         self.iris_random_noise_exclude_rate = []
         self.iris_correct_test_exclude_rate = []
+        self.iris_random_noise_exclude_rate_use_sigma = []
+        self.iris_correct_test_exclude_rate_use_sigma = []
         self.iris_train_acc = []
         self.iris_test_acc = []
         self.iris_train_acc_MLP = []
@@ -75,6 +80,8 @@ class Aggregate_data:
         self.wine_adversarial = []
         self.wine_random_noise_exclude_rate = []
         self.wine_correct_test_exclude_rate = []
+        self.wine_random_noise_exclude_rate_use_sigma = []
+        self.wine_correct_test_exclude_rate_use_sigma = []
         self.wine_train_acc = []
         self.wine_test_acc = []
         self.wine_train_acc_MLP = []
@@ -85,6 +92,8 @@ class Aggregate_data:
         self.digit_adversarial = []
         self.digit_random_noise_exclude_rate = []
         self.digit_correct_test_exclude_rate = []
+        self.digit_random_noise_exclude_rate_use_sigma = []
+        self.digit_correct_test_exclude_rate_use_sigma = []
         self.digit_train_acc = []
         self.digit_test_acc = []
         self.digit_train_acc_MLP = []
@@ -95,6 +104,8 @@ class Aggregate_data:
         self.mnist_adversarial = []
         self.mnist_random_noise_exclude_rate = []
         self.mnist_correct_test_exclude_rate = []
+        self.mnist_random_noise_exclude_rate_use_sigma = []
+        self.mnist_correct_test_exclude_rate_use_sigma = []
         self.mnist_train_acc = []
         self.mnist_test_acc = []
         self.mnist_train_acc_MLP = []
@@ -103,6 +114,8 @@ class Aggregate_data:
     def set_data(self, dataset, data=None,
                  random_noise_exclude_rate=None,
                  correct_test_exclude_rate=None,
+                 random_noise_exclude_rate_use_sigma=None,
+                 correct_test_exclude_rate_use_sigma=None,
                  train_acc=None, test_acc=None,
                  train_acc_MLP=None, test_acc_MLP=None):
         if data is not None:
@@ -113,6 +126,10 @@ class Aggregate_data:
             eval("self." + dataset + "_random_noise_exclude_rate").append(random_noise_exclude_rate)
         if correct_test_exclude_rate is not None:
             eval("self." + dataset + "_correct_test_exclude_rate").append(correct_test_exclude_rate)
+        if random_noise_exclude_rate_use_sigma is not None:
+            eval("self." + dataset + "_random_noise_exclude_rate_use_sigma").append(random_noise_exclude_rate_use_sigma)
+        if correct_test_exclude_rate_use_sigma is not None:
+            eval("self." + dataset + "_correct_test_exclude_rate_use_sigma").append(correct_test_exclude_rate_use_sigma)
         if train_acc is not None:
             eval("self." + dataset + "_train_acc").append(train_acc)
         if test_acc is not None:
@@ -186,29 +203,41 @@ class Aggregate_data:
                     "{:.2f}".format(mnist[-1][target[1]]),
                 ))
             print()
-        print("ノイズ排除率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+        print("ノイズ排除率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline\n".format(
             sum(self.iris_random_noise_exclude_rate) * 100 / len(self.iris_random_noise_exclude_rate),
             sum(self.wine_random_noise_exclude_rate) * 100 / len(self.wine_random_noise_exclude_rate),
             sum(self.digit_random_noise_exclude_rate) * 100 / len(self.digit_random_noise_exclude_rate),
             sum(self.mnist_random_noise_exclude_rate) * 100 / len(self.mnist_random_noise_exclude_rate),
         ))
-        print()
-        print("正解保持率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+        print("正解保持率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline\n".format(
             100 - sum(self.iris_correct_test_exclude_rate) * 100 / len(self.iris_correct_test_exclude_rate),
             100 - sum(self.wine_correct_test_exclude_rate) * 100 / len(self.wine_correct_test_exclude_rate),
             100 - sum(self.digit_correct_test_exclude_rate) * 100 / len(self.digit_correct_test_exclude_rate),
             100 - sum(self.mnist_correct_test_exclude_rate) * 100 / len(self.mnist_correct_test_exclude_rate),
         ))
 
+        print("3σを用いた場合のノイズ排除率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline\n".format(
+            sum(self.iris_random_noise_exclude_rate_use_sigma) * 100 / len(self.iris_random_noise_exclude_rate_use_sigma),
+            sum(self.wine_random_noise_exclude_rate_use_sigma) * 100 / len(self.wine_random_noise_exclude_rate_use_sigma),
+            sum(self.digit_random_noise_exclude_rate_use_sigma) * 100 / len(self.digit_random_noise_exclude_rate_use_sigma),
+            sum(self.mnist_random_noise_exclude_rate_use_sigma) * 100 / len(self.mnist_random_noise_exclude_rate_use_sigma),
+        ))
+        print("3σを用いた場合の正解保持率\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline\n".format(
+            100 - sum(self.iris_correct_test_exclude_rate_use_sigma) * 100 / len(self.iris_correct_test_exclude_rate_use_sigma),
+            100 - sum(self.wine_correct_test_exclude_rate_use_sigma) * 100 / len(self.wine_correct_test_exclude_rate_use_sigma),
+            100 - sum(self.digit_correct_test_exclude_rate_use_sigma) * 100 / len(self.digit_correct_test_exclude_rate_use_sigma),
+            100 - sum(self.mnist_correct_test_exclude_rate_use_sigma) * 100 / len(self.mnist_correct_test_exclude_rate_use_sigma),
+        ))
+
         for test_train in ["train", "test"]:
-            print("提案手法の分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+            print("提案手法の分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline\n".format(
                 test_train,
                 sum(eval("self.iris_" + test_train + "_acc")) * 100 / len(eval("self.iris_" + test_train + "_acc")),
                 sum(eval("self.wine_" + test_train + "_acc")) * 100 / len(eval("self.wine_" + test_train + "_acc")),
                 sum(eval("self.digit_" + test_train + "_acc")) * 100 / len(eval("self.digit_" + test_train + "_acc")),
                 sum(eval("self.mnist_" + test_train + "_acc")) * 100 / len(eval("self.mnist_" + test_train + "_acc")),
             ))
-            print("MLPの分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+            print("MLPの分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline\n".format(
                 test_train,
                 sum(eval("self.iris_" + test_train + "_acc_MLP")) * 100 / len(
                     eval("self.iris_" + test_train + "_acc_MLP")),
@@ -309,17 +338,27 @@ if __name__ == '__main__':
             if len(_MISS_TEST) == 0:
                 continue
             # 1ファイル終了するごとにデータ集計・統計データ算出(RANDOM_NOISE)
-            _reliability = reliability_test(_CORRECT_TEST, _MISS_TEST)
+            _reliability_use_sigma = reliability_test(_CORRECT_TEST, _MISS_TEST, sigma_coefficient=2)
+            correct_exclude_use_sigma = _reliability_use_sigma["correct_exclude"]
+            miss_exclude_use_sigma = _reliability_use_sigma["miss_exclude"]
+            correct_excludes_use_sigma = _reliability_use_sigma["correct_excludes"]
+            miss_excludes_use_sigma = _reliability_use_sigma["miss_excludes"]
+            threshold_use_sigma = _reliability_use_sigma["threshold"]
+
+            _reliability = reliability_test(_CORRECT_TEST, _MISS_TEST, sigma_coefficient=None)
             correct_exclude = _reliability["correct_exclude"]
             miss_exclude = _reliability["miss_exclude"]
             correct_excludes = _reliability["correct_excludes"]
             miss_excludes = _reliability["miss_excludes"]
             threshold = _reliability["threshold"]
+
             if name == "RANDOM_NOISE":
                 aggregate_data.set_data(dataset,
                                         out_of_range_average,  # 異常ノード発生数(正解テスト、ミステスト、ノイズ、制限ノイズ)
                                         miss_exclude,  # 統計的手法で排除できるノイズサンプル
                                         correct_exclude,  # 統計的手法で排除してしまう正解サンプル
+                                        miss_exclude_use_sigma,
+                                        correct_exclude_use_sigma,
                                         train_acc=train_acc, test_acc=test_acc)
             # ヒストグラム作成
             if False:
