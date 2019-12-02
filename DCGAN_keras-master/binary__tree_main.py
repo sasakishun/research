@@ -2237,10 +2237,10 @@ class Main_test():
             fc_mlp = keep_mask_and_fit(fc_mlp, X_train, y_train, batch_size=cf.Minibatch,
                                        kernel_mask=None, bias_mask=None, epochs=cf.Iteration,
                                        patience=1000)
-            result_path = os.getcwd() + r"\result\{}".format("MLP_" + datetime.now().strftime("%Y%m%d%H%M%S"))
-            result = ["MLP_" + dataset,
-                      "train loss_acc{}".format(fc_mlp.evaluate(X_train, y_train)),
-                      "test  loss_acc{}".format(fc_mlp.evaluate(X_test, y_test))]
+            result_path = os.getcwd() + r"\result\{}".format("_MLP_" + datetime.now().strftime("%Y%m%d%H%M%S"))
+            result = [dataset,
+                      "train loss_acc_MLP{}".format(fc_mlp.evaluate(X_train, y_train)),
+                      "test  loss_acc_MLP{}".format(fc_mlp.evaluate(X_test, y_test))]
             write_result(result_path, result)
             return
         # for i in range(len(X_train)):

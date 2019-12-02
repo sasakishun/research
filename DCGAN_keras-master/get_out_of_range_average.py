@@ -67,8 +67,8 @@ class Aggregate_data:
         self.iris_correct_test_exclude_rate = []
         self.iris_train_acc = []
         self.iris_test_acc = []
-        self.MLP_iris_train_acc = []
-        self.MLP_iris_test_acc = []
+        self.iris_train_acc_MLP = []
+        self.iris_test_acc_MLP = []
 
         self.wine_miss = []
         self.wine_correct = []
@@ -77,8 +77,8 @@ class Aggregate_data:
         self.wine_correct_test_exclude_rate = []
         self.wine_train_acc = []
         self.wine_test_acc = []
-        self.MLP_wine_train_acc = []
-        self.MLP_wine_test_acc = []
+        self.wine_train_acc_MLP = []
+        self.wine_test_acc_MLP = []
 
         self.digit_miss = []
         self.digit_correct = []
@@ -87,8 +87,8 @@ class Aggregate_data:
         self.digit_correct_test_exclude_rate = []
         self.digit_train_acc = []
         self.digit_test_acc = []
-        self.MLP_digit_train_acc = []
-        self.MLP_digit_test_acc = []
+        self.digit_train_acc_MLP = []
+        self.digit_test_acc_MLP = []
 
         self.mnist_miss = []
         self.mnist_correct = []
@@ -97,14 +97,14 @@ class Aggregate_data:
         self.mnist_correct_test_exclude_rate = []
         self.mnist_train_acc = []
         self.mnist_test_acc = []
-        self.MLP_mnist_train_acc = []
-        self.MLP_mnist_test_acc = []
-
+        self.mnist_train_acc_MLP = []
+        self.mnist_test_acc_MLP = []
 
     def set_data(self, dataset, data=None,
                  random_noise_exclude_rate=None,
                  correct_test_exclude_rate=None,
-                 train_acc=None, test_acc=None):
+                 train_acc=None, test_acc=None,
+                 train_acc_MLP=None, test_acc_MLP=None):
         if data is not None:
             eval("self." + dataset + "_miss").append(data[0])
             eval("self." + dataset + "_correct").append(data[1])
@@ -117,6 +117,10 @@ class Aggregate_data:
             eval("self." + dataset + "_train_acc").append(train_acc)
         if test_acc is not None:
             eval("self." + dataset + "_test_acc").append(test_acc)
+        if train_acc_MLP is not None:
+            eval("self." + dataset + "_train_acc_MLP").append(train_acc_MLP)
+        if test_acc_MLP is not None:
+            eval("self." + dataset + "_test_acc_MLP").append(test_acc_MLP)
 
     def get_data(self):
         for _dataset in datasets:
@@ -206,10 +210,14 @@ class Aggregate_data:
             ))
             print("MLPの分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
                 test_train,
-                sum(eval("self.MLP_iris_" + test_train + "_acc")) * 100 / len(eval("self.MLP_iris_" + test_train + "_acc")),
-                sum(eval("self.MLP_wine_" + test_train + "_acc")) * 100 / len(eval("self.MLP_wine_" + test_train + "_acc")),
-                sum(eval("self.MLP_digit_" + test_train + "_acc")) * 100 / len(eval("self.MLP_digit_" + test_train + "_acc")),
-                sum(eval("self.MLP_mnist_" + test_train + "_acc")) * 100 / len(eval("self.MLP_mnist_" + test_train + "_acc")),
+                sum(eval("self.iris_" + test_train + "_acc_MLP")) * 100 / len(
+                    eval("self.iris_" + test_train + "_acc_MLP")),
+                sum(eval("self.wine_" + test_train + "_acc_MLP")) * 100 / len(
+                    eval("self.wine_" + test_train + "_acc_MLP")),
+                sum(eval("self.digit_" + test_train + "_acc_MLP")) * 100 / len(
+                    eval("self.digit_" + test_train + "_acc_MLP")),
+                sum(eval("self.mnist_" + test_train + "_acc_MLP")) * 100 / len(
+                    eval("self.mnist_" + test_train + "_acc_MLP")),
             ))
 
 
@@ -232,8 +240,10 @@ if __name__ == '__main__':
         dataset = ""
         out_of_range_average = []
         random_noise_exclude_rate = 0
-        train_acc = 0
-        test_acc = 0
+        train_acc = None
+        test_acc = None
+        train_acc_MLP = None
+        test_acc_MLP = None
         # 異常ノード発生数
         CORRECT_TEST = []
         MISS_TEST = []
@@ -251,15 +261,6 @@ if __name__ == '__main__':
                     dataset = "digit"
                 elif line[:5] == "mnist":
                     dataset = "mnist"
-                elif line[:4] == "MLP_":
-                    if line[4:8] == "iris":
-                        dataset = "MLP_iris"
-                    elif line[4:8] == "wine":
-                        dataset = "MLP_wine"
-                    elif line[4:9] == "digit":
-                        dataset = "MLP_digit"
-                    elif line[4:9] == "mnist":
-                        dataset = "MLP_mnist"
                 print(" dataset:{}".format(dataset))
             elif line[:20] == "out_of_range_average":
                 out_of_range_average.append(eval(line[20:]))
@@ -268,6 +269,12 @@ if __name__ == '__main__':
                 for i in range(len(line)):
                     if line[i:i + 3] == "-> ":
                         random_noise_exclude_rate = float(eval(line[i + 3:]))
+            elif line[:18] == "train loss_acc_MLP":
+                train_loss_acc_MLP = eval(line[18:])
+                train_acc_MLP = train_loss_acc_MLP[1]
+            elif line[:18] == "test  loss_acc_MLP":
+                test_loss_acc_MLP = eval(line[18:])
+                test_acc_MLP = test_loss_acc_MLP[1]
             elif line[:14] == "train loss_acc":
                 train_loss_acc = eval(line[14:])
                 train_acc = train_loss_acc[1]
@@ -286,6 +293,14 @@ if __name__ == '__main__':
                 # print("{} <- append :{}".format(eval(data_type), eval(line)))
                 eval(data_type).append(eval(line))
 
+        # MLPの場合は精度検証のみ
+        if train_acc_MLP is not None and test_acc_MLP is not None:
+            aggregate_data.set_data(dataset, train_acc_MLP=train_acc_MLP, test_acc_MLP=test_acc_MLP)
+            # print(train_acc_MLP)
+            # print(test_acc_MLP)
+            test_data.close()
+            continue
+
         # CORRECT,MISSごとのi番目の要素を参照
         for _CORRECT_TEST, _MISS_TEST, name in \
                 zip([CORRECT_TEST, CORRECT_TEST, CORRECT_TEST],
@@ -293,7 +308,7 @@ if __name__ == '__main__':
                     ["MISS_TEST", "RANDOM_NOISE", "RESTRICTED_RANDOM_NOISE"]):
             if len(_MISS_TEST) == 0:
                 continue
-            # 1ファイル終了するごとにデータ集計・統計データ算出
+            # 1ファイル終了するごとにデータ集計・統計データ算出(RANDOM_NOISE)
             _reliability = reliability_test(_CORRECT_TEST, _MISS_TEST)
             correct_exclude = _reliability["correct_exclude"]
             miss_exclude = _reliability["miss_exclude"]
@@ -301,49 +316,52 @@ if __name__ == '__main__':
             miss_excludes = _reliability["miss_excludes"]
             threshold = _reliability["threshold"]
             if name == "RANDOM_NOISE":
-                aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, correct_exclude,
+                aggregate_data.set_data(dataset,
+                                        out_of_range_average,  # 異常ノード発生数(正解テスト、ミステスト、ノイズ、制限ノイズ)
+                                        miss_exclude,  # 統計的手法で排除できるノイズサンプル
+                                        correct_exclude,  # 統計的手法で排除してしまう正解サンプル
                                         train_acc=train_acc, test_acc=test_acc)
-
             # ヒストグラム作成
-            for i in range(len(_CORRECT_TEST[0])):
-                _min0 = min([x[i] for x in _CORRECT_TEST])
-                _max0 = max([x[i] for x in _CORRECT_TEST])
-                _min1 = min([x[i] for x in _MISS_TEST])
-                _max1 = max([x[i] for x in _MISS_TEST])
-                _range = (min(_min0, _min1), max(_max0, _max1))
-                binnum = _range[1] - _range[0] + 2
-                # print("binnum: {}".format(binnum))
-                plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST" + "[{:.2f}% remain ]"
-                         .format((1 - correct_excludes[i]) * 100),
-                         alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
-                plt.hist([x[i] for x in _MISS_TEST], label=name + "[{:.2f}% exclude]"
-                         .format(miss_excludes[i] * 100),
-                         alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
-                # 閾値による分類境界を表示
-                plt.axvline(x=math.ceil(threshold[i]) - 0.5, color="red", label="μ+2σ line")
-                # fig = plt.figure()
-                ax = plt.subplot(111)
-                # plt.yscale('log') # 縦軸をlogにできる
-                ax_yticklocs = ax.yaxis.get_ticklocs()  # 目盛りの情報を取得
-                ax_yticklocs = list(map(lambda x: x * len(range(binnum)) * 1.0 / binnum,
-                                        ax_yticklocs))  # 元の目盛りの値にbinの幅を掛ける
-                ax.yaxis.set_ticklabels(list(map(lambda x: "%0.2f" % x, ax_yticklocs)))
-                # plt.ylim(0.01, )
-                plt.xlim(-0.5, )
-                plt.xlabel("the number of nodes outside the correct range")
-                plt.ylabel("frequency")
-                plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(math.ceil(binnum / 10)))
-                plt.gca().xaxis.set_major_locator(tick.MultipleLocator(math.ceil(binnum / 10)))
-                plt.legend()
-                # plt.show()
-                # exit()
-                path = hist_dir + r"\{}\{}".format(dataset, name)
-                if hist_dir is not None:
-                    my_makedirs(path)
-                plt.savefig(path + r"\{}_{}"
-                            .format("layer" + str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
-                plt.close()
-            # exit()
+            if False:
+                for i in range(len(_CORRECT_TEST[0])):
+                    _min0 = min([x[i] for x in _CORRECT_TEST])
+                    _max0 = max([x[i] for x in _CORRECT_TEST])
+                    _min1 = min([x[i] for x in _MISS_TEST])
+                    _max1 = max([x[i] for x in _MISS_TEST])
+                    _range = (min(_min0, _min1), max(_max0, _max1))
+                    binnum = _range[1] - _range[0] + 2
+                    # print("binnum: {}".format(binnum))
+                    plt.hist([x[i] for x in _CORRECT_TEST], label="CORRECT_TEST" + "[{:.2f}% remain ]"
+                             .format((1 - correct_excludes[i]) * 100),
+                             alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
+                    plt.hist([x[i] for x in _MISS_TEST], label=name + "[{:.2f}% exclude]"
+                             .format(miss_excludes[i] * 100),
+                             alpha=0.6, normed=True, bins=np.arange(binnum) - 0.5, align="mid")
+                    # 閾値による分類境界を表示
+                    plt.axvline(x=math.ceil(threshold[i]) - 0.5, color="red", label="μ+2σ line")
+                    # fig = plt.figure()
+                    ax = plt.subplot(111)
+                    # plt.yscale('log') # 縦軸をlogにできる
+                    ax_yticklocs = ax.yaxis.get_ticklocs()  # 目盛りの情報を取得
+                    ax_yticklocs = list(map(lambda x: x * len(range(binnum)) * 1.0 / binnum,
+                                            ax_yticklocs))  # 元の目盛りの値にbinの幅を掛ける
+                    ax.yaxis.set_ticklabels(list(map(lambda x: "%0.2f" % x, ax_yticklocs)))
+                    # plt.ylim(0.01, )
+                    plt.xlim(-0.5, )
+                    plt.xlabel("the number of nodes outside the correct range")
+                    plt.ylabel("frequency")
+                    plt.gca().xaxis.set_minor_locator(tick.MultipleLocator(math.ceil(binnum / 10)))
+                    plt.gca().xaxis.set_major_locator(tick.MultipleLocator(math.ceil(binnum / 10)))
+                    plt.legend()
+                    # plt.show()
+                    # exit()
+                    path = hist_dir + r"\{}\{}".format(dataset, name)
+                    if hist_dir is not None:
+                        my_makedirs(path)
+                    plt.savefig(path + r"\{}_{}"
+                                .format("layer" + str(i), datetime.now().strftime("%Y%m%d%H%M%S")))
+                    plt.close()
+                    # exit()
         if False:
             print("CORRECT_TEST:{}".format(CORRECT_TEST))
             print("MISS_TEST:{}".format(MISS_TEST))
