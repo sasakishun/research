@@ -730,7 +730,7 @@ def model2weights(_mlp):
 
 
 # maskをキープしたままmodelを学習
-def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, bias_mask=None, epochs=1000):
+def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, bias_mask=None, epochs=1000, patience=100):
     weights = model.get_weights()
     # maskを一時退避
     _kernel_mask, _bias_mask = get_kernel_bias_mask(model)
@@ -742,7 +742,7 @@ def keep_mask_and_fit(model, X_train, y_train, batch_size=32, kernel_mask=None, 
     model = myMLP(get_layer_size_from_weight(weights), kernel_mask=kernel_mask,
                   bias_mask=bias_mask, set_weights=weights)
     # コールバック設定
-    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, verbose=0, mode='auto')
+    es_cb = keras.callbacks.EarlyStopping(monitor='val_loss', patience=patience, verbose=0, mode='auto')
     # tb_cb = keras.callbacks.TensorBoard(log_dir=".\log", histogram_freq=1) # 謎エラーが発生するため不使用
     # 学習
     valid_num = len(X_train) // 10
@@ -2226,11 +2226,23 @@ class Main_test():
         K.set_learning_phase(0)
         ### これだとBNが正しく機能する
 
-        ###全結合mlpとの比較
+        ###学習済みmlpの読み込み
         X_train, X_test, y_train, y_test, train_num_per_step, data_inds, max_ite \
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
 
+        ###全結合mlpとの比較
+        if True:
+            fc_mlp = myMLP(get_layer_size_from_weight(_mlp.get_weights()))
+            fc_mlp = keep_mask_and_fit(fc_mlp, X_train, y_train, batch_size=cf.Minibatch,
+                                       kernel_mask=None, bias_mask=None, epochs=cf.Iteration,
+                                       patience=1000)
+            result_path = os.getcwd() + r"\result\{}".format("MLP_" + datetime.now().strftime("%Y%m%d%H%M%S"))
+            result = ["MLP_" + dataset,
+                      "train loss_acc{}".format(fc_mlp.evaluate(X_train, y_train)),
+                      "test  loss_acc{}".format(fc_mlp.evaluate(X_test, y_test))]
+            write_result(result_path, result)
+            return
         # for i in range(len(X_train)):
         # intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
         # print(intermidate_out)

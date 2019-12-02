@@ -1,6 +1,14 @@
+for /L %%i in (1,1,10) do (
+cls
+python binary__tree_main.py --iris --test --child_num 2 --thread %%i
+python binary__tree_main.py --wine --test --child_num 2 --thread %%i
+python binary__tree_main.py --digit --test --child_num 3 --is_image --thread %%i
+python binary__tree_main.py --mnist --test --child_num 9 --is_image --thread %%i
+)
+goto end
+
 cls
 python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked --thread 0 --use_shrinked_model
-goto end
 python binary__tree_main.py --iris --test --child_num 2 --shrinked --thread 0 --use_shrinked_model
 
 python binary__tree_main.py --iris --test --child_num 2 --shrinked --thread 0 --use_shrinked_model

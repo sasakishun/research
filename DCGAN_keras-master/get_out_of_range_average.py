@@ -67,6 +67,8 @@ class Aggregate_data:
         self.iris_correct_test_exclude_rate = []
         self.iris_train_acc = []
         self.iris_test_acc = []
+        self.MLP_iris_train_acc = []
+        self.MLP_iris_test_acc = []
 
         self.wine_miss = []
         self.wine_correct = []
@@ -75,6 +77,8 @@ class Aggregate_data:
         self.wine_correct_test_exclude_rate = []
         self.wine_train_acc = []
         self.wine_test_acc = []
+        self.MLP_wine_train_acc = []
+        self.MLP_wine_test_acc = []
 
         self.digit_miss = []
         self.digit_correct = []
@@ -83,6 +87,8 @@ class Aggregate_data:
         self.digit_correct_test_exclude_rate = []
         self.digit_train_acc = []
         self.digit_test_acc = []
+        self.MLP_digit_train_acc = []
+        self.MLP_digit_test_acc = []
 
         self.mnist_miss = []
         self.mnist_correct = []
@@ -91,14 +97,22 @@ class Aggregate_data:
         self.mnist_correct_test_exclude_rate = []
         self.mnist_train_acc = []
         self.mnist_test_acc = []
+        self.MLP_mnist_train_acc = []
+        self.MLP_mnist_test_acc = []
 
 
-    def set_data(self, dataset, data, random_noise_exclude_rate, correct_test_exclude_rate, train_acc=None, test_acc=None):
-        eval("self." + dataset + "_miss").append(data[0])
-        eval("self." + dataset + "_correct").append(data[1])
-        eval("self." + dataset + "_adversarial").append(data[-1])
-        eval("self." + dataset + "_random_noise_exclude_rate").append(random_noise_exclude_rate)
-        eval("self." + dataset + "_correct_test_exclude_rate").append(correct_test_exclude_rate)
+    def set_data(self, dataset, data=None,
+                 random_noise_exclude_rate=None,
+                 correct_test_exclude_rate=None,
+                 train_acc=None, test_acc=None):
+        if data is not None:
+            eval("self." + dataset + "_miss").append(data[0])
+            eval("self." + dataset + "_correct").append(data[1])
+            eval("self." + dataset + "_adversarial").append(data[-1])
+        if random_noise_exclude_rate is not None:
+            eval("self." + dataset + "_random_noise_exclude_rate").append(random_noise_exclude_rate)
+        if correct_test_exclude_rate is not None:
+            eval("self." + dataset + "_correct_test_exclude_rate").append(correct_test_exclude_rate)
         if train_acc is not None:
             eval("self." + dataset + "_train_acc").append(train_acc)
         if test_acc is not None:
@@ -183,12 +197,19 @@ class Aggregate_data:
         ))
 
         for test_train in ["train", "test"]:
-            print("分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+            print("提案手法の分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
                 test_train,
                 sum(eval("self.iris_" + test_train + "_acc")) * 100 / len(eval("self.iris_" + test_train + "_acc")),
                 sum(eval("self.wine_" + test_train + "_acc")) * 100 / len(eval("self.wine_" + test_train + "_acc")),
                 sum(eval("self.digit_" + test_train + "_acc")) * 100 / len(eval("self.digit_" + test_train + "_acc")),
                 sum(eval("self.mnist_" + test_train + "_acc")) * 100 / len(eval("self.mnist_" + test_train + "_acc")),
+            ))
+            print("MLPの分類精度({})\n{:.2f} & {:.2f} & {:.2f} & {:.2f} \\\\ \\Hline".format(
+                test_train,
+                sum(eval("self.MLP_iris_" + test_train + "_acc")) * 100 / len(eval("self.MLP_iris_" + test_train + "_acc")),
+                sum(eval("self.MLP_wine_" + test_train + "_acc")) * 100 / len(eval("self.MLP_wine_" + test_train + "_acc")),
+                sum(eval("self.MLP_digit_" + test_train + "_acc")) * 100 / len(eval("self.MLP_digit_" + test_train + "_acc")),
+                sum(eval("self.MLP_mnist_" + test_train + "_acc")) * 100 / len(eval("self.MLP_mnist_" + test_train + "_acc")),
             ))
 
 
@@ -201,7 +222,7 @@ def my_makedirs(path):
 if __name__ == '__main__':
     aggregate_data = Aggregate_data()
     # ファイルをオープンする
-    dir = os.getcwd() + r"\result"
+    dir = os.getcwd() + r"\result_NC"
     hist_dir = os.getcwd() + r"\histgram"
     files = os.listdir(dir)
     for file in files:
@@ -230,6 +251,16 @@ if __name__ == '__main__':
                     dataset = "digit"
                 elif line[:5] == "mnist":
                     dataset = "mnist"
+                elif line[:4] == "MLP_":
+                    if line[4:8] == "iris":
+                        dataset = "MLP_iris"
+                    elif line[4:8] == "wine":
+                        dataset = "MLP_wine"
+                    elif line[4:9] == "digit":
+                        dataset = "MLP_digit"
+                    elif line[4:9] == "mnist":
+                        dataset = "MLP_mnist"
+                print(" dataset:{}".format(dataset))
             elif line[:20] == "out_of_range_average":
                 out_of_range_average.append(eval(line[20:]))
             # 精度計算
@@ -270,8 +301,10 @@ if __name__ == '__main__':
             miss_excludes = _reliability["miss_excludes"]
             threshold = _reliability["threshold"]
             if name == "RANDOM_NOISE":
-                aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, correct_exclude, train_acc=train_acc, test_acc=test_acc)
+                aggregate_data.set_data(dataset, out_of_range_average, miss_exclude, correct_exclude,
+                                        train_acc=train_acc, test_acc=test_acc)
 
+            # ヒストグラム作成
             for i in range(len(_CORRECT_TEST[0])):
                 _min0 = min([x[i] for x in _CORRECT_TEST])
                 _max0 = max([x[i] for x in _CORRECT_TEST])
