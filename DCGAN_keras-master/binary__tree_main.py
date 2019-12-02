@@ -2234,8 +2234,17 @@ class Main_test():
         ###全結合mlpとの比較
         if True:
             fc_mlp = myMLP(get_layer_size_from_weight(_mlp.get_weights()))
+            kernel_and_bias = get_kernel_and_bias(fc_mlp)
+            kernel_mask = [i for i in kernel_and_bias if i.ndim == 2]
+            bias_mask = [i for i in kernel_and_bias if i.ndim == 1]
+            show_weight(kernel_mask)
+            show_weight(bias_mask)
+            kernel_mask = [np.ones(np.shape(i)) for i in kernel_mask]
+            bias_mask = [np.ones(np.shape(i)) for i in bias_mask]
             fc_mlp = keep_mask_and_fit(fc_mlp, X_train, y_train, batch_size=cf.Minibatch,
-                                       kernel_mask=None, bias_mask=None, epochs=cf.Iteration,
+                                       kernel_mask=kernel_mask,
+                                       bias_mask=bias_mask,
+                                       epochs=cf.Iteration,
                                        patience=1000)
             result_path = os.getcwd() + r"\result\{}".format("_MLP_" + datetime.now().strftime("%Y%m%d%H%M%S"))
             result = [dataset,
