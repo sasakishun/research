@@ -1,3 +1,8 @@
+python binary__tree_main.py --iris --test --child_num 2 --shrinked --thread 0 --use_shrinked_model
+python binary__tree_main.py --digit --train --child_num 3 --is_image --thread 100
+python binary__tree_main.py --mnist --train --child_num 9 --is_image --thread 100
+python binary__tree_main.py --wine --test --child_num 2 --shrinked --thread 0 --use_shrinked_model
+goto end
 for /L %%i in (1,1,10) do (
 cls
 python binary__tree_main.py --iris --test --child_num 2 --thread %%i

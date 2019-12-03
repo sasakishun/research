@@ -1666,7 +1666,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                       correct_ranges[_all_class][_layer][_node][1]))
             if True:
                 # ネットワークを可視化（各ノード確率、重み）
-                for target_class in range(model_shape[-1]):
+                for target_class in [None] + list(range(model_shape[-1])):
                     visualize_network(
                         weights=get_kernel_and_bias(_mlp),
                         comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
@@ -2232,7 +2232,7 @@ class Main_test():
         _mlp = load_weights_and_generate_mlp()
 
         ###全結合mlpとの比較
-        if True:
+        if False:
             fc_mlp = myMLP(get_layer_size_from_weight(_mlp.get_weights()))
             kernel_and_bias = get_kernel_and_bias(fc_mlp)
             kernel_mask = [i for i in kernel_and_bias if i.ndim == 2]
