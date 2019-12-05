@@ -1522,8 +1522,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         return
 
     # ミスニューロンを明示したネットワーク図を描画
-    for _class in range(len(incorrect_intermediate_output[0])):
+    # 2番目以降のクラスのみ可視化(後で(2, の部分を削除)
+    for _class in range(5, len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
+            if _sample == 1:
+                break
             if sample_num_to_index is not None:
                 _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             else:
