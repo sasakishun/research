@@ -257,6 +257,8 @@ class NeuralNetwork():
         else:
             path += "{}{}_{}".format(r"\test", r"\{}".format(datetime.now().strftime("%Y_%m_%d_%H_%M_%S")),
                                      "architecture")
+        path += "_" + comment.replace(" ", "_").replace("\n", "_").replace(":", "_").replace(".", "_")
+        print("path:{}".format(path))
         for _frame in ["right", "top", "bottom", "left"]:
             pyplot.gca().spines[_frame].set_visible(False)
         pyplot.tick_params(color='white')

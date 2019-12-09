@@ -1687,11 +1687,12 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         print("->{}".format(_out))
                 if True:
                     _intermidate_out = [_out[0][0] for _out in
-                                       feed_forward(_mlp, [[corrected_input[0]]])
+                                       feed_forward(_mlp, [[corrected_input[-1]]])
                                        ]
-                    print("intermidate_out:{}".format(intermidate_out))
+                    print("intermidate_out:{}\n".format(intermidate_out))
                     for i in range(len(_intermidate_out)):
-                        print("layer[{}]:{}".format(i, _intermidate_out[i]))
+                        print("layer[{}]:{}\n      -> {}".format(i, intermidate_out[i],
+                                                                 _intermidate_out[i]))
                     corrected_softmaxed_pdfs = [[_softmax([pdfs(i, _layer, _node, _intermidate_out[_layer][_node])
                                                   for i in range(model_shape[-1])])
                                         for _node in range(model_shape[_layer])]
@@ -1699,16 +1700,14 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     for target_class in [None] + list(range(model_shape[-1])):
                         visualize_network(
                             weights=get_kernel_and_bias(_mlp),
-                            comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
-                                    + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
-                                                                        _mlp.evaluate(X_test, y_test)[1]),
+                            comment= "corrected",
                             neuron_color=None,  # neuron_colors[_class][_sample],
                             dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
                             annotation=copy.deepcopy(corrected_softmaxed_pdfs), target_class=target_class,
                             label_class=_class)
 
             # ネットワークを可視化（各ノード確率、重み）
-            if False:
+            if True:
                 for target_class in [None] + list(range(model_shape[-1])):
                     visualize_network(
                         weights=get_kernel_and_bias(_mlp),
