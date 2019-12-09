@@ -221,9 +221,12 @@ class Layer():
                     # weightはスカラー値であり、重みの大きさ＝結合の太さ(linewidth)とする
                     # 正の重みは赤、負の重みは青で表示
                     # linewidthだと整数値しか扱えない -> 透明度で結合強度を表現した方がいい
+            # for i in range(len(self.change_node)):
+                # print("\nchange_node[{}]:{}".format(i, self.change_node[i]))
             neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index],
                         annotation=self.annotation[this_layer_neuron_index] if self.annotation is not None else None,
-                        label_class=self.label_class, change_node=self.change_node[this_layer_neuron_index] if self.change_node is not None else False)
+                        label_class=self.label_class,
+                        change_node=self.change_node[this_layer_neuron_index] if self.change_node is not None else False)
 
 
 class NeuralNetwork():
@@ -308,7 +311,7 @@ def delet_kernel_with_intermidate_out_is_zero(_kernel, intermidate_outpus):
 
 
 # 子ノードと結合がある重みのみ抽出
-def extruct_weight_of_target_class(_weights, target_class, annotation=None):
+def extruct_weight_of_target_class(_weights, target_class, annotation=None, change_node=None):
     weights = []
     for i in range(np.shape(_weights)[0]):
         if _weights[i].ndim == 2:
@@ -345,6 +348,12 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
             if annotation[layer][node][0] is None:
                 print("annotation[{}][{}] is deleted".format(layer, node))
                 del annotation[layer][node]
+                if change_node is not None:
+                    print("change_node:{}".format([len(i) for i in change_node]))
+                    print("annotation:{}".format([len(i) for i in annotation]))
+                if change_node is not None:
+                    del change_node[layer][node]
+
                 for _weight_ in weights[layer]:
                     print(_weight_)
                 weights[layer] = np.delete(weights[layer], node, 0)
@@ -357,6 +366,9 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
     # 出力層ノードも削除
     del annotation[-1][:target_class]
     del annotation[-1][1:]
+    if change_node is not None:
+        del change_node[-1][:target_class]
+        del change_node[-1][1:]
     for i in range(target_class):
         weights[-1] = np.delete(weights[-1], 0, 1)
     for i in weights:
@@ -370,7 +382,7 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
     for i in annotation:
         print(i)
 
-    return weights, annotation
+    return weights, annotation, change_node
 
 
 def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None, annotation=None,
@@ -384,8 +396,13 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     print("_weights:{}".format(_weights))
     _weights = [i for i in _weights if i.ndim == 2]  # kernelだけ抽出
     # weights to convert from 10 outputs to 4 (decimal digits to their binary representation)
+    if change_node is not None:
+        print("change_node:{}".format([len(i) for i in change_node]))
+        print("annotation:{}".format([len(i) for i in annotation]))
     if target_class is not None:
-        _weights, annotation = extruct_weight_of_target_class(_weights, target_class, annotation=annotation)
+        _weights, annotation, change_node = extruct_weight_of_target_class(_weights, target_class,
+                                                                           annotation=annotation,
+                                                                           change_node=change_node)
         for i in _weights:
             if len(i) == 0:
                 return
@@ -422,7 +439,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None,
                       annotation=annotation[-1] if annotation is not None else None,
                       label_class=label_class,
-                      change_node=change_node)
+                      change_node=change_node[-1] if change_node is not None else None)
     path = os.getcwd() + r"\visualized_iris\network_architecture"
     return network.draw(path=path, acc=acc, comment=comment, dir=dir)
 

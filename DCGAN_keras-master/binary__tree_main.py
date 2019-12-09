@@ -1348,13 +1348,13 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # incorrect_data_test, incorrect_target_test \
     # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
-                                     [correct_data_test, correct_target_test],
-                                     original_data=[X_train, y_train, X_test, y_test],
-                                     name=["CORRECT_train", "CORRECT_test"])
-    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "MISS_test"])
+    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                     [correct_data_test, correct_target_test],
+                                     original_data=[X_train, y_train, X_test, y_test],
+                                     name=["CORRECT_train", "CORRECT_test"])
     exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
@@ -1712,7 +1712,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                             dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
                             annotation=copy.deepcopy(corrected_softmaxed_pdfs), target_class=target_class,
                             label_class=_class,
-                            change_node=change_node )
+                            change_node=copy.deepcopy(change_node))
 
             # ネットワークを可視化（各ノード確率、重み）
             if True:
@@ -1726,8 +1726,6 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
                         annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class,
                         label_class=_class)
-            # exit()
-
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))
             input_datas = [incorrect_intermediate_output[0][_class][_sample]]
@@ -1960,12 +1958,13 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     # 正方向に子ノードを変更する場合
     if parent_out < min(parent_correct_range):
         print("parent_out < parent_correct_range[0]")
+        # 子ノードを変えて親ノードが変化する場合のみ変更
         correct_amount = min(parent_correct_range)  # - parent_out
     # 負方向に子ノードを変更する場合
     elif max(parent_correct_range) < parent_out:
         print("parent_correct_range[1] < parent_out")
         correct_amount = max(parent_correct_range)  # - parent_out
-    else:
+    else: # 子ノードを変更しても親ノードが変わらないなら子ノードは変えない
         print("parent_correct_range[0] < parent_out < parent_correct_range[1]")
         correct_amount = parent_out
     print("\ncorrecct_amount:{}".format(correct_amount))
@@ -1980,6 +1979,8 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     print("child_data:{}".format(child_data))
     for _child in bad_child:
         # 正解の範囲内でできる修正量を計算
+        # ここではy=xを仮定して修正量算出しているが
+        # 本来はReLUなので子供を修正しても親が変化しない場合が存在、その場合は子を修正しない
         if correct_amount < range_of_fluctuation[_child][0]["parent"]:
             correctable_amount = range_of_fluctuation[_child][0]["parent"]
             print("最小値:{}にして異常ノード軽減".format(correctable_amount))

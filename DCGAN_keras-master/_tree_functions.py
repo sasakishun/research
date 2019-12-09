@@ -322,8 +322,10 @@ def visualize_network(weights, acc=None, comment="", non_active_neurons=None, ne
     # return
     from time import sleep
     sleep(1)
-    im_architecture = mydraw(weights, acc, comment, non_active_neurons, node_colors=neuron_color, dir=dir,
-                             annotation=annotation, target_class=target_class, label_class=label_class, change_node=change_node)
+    im_architecture = mydraw(weights, acc, comment, non_active_neurons,
+                             node_colors=neuron_color, dir=dir,
+                             annotation=annotation, target_class=target_class,
+                             label_class=label_class, change_node=change_node)
     im_h_resize = im_architecture
     path = os.getcwd() + r"\visualized_iris\network_architecture\triple\{}".format(
         datetime.now().strftime("%Y%m%d%H%M%S") + ".png")
