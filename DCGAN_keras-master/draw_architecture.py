@@ -31,7 +31,7 @@ class Neuron():
         self.x = x
         self.y = y
 
-    def draw(self, text="", color=None, annotation=None, label_class=None):
+    def draw(self, text="", color=None, annotation=None, label_class=None, change_node=False):
         global vertical_distance_between_layers
         global horizontal_distance_between_neurons
         _neuron_radius = neuron_radius
@@ -56,7 +56,10 @@ class Neuron():
                        # textprops = {'fontsize': neuron_radius*5}
                        )
             # pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=True, color="gray"))
-            pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=False, color="black"))
+            pyplot.gca().add_patch(pyplot.Circle((self.x, self.y),
+                                                 radius=_neuron_radius,
+                                                 linewidth = 5 if change_node else 1,
+                                                 fill=False, color="black"))
             pyplot.gca().add_patch(pyplot.Circle((self.x, self.y), radius=0.1, fill=True, color="black"))
             # pyplot.gca().add_patch(p)
 
@@ -124,7 +127,7 @@ class Neuron():
 
 class Layer():
     def __init__(self, network, number_of_neurons, weights, non_active_neurons=None, node_color=None, annotation=None,
-                 label_class=None, is_image=False):
+                 label_class=None, is_image=False, change_node=None):
         self.previous_layer = self.__get_previous_layer(network)
         self.y = self.__calculate_layer_y_position()
         self.neurons = self.__intialise_neurons(number_of_neurons, is_image)
@@ -133,6 +136,7 @@ class Layer():
                                                                        range(number_of_neurons)]
         self.annotation = annotation
         self.label_class = label_class
+        self.change_node = change_node
         if non_active_neurons:
             for i in non_active_neurons:
                 non_active_neurons[i] = "white"
@@ -219,7 +223,7 @@ class Layer():
                     # linewidthだと整数値しか扱えない -> 透明度で結合強度を表現した方がいい
             neuron.draw(text=this_layer_neuron_index, color=self.neuron_color[this_layer_neuron_index],
                         annotation=self.annotation[this_layer_neuron_index] if self.annotation is not None else None,
-                        label_class=self.label_class)
+                        label_class=self.label_class, change_node=self.change_node[this_layer_neuron_index] if self.change_node is not None else False)
 
 
 class NeuralNetwork():
@@ -227,10 +231,10 @@ class NeuralNetwork():
         self.layers = []
 
     def add_layer(self, number_of_neurons, weights=None, non_active_neurons=None, node_color=None, annotation=None,
-                  label_class=None, is_image=False):
+                  label_class=None, is_image=False, change_node=None):
         layer = Layer(self, number_of_neurons, weights, non_active_neurons, node_color=node_color,
                       annotation=annotation, label_class=label_class,
-                      is_image=is_image)
+                      is_image=is_image, change_node=change_node)
         print("number_od_neurons:{} is_image:{}".format(number_of_neurons, is_image))
         self.layers.append(layer)
 
@@ -370,7 +374,7 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None):
 
 
 def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None, annotation=None,
-           target_class=None, label_class=None):
+           target_class=None, label_class=None, change_node=None):
     neuron_radius = 0.5
     pyplot.tick_params(labelbottom=False,
                        labelleft=False,
@@ -413,10 +417,12 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
                           node_color=node_colors[i] if node_colors is not None else None,
                           annotation=annotation[i] if annotation is not None else None,
                           label_class=label_class,
-                          is_image=True if (i == 0 and (nodes[0] == 64 or nodes[0] == 784)) else False)
+                          is_image=True if (i == 0 and (nodes[0] == 64 or nodes[0] == 784)) else False,
+                          change_node=change_node[i] if change_node is not None else None)
     network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None,
                       annotation=annotation[-1] if annotation is not None else None,
-                      label_class=label_class)
+                      label_class=label_class,
+                      change_node=change_node)
     path = os.getcwd() + r"\visualized_iris\network_architecture"
     return network.draw(path=path, acc=acc, comment=comment, dir=dir)
 
