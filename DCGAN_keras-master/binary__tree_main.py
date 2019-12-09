@@ -1348,13 +1348,14 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # incorrect_data_test, incorrect_target_test \
     # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
-                                     [correct_data_test, correct_target_test],
-                                     original_data=[X_train, y_train, X_test, y_test],
-                                     name=["CORRECT_train", "CORRECT_test"])
-    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "MISS_test"])
+    exit()
+    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                     [correct_data_test, correct_target_test],
+                                     original_data=[X_train, y_train, X_test, y_test],
+                                     name=["CORRECT_train", "CORRECT_test"])
     exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
@@ -1456,6 +1457,7 @@ def adversarial_test(model, data, correct_range):
 # ミスニューロンを明示したネットワーク図を描画
 def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, name=["CORRECT_train", "MISS_test"],
                                      adversarial_test_flag=False):
+    debug_print = False
     model_shape = get_layer_size_from_weight(_mlp.get_weights())
     if model_shape[0] != 784:
         each_color, corret_intermediate_output, incorrect_intermediate_output \
@@ -1523,7 +1525,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
 
     # ミスニューロンを明示したネットワーク図を描画
     # 2番目以降のクラスのみ可視化(後で(2, の部分を削除)
-    for _class in range(5, len(incorrect_intermediate_output[0])):
+    for _class in range(0, len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
             if _sample == 1:
                 break
@@ -1531,6 +1533,35 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                 _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             else:
                 _sample_num = _sample
+
+            # 中間出力
+            intermidate_out = [_out[0] for _out in
+                               feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
+            """
+            _pdfs = [[[pdfs(i, _layer, _node, intermidate_out[_layer][_node]) for i in range(model_shape[-1])]
+                      for _node in range(model_shape[_layer])]
+                     for _layer in range(len(model_shape))]
+             """
+            _softmax = lambda x: x / np.sum(x) if np.sum(x) > 0 else np.zeros(np.shape(x))
+
+            # 事後確率(層数,ノード数,クラス数)
+            _softmaxed_pdfs = [[_softmax([pdfs(i, _layer, _node, intermidate_out[_layer][_node])
+                                          for i in range(model_shape[-1])])
+                                for _node in range(model_shape[_layer])]
+                               for _layer in range(len(model_shape))]
+            if debug_print:
+                for _layer in range(len(model_shape)):
+                    for _node in range(model_shape[_layer]):
+                        print("\ntarget:{} layer:{} node:{} out:{:.2f}".format(_class, _layer, _node,
+                                                                               intermidate_out[_layer][_node]))
+                        for _all_class in range(model_shape[-1]):
+                            print("pdfs[{}][{}][{}]:{:.2f}({:.2f}%) correct_range[{:.2f}-{:.2f}]"
+                                  .format(_all_class, _layer, _node,
+                                          pdfs(_all_class, _layer, _node, intermidate_out[_layer][_node]),
+                                          _softmaxed_pdfs[_layer][_node][_all_class] * 100,
+                                          correct_ranges[_all_class][_layer][_node][0],
+                                          correct_ranges[_all_class][_layer][_node][1]))
+
             # 間違い修正アルゴリズム
             if name[1][:4] == "MISS":
                 child_data = copy.deepcopy(incorrect_intermediate_output[-2][_class][_sample])
@@ -1554,7 +1585,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
                     print("correct_range_of2layer:{}".format(correct_range_of2layer))
                     parent_nodes = copy.deepcopy(_parent_nodes)
-                    # 出力層を補正、中間層を逆算的に調節
+                    # 出力層を補正、中間層を逆算的に調節(入力層を含まない添え字parent_layer:第1中間層=0)
                     for parent_layer in reversed(range(len(_mlp.layers))):
                         if parent_layer == len(_mlp.layers) - 1:
                             parent_activation = softmax
@@ -1576,8 +1607,18 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         # ここで更新したはずのchild_dataが別の子ノード更新で打ち消されてる
                         for parent_node in parent_nodes:
                             print("correctiong_child_node_of: parent_node[{}]".format(parent_node))
+                            # 正解範囲ではなく、pdfで更新順番変更
+                            # 子供層のpdf取得
+                            # print("child_data:{}".format(child_data))
+                            # print("parent_layer:{}".format(parent_layer))
+                            child_pdf = [_softmax([pdfs(_class_, parent_layer, _node, child_data[_node])
+                                                   for _class_ in range(model_shape[-1])])[_class]
+                                         for _node in range(model_shape[parent_layer])]
+                            # print("pdf:{}".format(child_pdf))
+                            # print("finish")
+                            # exit()
                             child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
-                                                              parent_node, correct_range_of2layer, parent_activation)
+                                                              parent_node, correct_range_of2layer, parent_activation, pdf=child_pdf)
                             child_nodes += get_child_node(_mlp, parent_layer + 1, parent_node)
                         print("parent_nodes:{}".format(parent_nodes))
                         ideal_hidden.append(copy.deepcopy(child_data))
@@ -1644,31 +1685,30 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     out = feed_forward(_mlp, [_hidden], target=None, input_layer=i)
                     for _out in out:
                         print("->{}".format(_out))
+                if True:
+                    _intermidate_out = [_out[0][0] for _out in
+                                       feed_forward(_mlp, [[corrected_input[0]]])
+                                       ]
+                    print("intermidate_out:{}".format(intermidate_out))
+                    for i in range(len(_intermidate_out)):
+                        print("layer[{}]:{}".format(i, _intermidate_out[i]))
+                    corrected_softmaxed_pdfs = [[_softmax([pdfs(i, _layer, _node, _intermidate_out[_layer][_node])
+                                                  for i in range(model_shape[-1])])
+                                        for _node in range(model_shape[_layer])]
+                                       for _layer in range(len(model_shape))]
+                    for target_class in [None] + list(range(model_shape[-1])):
+                        visualize_network(
+                            weights=get_kernel_and_bias(_mlp),
+                            comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
+                                    + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                                        _mlp.evaluate(X_test, y_test)[1]),
+                            neuron_color=None,  # neuron_colors[_class][_sample],
+                            dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
+                            annotation=copy.deepcopy(corrected_softmaxed_pdfs), target_class=target_class,
+                            label_class=_class)
 
-            # 中間出力
-            intermidate_out = [_out[0] for _out in
-                               feed_forward(_mlp, [incorrect_intermediate_output[0][_class][_sample]])]
-            _pdfs = [[[pdfs(i, _layer, _node, intermidate_out[_layer][_node]) for i in range(model_shape[-1])]
-                      for _node in range(model_shape[_layer])]
-                     for _layer in range(len(model_shape))]
-            _softmax = lambda x: x/np.sum(x) if np.sum(x) > 0 else np.zeros(np.shape(x))
-            _softmaxed_pdfs = [[_softmax([pdfs(i, _layer, _node, intermidate_out[_layer][_node])
-                                         for i in range(model_shape[-1])])
-                                for _node in range(model_shape[_layer])]
-                               for _layer in range(len(model_shape))]
-            for _layer in range(len(model_shape)):
-                for _node in range(model_shape[_layer]):
-                    print("\ntarget:{} layer:{} node:{} out:{:.2f}".format(_class, _layer, _node,
-                                                                           intermidate_out[_layer][_node]))
-                    for _all_class in range(model_shape[-1]):
-                        print("pdfs[{}][{}][{}]:{:.2f}({:.2f}%) correct_range[{:.2f}-{:.2f}]"
-                              .format(_all_class, _layer, _node,
-                                      pdfs(_all_class, _layer, _node, intermidate_out[_layer][_node]),
-                                      _softmaxed_pdfs[_layer][_node][_all_class]*100,
-                                      correct_ranges[_all_class][_layer][_node][0],
-                                      correct_ranges[_all_class][_layer][_node][1]))
-            if True:
-                # ネットワークを可視化（各ノード確率、重み）
+            # ネットワークを可視化（各ノード確率、重み）
+            if False:
                 for target_class in [None] + list(range(model_shape[-1])):
                     visualize_network(
                         weights=get_kernel_and_bias(_mlp),
@@ -1842,7 +1882,7 @@ def get_bn_parameter(layer_model):
 # 入力: 層モデル, 1訓練データ , 親層番号, 親ノード番号, 親ノードと子ノードの正解範囲
 # 親ノードの正解範囲をmin=Maxにすることで親ノードを固定できる
 # 出力: 入力補正した子ノード層の出力
-def correct_child_output(model, data, parent_layer, parent_node, correct_range_of2layer, parent_activation):
+def correct_child_output(model, data, parent_layer, parent_node, correct_range_of2layer, parent_activation, pdf=None):
     # if parent_layer == 0:
     # return data
     data = copy.deepcopy(data)
@@ -1926,7 +1966,7 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     # bad_child = bad_node_sorted([[child[i], range_of_fluctuation[child[i]]] for i in range(len(child))], correct_amount)
     bad_child = bad_node_sorted(
         [[child[i], _child_out[child[i]], correct_range_of2layer[0][child[i]]] for i in range(len(child))],
-        correct_amount)
+        correct_amount, pdf)
 
     # 親ノードが正解に入るように子ノードを修正
     child_data = copy.deepcopy(data)
@@ -2056,7 +2096,7 @@ def get_range_of_fluctuation(child, parent_node, child_data, _child_correct_rang
 
 # 入力: [ノード番号, 実現可能な親出力] * ノード数、目標親出力
 # 出力: 正解範囲から離れているノードを優先して前に持ってきたときのノード番号リスト
-def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False):
+def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False, pdf=None):
     # 親ノードの修正可能量が多い順でソート
     # 変更する入力要素は少なくする->adversariral exampleでは全体に薄く変更され、見ても分からない
     # 木構造ならではの強み
@@ -2069,7 +2109,8 @@ def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False
         """
         # 正解範囲の中心からのずれでソート
         # print("key:{}".format(["中央値{} ずれ{}".format((x[2][0] + x[2][1])/2, -abs((x[2][0] + x[2][1])/2 - x[1])) for x in nodes_child_out_correct_range]))
-        nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
+        # nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
+        nodes_child_out_correct_range.sort(key=pdf)
         # print("bad_child:{}".format([[i[0], i[1]] for i in nodes_child_out_correct_range]))
         # if len([i[0] for i in nodes_child_out_correct_range]) > 1 and [[i[0], i[1]] for i in nodes_child_out_correct_range][0][0] != 0:
         # exit()
