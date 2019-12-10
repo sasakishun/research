@@ -41,7 +41,9 @@ class Neuron():
                 print("label_class:{}".format(label_class))
                 print("annotation:{}".format(annotation))
                 # annotation = [annotation[label_class], np.sum(annotation[:label_class]) + np.sum(annotation[label_class+1:])]
-                _colors = [colors[i] if i == label_class else "white" for i in range(len(annotation))]
+                _colors = [colors[label_class]]  + ["white" for i in range(len(annotation)-1)]
+                # [colors[i] if i == label_class else "white" for i in range(len(annotation))]
+                annotation = list([annotation[label_class]]) + list(annotation[:label_class]) + list(annotation[label_class+1:])
             else:
                 _colors = colors[:len(annotation)]
             if np.sum(annotation) == 0:
@@ -104,8 +106,10 @@ class Neuron():
                 if _color["color"] != "black":  # ミスニューロンは半径大きく、黒以外で描画
                     slip = 3 * (i - 1)
                     if _color["color"] != "white":
-                        circle = pyplot.Circle((self.x + slip, self.y + slip), radius=neuron_radius * 5,
-                                               facecolor=_color["color"], edgecolor=_color["color"],
+                        circle = pyplot.Circle((self.x + slip, self.y + slip),
+                                               radius=neuron_radius * 5,
+                                               facecolor=_color["color"],
+                                               edgecolor=_color["color"],
                                                width=0.5)
                         # 異常ノードの場合(白は数値のみ描画するために使用)
                         _text_correct_range = pyplot.text(self.x + 4, self.y - 12, "[{:.2f}, {:.2f}]".format(
@@ -119,7 +123,8 @@ class Neuron():
                                               fontsize=neuron_radius * 10, color="gray")
                     pyplot.gca()._add_text(_text_value)
                 else:
-                    circle = pyplot.Circle((self.x, self.y), radius=_neuron_radius, fill=False, color="black")
+                    circle = pyplot.Circle((self.x, self.y),
+                                           radius=_neuron_radius, fill=False, color="black")
                 # _text = pyplot.text(self.x-0.25, self.y-0.25, text, fontsize=neuron_radius*10)
                 # pyplot.gca()._add_text(_text)
                 pyplot.gca().add_patch(circle)
@@ -211,8 +216,10 @@ class Layer():
                     _sum = np.sum([abs(i) ** 4 for i in self.previous_layer.weights[this_layer_neuron_index]])
                     # print("weight[?][{}] -> sum:{}".format(this_layer_neuron_index, _sum))
                     # print(self.previous_layer.weights[this_layer_neuron_index])
+
                     linewidth = 2 * np.sign(weight) * weight ** 4 / _sum if _sum > 0 else 0
-                    # linewidth = weight / np.max(abs(self.previous_layer.weights))
+                    # linewidth = weight / np.max(abs(self.previous_layer.weights)) / 5
+
                     # print("weight:{}".format(weight))
                     # print("alpha:{}".format(weight / np.max(abs(self.previous_layer.weights))))
                     # print("weight:{}".format(self.previous_layer.weights))
@@ -235,6 +242,7 @@ class NeuralNetwork():
 
     def add_layer(self, number_of_neurons, weights=None, non_active_neurons=None, node_color=None, annotation=None,
                   label_class=None, is_image=False, change_node=None):
+        # is_image = False
         layer = Layer(self, number_of_neurons, weights, non_active_neurons, node_color=node_color,
                       annotation=annotation, label_class=label_class,
                       is_image=is_image, change_node=change_node)
@@ -427,7 +435,8 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     else:
         number_of_neurons_in_widest_layer = nodes[0]
         neuron_radius = horizontal_distance_between_neurons / 2  * 0.8
-
+    if annotation is None:
+        neuron_radius = 10
     network = NeuralNetwork()
     for i in range(len(nodes) - 1):
         network.add_layer(nodes[i], weights[i].T, non_active_neurons[i] if non_active_neurons is not None else None,

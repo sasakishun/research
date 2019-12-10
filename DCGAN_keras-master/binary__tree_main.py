@@ -1348,13 +1348,13 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # incorrect_data_test, incorrect_target_test \
     # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
-                                     [incorrect_data_test, incorrect_target_test],
-                                     original_data=[X_train, y_train, X_test, y_test],
-                                     name=["CORRECT_train", "MISS_test"])
-    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [correct_data_test, correct_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "CORRECT_test"])
+    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                     [incorrect_data_test, incorrect_target_test],
+                                     original_data=[X_train, y_train, X_test, y_test],
+                                     name=["CORRECT_train", "MISS_test"])
     exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
@@ -1526,8 +1526,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 2番目以降のクラスのみ可視化(後で(2, の部分を削除)
     for _class in range(0, len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
-            if _sample == 1:
-                break
+            # if _sample == 1:
+                # break
             if sample_num_to_index is not None:
                 _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             else:
@@ -1717,6 +1717,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
             # ネットワークを可視化（各ノード確率、重み）
             if True:
                 for target_class in [None] + list(range(model_shape[-1])):
+                    if target_class != _class:
+                        continue
                     visualize_network(
                         weights=get_kernel_and_bias(_mlp),
                         comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
@@ -1726,6 +1728,17 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
                         annotation=copy.deepcopy(_softmaxed_pdfs), target_class=target_class,
                         label_class=_class)
+                visualize_network(
+                    weights=get_kernel_and_bias(_mlp),
+                    comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
+                            + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                                _mlp.evaluate(X_test, y_test)[1]),
+                    neuron_color=None,
+                    dir=r"\{}{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
+                    annotation=None,
+                    target_class=None,
+                    label_class=_class)
+
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))
             input_datas = [incorrect_intermediate_output[0][_class][_sample]]
@@ -1972,7 +1985,7 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     # bad_child = bad_node_sorted([[child[i], range_of_fluctuation[child[i]]] for i in range(len(child))], correct_amount)
     bad_child = bad_node_sorted(
         [[child[i], _child_out[child[i]], correct_range_of2layer[0][child[i]]] for i in range(len(child))],
-        correct_amount, pdf)
+        correct_amount, unsort=False, pdf=pdf)
 
     # 親ノードが正解に入るように子ノードを修正
     child_data = copy.deepcopy(data)
@@ -2117,8 +2130,12 @@ def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False
         """
         # 正解範囲の中心からのずれでソート
         # print("key:{}".format(["中央値{} ずれ{}".format((x[2][0] + x[2][1])/2, -abs((x[2][0] + x[2][1])/2 - x[1])) for x in nodes_child_out_correct_range]))
-        # nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
-        nodes_child_out_correct_range.sort(key=pdf)
+        nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
+        # nodes_child_out_correct_range = [[nodes_child_out_correct_range[i][0], pdf[i]] for i in range(len(nodes_child_out_correct_range))]
+        # nodes_child_out_correct_range.sort(key=lambda x:x[1])
+        # for i in range(len(nodes_child_out_correct_range)):
+        # print("node:{} pdf:{}".format(nodes_child_out_correct_range[i], pdf[i]))
+
         # print("bad_child:{}".format([[i[0], i[1]] for i in nodes_child_out_correct_range]))
         # if len([i[0] for i in nodes_child_out_correct_range]) > 1 and [[i[0], i[1]] for i in nodes_child_out_correct_range][0][0] != 0:
         # exit()

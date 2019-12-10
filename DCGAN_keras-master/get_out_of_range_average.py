@@ -248,7 +248,10 @@ class Aggregate_data:
                 sum(eval("self.mnist_" + test_train + "_acc_MLP")) * 100 / len(
                     eval("self.mnist_" + test_train + "_acc_MLP")),
             ))
-
+        for _dataset in ["iris", "wine", "digit", "mnist"]:
+            print(_dataset)
+            print("train:{}".format(["{:.2f}".format(float(i)) for i in eval("self.{}_train_acc".format(_dataset))]))
+            print("test :{}".format(["{:.2f}".format(float(i)) for i in eval("self.{}_test_acc".format(_dataset))]))
 
 def my_makedirs(path):
     import os
