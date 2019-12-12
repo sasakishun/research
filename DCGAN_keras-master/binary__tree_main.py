@@ -1637,11 +1637,11 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         print("child_data:{}".format(child_data))
                         print("child_nodes:{}\n".format(child_nodes))
                         # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
-                        # correct_range_of2layer = get_correct_range(
-                            # copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
-                        # print("correct_range_of2layer2:{}".format(correct_range_of2layer))
-                        correct_range_of2layer = correct_ranges[_class][-2 - parent_layer: - parent_layer]
-                        # print("correct_range_of2layer2:{}".format(correct_range_of2layer))
+                        correct_range_of2layer = get_correct_range(
+                            copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
+                        print("correct_range_of2layer3:{}".format(correct_range_of2layer))
+                        correct_range_of2layer = correct_ranges[_class][parent_layer-1: parent_layer+1]
+                        print("correct_range_of2layer4:{}".format(correct_range_of2layer))
 
                         if len(correct_range_of2layer) > 0:
                             for _node in range(model_shape[parent_layer]):
@@ -1734,7 +1734,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
 
             # ネットワークを可視化（各ノード確率、重み）
             if True:
-                for target_class in [None] + list(range(model_shape[-1])):
+                for target_class in list(range(model_shape[-1])) + [None]:
                     if target_class != _class:
                         continue
                     visualize_network(
