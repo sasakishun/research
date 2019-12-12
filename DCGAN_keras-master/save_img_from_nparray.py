@@ -20,7 +20,7 @@ class SaveImgFromList:
             from visualization import my_makedirs
             my_makedirs(self.path)
             self.path += r"\{}.jpg".format(
-                "ex2_{}".format(tag[0][1]))  # datetime.now().strftime("%Y%m%d%H%M%S") + comment)
+                "ex2_{}_{}".format(tag[0][1], datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))  # datetime.now().strftime("%Y%m%d%H%M%S") + comment)
         else:
             self.path += r"\corrected_img\{}.jpg".format(datetime.now().strftime("%Y%m%d%H%M%S")
                                                          + (comment if comment is not None else ""))
