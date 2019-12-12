@@ -1722,7 +1722,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                                 change_node[_layer][_node] = True
                         print("_layer[{}]:{}".format(_layer, change_node[_layer]))
                     # exit()
-                    for target_class in [None] + list(range(model_shape[-1])):
+                    # 間違い修正結果後ネットワークを可視化
+                    for target_class in list(range(model_shape[-1])) + [None]:
                         visualize_network(
                             weights=get_kernel_and_bias(_mlp),
                             comment= "corrected",
@@ -1732,10 +1733,10 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                             label_class=_class,
                             change_node=copy.deepcopy(change_node))
 
-            # ネットワークを可視化（各ノード確率、重み）
+            # 学習後のネットワークを可視化（各ノード確率、重み）<-誤り修正なし
             if True:
-                for target_class in list(range(model_shape[-1])) + [None]:
-                    if target_class != _class:
+                for target_class in [None] + list(range(model_shape[-1])):
+                    if target_class is not None and target_class != _class:
                         continue
                     visualize_network(
                         weights=get_kernel_and_bias(_mlp),
@@ -1747,16 +1748,6 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         annotation=copy.deepcopy(_softmaxed_pdfs),
                         target_class=target_class,
                         label_class=_class)
-                visualize_network(
-                    weights=get_kernel_and_bias(_mlp),
-                    comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
-                            + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
-                                                                _mlp.evaluate(X_test, y_test)[1]),
-                    neuron_color=None,
-                    dir=r"\{}\{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
-                    annotation=copy.deepcopy(_softmaxed_pdfs), # None,
-                    target_class=None,
-                    label_class=_class)
 
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))
