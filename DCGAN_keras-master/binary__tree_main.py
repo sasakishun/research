@@ -1473,7 +1473,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         corret_intermediate_output, incorrect_intermediate_output \
             = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
                                               save_fig=False, get_each_color=False, get_intermidate_output=True)
-        neuron_colors = None
+        neuron_colors = None # correct_range_of2layerを別で定義する必要がある
         sample_num_to_index = None
     # 実験結果書き込み用パス
     result_path = os.getcwd() + r"\result\{}".format(datetime.now().strftime("%Y%m%d%H%M%S"))
@@ -1584,6 +1584,10 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     print("correcting_class:{}".format(_parent_nodes))
                     correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
                     print("correct_range_of2layer:{}".format(correct_range_of2layer))
+                    correct_range_of2layer = correct_ranges[_class][-2:]
+                    for i in correct_range_of2layer:
+                        print("correct_range_of2layer:{}".format(i))
+
                     parent_nodes = copy.deepcopy(_parent_nodes)
                     # 出力層を補正、中間層を逆算的に調節(入力層を含まない添え字parent_layer:第1中間層=0)
                     for parent_layer in reversed(range(len(_mlp.layers))):
@@ -1621,7 +1625,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                             for i in range(len(pdfs.means()[_class])):
                                 print("means[{}][{}]:{}".format(_class, i, pdfs.means()[_class][i]))
                             child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
-                                                              parent_node, correct_range_of2layer, parent_activation,
+                                                              parent_node,
+                                                              correct_range_of2layer,
+                                                              parent_activation,
                                                               pdf=child_pdf,
                                                               parents_mu=pdfs.means()[_class][parent_layer+1][parent_node])
                             child_nodes += get_child_node(_mlp, parent_layer + 1, parent_node)
@@ -1631,8 +1637,12 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         print("child_data:{}".format(child_data))
                         print("child_nodes:{}\n".format(child_nodes))
                         # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
-                        correct_range_of2layer = get_correct_range(
-                            copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
+                        # correct_range_of2layer = get_correct_range(
+                            # copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
+                        # print("correct_range_of2layer2:{}".format(correct_range_of2layer))
+                        correct_range_of2layer = correct_ranges[_class][-2 - parent_layer: - parent_layer]
+                        # print("correct_range_of2layer2:{}".format(correct_range_of2layer))
+
                         if len(correct_range_of2layer) > 0:
                             for _node in range(model_shape[parent_layer]):
                                 for i in range(2):
