@@ -97,7 +97,7 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
         return data, target
 
 
-# 入力: クラス分けされた訓練データ(クラス数,サンプル数)
+# 入力: クラス分けされた訓練データ(クラス数,サンプル数,層数,ノード数)
 def get_correct_ranges_from_data(model, data, get_pdfs=False):
     model_size = get_layer_size_from_weight(model.get_weights())
     if get_pdfs:
