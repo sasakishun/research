@@ -1289,9 +1289,10 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
             adversal_miss = 0
             print("\nadversarial_example random_flag:{}".format(random_flag))
             result.append("\nadversarial_example random_flag:{}".format(random_flag))
-            _datas = get_adversarial_example(_mlp, divide_data(correct_data_train,
-                                                               correct_target_train,
-                                                               dataset_category)[0],
+            _datas = get_adversarial_example(_mlp,
+                                             divide_data(correct_data_train,
+                                                         correct_target_train,
+                                                         dataset_category)[0],
                                              [Height, Width],
                                              correct_ranges=correct_ranges, test=True,
                                              random_flag=random_flag)

@@ -21,14 +21,15 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
     # print(i)
     # print("\n\n\n\n\n")
     model_size = get_layer_size_from_weight(model.get_weights())
+    input_size = model_size[0]
     if correct_inputs is not None:
         datas = [[] for _ in range(model_size[-1])]
         # correctに収まるノイズ画像を作成し,datasに追加
         # 訓練データの一部を合成すればいい
         if random_flag:  # model_size[0] == 784:
             mergin = 100  # 0.05
-            _min = [min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0] for i in range(model_size[0])]
-            _max = [max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1] for i in range(model_size[0])]
+            _min = [min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0] for i in range(input_size)]
+            _max = [max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1] for i in range(input_size)]
             for j in range(1000):
                 if j % 100 == 0:
                     print("{} sample generated".format(j))
@@ -36,10 +37,12 @@ def get_adversarial_example(model, correct_inputs, img_shape, correct_ranges=Non
                 for i in range(model_size[0]):
                     # _min = min(correct_ranges, key=lambda x: x[0][i][0])[0][i][0]
                     # _max = max(correct_ranges, key=lambda x: x[0][i][1])[0][i][1]
+                    # data[i] = random.uniform(_min[i], _max[i]) # 完全に一様分布から作成
                     data[i] = random.choice([random.uniform(_min[i], min(_max[i], _min[i] + mergin)),
                                              random.uniform(max(_min[i], _max[i] - mergin), _max[i])])
                 datas[np.argmax(feed_forward(model, [[data]])[-1])].append(data)
             return datas
+        # クラスごとの正常範囲からadversarial生成
         for _class in range(len(correct_inputs)):
             j = 0
             print("    generating class[{}]".format(_class))
