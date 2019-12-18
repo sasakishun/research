@@ -1583,7 +1583,7 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         # これは無視することで入力変化を抑える
                     # print("correcting_class:{}".format(_parent_nodes))
                     # correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
-                    print("correct_range_of2layer:{}".format(correct_range_of2layer))
+                    # print("correct_range_of2layer:{}".format(correct_range_of2layer))
                     correct_range_of2layer = correct_ranges[_class][-2:]
                     # for i in correct_range_of2layer:
                         # print("correct_range_of2layer:{}".format(i))

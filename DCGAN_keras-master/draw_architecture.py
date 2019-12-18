@@ -53,7 +53,7 @@ class Neuron():
                        counterclock=False,
                        center=(self.x, self.y),
                        colors=_colors,
-                       startangle=90,
+                       startangle=180,
                        # labels=["{:.2f}%".format(_annotation * 100) for _class, _annotation in enumerate(annotation)],
                        # textprops = {'fontsize': neuron_radius*5}
                        )
@@ -153,19 +153,49 @@ class Layer():
         x = self.__calculate_left_margin_so_layer_is_centered(
             int(np.sqrt(number_of_neurons) if is_image
                 else number_of_neurons))
+        print("x:{}".format(x))
+
+        # 最大ノード数以外の層では水平間隔を調整(入力層は除外)
+        global number_of_neurons_in_widest_layer
+        global horizontal_distance_between_neurons
+        _horizontal_distance_between_neurons = horizontal_distance_between_neurons
+        if not is_image:
+            if number_of_neurons > 1:
+                # ノード数に合わせて橋からのマージン&ノード間隔を設定
+                # x = min(number_of_neurons_in_widest_layer / number_of_neurons_in_widest_layer)
+                x = 0
+                _horizontal_distance_between_neurons = horizontal_distance_between_neurons\
+                                                       * (number_of_neurons_in_widest_layer - 1)\
+                                                       / (number_of_neurons - 1)
         for iteration in range(number_of_neurons):
             if is_image:
-                if iteration % int(np.sqrt(number_of_neurons)) == 0:
-                    x = self.__calculate_left_margin_so_layer_is_centered(int(np.sqrt(number_of_neurons)))
-                neuron = Neuron(x,
-                                self.y - horizontal_distance_between_neurons
-                                * (iteration // np.sqrt(number_of_neurons)))  # 40)
-                neurons.append(neuron)
-                x += horizontal_distance_between_neurons
+                if False:
+                    if iteration % int(np.sqrt(number_of_neurons)) == 0:
+                        x = self.__calculate_left_margin_so_layer_is_centered(int(np.sqrt(number_of_neurons)))
+                    neuron = Neuron(x,
+                                    self.y - horizontal_distance_between_neurons
+                                    * (iteration // np.sqrt(number_of_neurons)))  # 40)
+                    neurons.append(neuron)
+                    x += horizontal_distance_between_neurons
+                else:
+                    # print("x:{}".format(x))
+                    # print("horizontal_distance_between_neurons//2:{}".format(horizontal_distance_between_neurons//2))
+                    # print("neuron_radius:{}".format(neuron_radius))
+                    # for i in range(1, 5):
+                    # print("left_mergin of node:{} : {}".format(i*2, self.__calculate_left_margin_so_layer_is_centered(i*2)))
+                    # exit()
+                    neuron = Neuron(x,
+                                    self.y - horizontal_distance_between_neurons
+                                    * (np.sqrt(number_of_neurons)
+                                       - iteration % np.sqrt(number_of_neurons))
+                                    )
+                    neurons.append(neuron)
+                    if (iteration + 1) % int(np.sqrt(number_of_neurons)) == 0:
+                        x += horizontal_distance_between_neurons
             else:
                 neuron = Neuron(x, self.y)
                 neurons.append(neuron)
-                x += horizontal_distance_between_neurons
+                x += _horizontal_distance_between_neurons
         return neurons
 
     def __calculate_left_margin_so_layer_is_centered(self, number_of_neurons):
@@ -393,8 +423,17 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None, chan
     return weights, annotation, change_node
 
 
-def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None, annotation=None,
-           target_class=None, label_class=None, change_node=None):
+def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None,
+           annotation=None,
+           target_class=None, label_class=None, change_node=None, use_img=True):
+    # 事後確率なしのネットワーク図を指定
+    if False:
+        use_img = False
+        target_class = None
+        label_class = None
+        annotation = None
+        change_node = None
+
     neuron_radius = 0.5
     pyplot.tick_params(labelbottom=False,
                        labelleft=False,
@@ -430,8 +469,9 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
     horizontal_distance_between_neurons = 200  # np.sqrt(nodes[0]) / 2
     vertical_distance_between_layers = 600
     if nodes[0] == 64 or nodes[0] == 784:
-        number_of_neurons_in_widest_layer = np.sqrt(nodes[0])
+        number_of_neurons_in_widest_layer = max([np.sqrt(nodes[0]) if use_img else nodes[0]] + nodes[1:])
         neuron_radius = horizontal_distance_between_neurons / 2
+        vertical_distance_between_layers = 600 / 4 * (np.sqrt(nodes[0]) if use_img else nodes[0])
     else:
         number_of_neurons_in_widest_layer = nodes[0]
         neuron_radius = horizontal_distance_between_neurons / 2  * 0.8
@@ -443,7 +483,7 @@ def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=
                           node_color=node_colors[i] if node_colors is not None else None,
                           annotation=annotation[i] if annotation is not None else None,
                           label_class=label_class,
-                          is_image=True if (i == 0 and (nodes[0] == 64 or nodes[0] == 784)) else False,
+                          is_image=True if (i == 0 and (nodes[0] == 64 or nodes[0] == 784) and use_img) else False,
                           change_node=change_node[i] if change_node is not None else None)
     network.add_layer(nodes[-1], node_color=node_colors[-1] if node_colors is not None else None,
                       annotation=annotation[-1] if annotation is not None else None,
