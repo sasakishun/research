@@ -425,14 +425,11 @@ def extruct_weight_of_target_class(_weights, target_class, annotation=None, chan
 
 def mydraw(_weights, acc=None, comment="", non_active_neurons=None, node_colors=None, dir=None,
            annotation=None,
-           target_class=None, label_class=None, change_node=None, use_img=True):
+           target_class=None, label_class=None, change_node=None):
     # 事後確率なしのネットワーク図を指定
-    if False:
+    use_img = True
+    if target_class is None and label_class is None and annotation is None and change_node is None:
         use_img = False
-        target_class = None
-        label_class = None
-        annotation = None
-        change_node = None
 
     neuron_radius = 0.5
     pyplot.tick_params(labelbottom=False,

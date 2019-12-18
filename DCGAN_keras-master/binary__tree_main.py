@@ -1748,6 +1748,13 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         annotation=copy.deepcopy(_softmaxed_pdfs),
                         target_class=target_class,
                         label_class=_class)
+                visualize_network(
+                    weights=get_kernel_and_bias(_mlp),
+                    comment="{} out of {} class:{}_{}\n".format(name[1], name[0], _class, _sample_num)
+                            + "train:{:.4f} test:{:.4f}".format(_mlp.evaluate(X_train, y_train)[1],
+                                                                _mlp.evaluate(X_test, y_test)[1]),
+                    dir=r"\{}\{}_class_{}_sample_{}".format(cf.Dataset, name[1], _class, _sample_num),
+                )
 
             # 正解訓練サンプル×ミスサンプルの図も作成
             print("_class:{}".format(_class))
