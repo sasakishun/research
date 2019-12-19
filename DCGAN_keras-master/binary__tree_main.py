@@ -1467,8 +1467,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
         # miss_nodes: shape(クラス数, サンプル数, 層数)->クラスAサンプルBのC層でのミスノード番号のリスト
         miss_nodes, sample_num_to_index = get_miss_nodes(each_color)
         print("sample_num_to_index:{}".format(sample_num_to_index))
-        neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes,
-                                                                  get_layer_size_from_weight(_mlp.get_weights()))
+        # neuron_colors = get_neuron_color_list_from_out_of_range_nodes(miss_nodes, get_layer_size_from_weight(_mlp.get_weights()))
+        neuron_colors = None
     else:
         corret_intermediate_output, incorrect_intermediate_output \
             = show_intermidate_train_and_test(correct[0], correct[1], incorrect[0], incorrect[1], _mlp, name=name,
@@ -1637,9 +1637,9 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         print("child_data:{}".format(child_data))
                         print("child_nodes:{}\n".format(child_nodes))
                         # 中間層以降は親correct_range幅0->例[[A, A], [B,B]...]
-                        correct_range_of2layer = get_correct_range(
-                            copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
-                        print("correct_range_of2layer3:{}".format(correct_range_of2layer))
+                        # correct_range_of2layer = get_correct_range(
+                            # copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
+                        # print("correct_range_of2layer3:{}".format(correct_range_of2layer))
                         correct_range_of2layer = correct_ranges[_class][parent_layer-1: parent_layer+1]
                         print("correct_range_of2layer4:{}".format(correct_range_of2layer))
 
