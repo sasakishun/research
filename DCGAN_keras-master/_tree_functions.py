@@ -317,7 +317,7 @@ def _shrink_nodes(model, target_layer, X_train, y_train, X_test, y_test, shrink_
     return model
 
 
-def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None, intermidate_outpus=None, dir=None, annotation=None, target_class=None, label_class=None,change_node=None):
+def visualize_network(weights, acc=None, comment="", non_active_neurons=None, neuron_color=None, intermidate_outpus=None, dir=None, annotation=None, target_class=None, label_class=None, change_node=None):
     print("visualising_start")
     # return
     from time import sleep
@@ -393,7 +393,7 @@ def predict_intermidate_output(model, data, target_layer=None):
         return out
 
 
-def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=True):
+def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=True, dir=""):
     np.set_printoptions(precision=3)
     # intermediate_layer_model = [Model(inputs=_mlp.input, outputs=_mlp.get_layer("dense{}".format(i)).output)
     # for i in range(len(get_kernel_and_bias(_mlp)) // 2)]
@@ -477,7 +477,8 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=T
                       None, labels, ite=cf.Iteration, save_fig=save_fig,
                       testflag=True if name == "test" else False, showflag=False,
                       comment="layer:{} {}_acc:{:.2f}".format(
-                          i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
+                          i + 1, name, _mlp.evaluate(original_data, original_target)[1]),
+                      dir=dir)
         ###中間層出力を可視化
 
         for i in range(dataset_category):

@@ -2324,6 +2324,8 @@ class Main_test():
 
         ###全結合mlpとの比較
         if True:
+            print("Dataset:{}".format(cf.Dataset))
+            dir = r"\MLP_{}".format(cf.Dataset)
             fc_mlp = myMLP(get_layer_size_from_weight(_mlp.get_weights()))
             kernel_and_bias = get_kernel_and_bias(fc_mlp)
             kernel_mask = [i for i in kernel_and_bias if i.ndim == 2]
@@ -2337,6 +2339,17 @@ class Main_test():
                                        bias_mask=bias_mask,
                                        epochs=cf.Iteration,
                                        patience=1000)
+            correct_data_train, correct_target_train, incorrect_data_train, incorrect_target_train, train_index \
+                = show_intermidate_output(X_train, y_train, "train", _mlp, save_fig=True, get_index=True, dir=dir)
+            visualize_network(weights=fc_mlp.get_weights(), dir=dir)
+            exit()
+            show_intermidate_train_and_test(correct_data_train, correct[1],
+                                            input_datas, input_labels,
+                                            fc_mlp, name="non_tree_MLP",
+                                            save_fig=True, get_each_color=False,
+                                            get_intermidate_output=False,
+                                            dir=r"\{}\{}_class_{}_sample_{}".format(cf.Dataset, "non_tree_MLP", "None", "None"))
+
             result_path = os.getcwd() + r"\result\{}".format("_MLP_" + datetime.now().strftime("%Y%m%d%H%M%S"))
             result = [dataset,
                       "train loss_acc_MLP{}".format(fc_mlp.evaluate(X_train, y_train)),
