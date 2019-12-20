@@ -165,7 +165,7 @@ class Layer():
                 # x = min(number_of_neurons_in_widest_layer / number_of_neurons_in_widest_layer)
                 # x = 0
                 x = min(x, (number_of_neurons_in_widest_layer - number_of_neurons)\
-                    * horizontal_distance_between_neurons * 0.2)
+                    * horizontal_distance_between_neurons * 0.4) # 0.2)
                 # _horizontal_distance_between_neurons = horizontal_distance_between_neurons\
                                                        # * (number_of_neurons_in_widest_layer - 1)\
                                                        # / (number_of_neurons - 1)
@@ -609,9 +609,17 @@ if __name__ == "__main__":
                 weights.append(np.zeros((nodes[i], nodes[i + 1])))
             mydraw(weights, annotation=annotation, label_class=0, dir="\practice")
         exit()
-
+    elif False:
+        nodes = [13, 5, 3, 2, 3]
+        weights = []
+        for i in range(len(nodes) - 1):
+            weights.append(np.ones((nodes[i], nodes[i + 1])))
+        mydraw(weights, dir="\practice")
+        exit()
+        print(weights)
+        annotation = [[[0, 0, 0] for _ in range(_node)] for _node in nodes]
     # 人口データにおける事後確率可視化例
-    if True:
+    elif True:
         nodes = [8, 4, 2, 1]
         weights = []
         for i in range(len(nodes) - 1):

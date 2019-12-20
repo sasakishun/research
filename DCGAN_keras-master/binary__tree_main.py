@@ -1349,13 +1349,14 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # incorrect_data_test, incorrect_target_test \
     # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
-                                     [incorrect_data_test, incorrect_target_test],
-                                     original_data=[X_train, y_train, X_test, y_test],
-                                     name=["CORRECT_train", "MISS_test"])
-    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [correct_data_test, correct_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "CORRECT_test"])
+    exit()
+    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                     [incorrect_data_test, incorrect_target_test],
+                                     original_data=[X_train, y_train, X_test, y_test],
+                                     name=["CORRECT_train", "MISS_test"])
     exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
@@ -1527,8 +1528,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 2番目以降のクラスのみ可視化(後で(2, の部分を削除)
     for _class in range(0, len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
-            if _sample == 1:
-                break
+            # if _sample == 1:
+                # break
             if sample_num_to_index is not None:
                 _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             else:
