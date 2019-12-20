@@ -479,6 +479,7 @@ def show_intermidate_output(data, target, name, _mlp, save_fig=True, get_index=T
                       comment="layer:{} {}_acc:{:.2f}".format(
                           i + 1, name, _mlp.evaluate(original_data, original_target)[1]))
         ###中間層出力を可視化
+
         for i in range(dataset_category):
             print("acc class[{}]:{}".format(i, _mlp.evaluate(data[i], target[i])[1]))
         print("toral acc: {}\n\n".format(_mlp.evaluate(original_data, original_target)[1]))

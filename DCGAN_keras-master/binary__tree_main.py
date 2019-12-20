@@ -2323,7 +2323,7 @@ class Main_test():
         _mlp = load_weights_and_generate_mlp()
 
         ###全結合mlpとの比較
-        if False:
+        if True:
             fc_mlp = myMLP(get_layer_size_from_weight(_mlp.get_weights()))
             kernel_and_bias = get_kernel_and_bias(fc_mlp)
             kernel_mask = [i for i in kernel_and_bias if i.ndim == 2]
@@ -2342,6 +2342,10 @@ class Main_test():
                       "train loss_acc_MLP{}".format(fc_mlp.evaluate(X_train, y_train)),
                       "test  loss_acc_MLP{}".format(fc_mlp.evaluate(X_test, y_test))]
             write_result(result_path, result)
+            show_intermidate_layer_with_datas(fc_mlp, X_train, X_test, y_train, y_test,
+                                              artificial_error=False,
+                                              save_fig=False,
+                                              adversarial_test_flag=ADVERSARIAL_TEST)
             return
         # for i in range(len(X_train)):
         # intermidate_out = [_out[0] for _out in feed_forward(_mlp, [X_train[i]], [y_train[i]])]
