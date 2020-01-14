@@ -10,8 +10,13 @@ class SaveImgFromList:
     def __init__(self, imgs, shape, tag=None, comment=None, dir=None, output=None):
         np.set_printoptions(formatter={'float': '{: 0.3f}'.format})  # 桁を揃える
         self.imgs = [np.reshape(np.array(img), shape) for img in [imgs[0], imgs[-1]]]
+        self.tag = [tag[0], tag[-1]]
+        self.output = [output[0], output[-1]]
+        # self.imgs = [np.reshape(np.array(img), shape) for img in imgs]
+        # self.tag = tag
+        # self.output = output
         self.shape = shape
-        self.tag = tag
+        # print("tag:{}".format(tag))
         if comment is not None:
             comment = "_" + comment
         self.path = os.getcwd()
@@ -24,7 +29,6 @@ class SaveImgFromList:
         else:
             self.path += r"\corrected_img\{}.jpg".format(datetime.now().strftime("%Y%m%d%H%M%S")
                                                          + (comment if comment is not None else ""))
-        self.output = output
 
     def __call__(self, *args, **kwargs):
         # テキストファイルとして保存
@@ -39,14 +43,21 @@ class SaveImgFromList:
                 continue
             result.append(str(img))
             if self.output is not None:
-                result.append("-> " + str(self.output[i][0][0]) + " -> " + self.tag[i])
+                for j in range(len(self.output[i][0])):
+                    result.append("-> " + str(self.output[i][0][j]) + " -> " + self.tag[i])
+            print("tag[{}]:{}".format(i, self.tag[i]))
+        for i, _output in enumerate(self.output):
+            print("output[{}]:{}".format(i, _output))
+
         write_result(self.path[:-4] + ".txt", result)
+        # exit()
         if self.shape[0] == 1 or self.shape[1] == 1:
             return
+
         self.imgs = [(np.ones(np.shape(img)) - np.array(img)) * 255. for img in self.imgs]
         # for i in self.imgs:
             # print("imgs\n{}".format(i))
-        imgs = [Image.fromarray(img).convert('RGB') for img in self.imgs]
+        imgs = [Image.fromarray(img).convert('RGB') for img in self.imgs[:1]]
         fig = plt.figure(figsize=(6, 8 * len(imgs)))
         # print(imgs)
         for i, p in enumerate(imgs):

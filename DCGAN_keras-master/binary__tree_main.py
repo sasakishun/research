@@ -791,8 +791,9 @@ class Main_train():
 
         _mlp = tree_mlp(input_size, dataset_category, kernel_mask=kernel_mask,
                         child_num=CHILD_NUM, is_image=IS_IMAGE)  # myMLP(13, [5, 4, 2], 3)
+        _acc = 0
 
-        for i in range(2):
+        for i in range(10):
             X_train, y_train = shuffle_data(X_train, y_train)
             # モデル学習
             _mlp = keep_mask_and_fit(_mlp, X_train, y_train, batch_size=cf.Minibatch,
@@ -825,11 +826,21 @@ class Main_train():
                                                             _mlp.evaluate(X_test, y_test)[1]))
             """
             # モデル保存
-            _mlp.save_weights(cf.Save_mlp_path)
-            np.save(cf.Save_np_mlp_path, _mlp.get_weights())
-            _mlp.load_weights(cf.Save_mlp_path)
-            print("train_acc:{}".format(_mlp.evaluate(X_train, y_train)))
-            print("test_acc:{}".format(_mlp.evaluate(X_test, y_test)))
+            if _mlp.evaluate(X_test, y_test)[1] < _acc: #性能低下([0]指定によりロス基準)
+                _mlp.load_weights(cf.Save_mlp_path)
+                print("acc is degraded")
+                print("i:{} train_acc:{}".format(i, _mlp.evaluate(X_train, y_train)))
+                print("i:{} test_acc:{}".format(i, _mlp.evaluate(X_test, y_test)))
+                return _mlp.evaluate(X_test, y_test)[1]
+            else:#性能非低下
+                print("acc is not degraded")
+                _acc = _mlp.evaluate(X_test, y_test)[1]
+                _mlp.save_weights(cf.Save_mlp_path)
+                # np形式で保存することで、テスト時にモデルサイズを取得可能
+                np.save(cf.Save_np_mlp_path, _mlp.get_weights())
+                _mlp.load_weights(cf.Save_mlp_path)
+                print("i:{} train_acc:{}".format(i, _mlp.evaluate(X_train, y_train)))
+                print("i:{} test_acc:{}".format(i, _mlp.evaluate(X_test, y_test)))
         print("_mlp:{}".format([np.shape(i) for i in _mlp.get_weights()]))
         return _mlp.evaluate(X_test, y_test)[1]
         """
@@ -1349,14 +1360,13 @@ def show_intermidate_layer_with_datas(_mlp, X_train, X_test, y_train, y_test, sa
     # incorrect_data_test, incorrect_target_test \
     # = np.array(incorrect_data_test)[p], np.array(incorrect_target_test)[p]
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
-                                     [correct_data_test, correct_target_test],
-                                     original_data=[X_train, y_train, X_test, y_test],
-                                     name=["CORRECT_train", "CORRECT_test"])
-    exit()
-    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_test, incorrect_target_test],
                                      original_data=[X_train, y_train, X_test, y_test],
                                      name=["CORRECT_train", "MISS_test"])
+    visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
+                                     [correct_data_test, correct_target_test],
+                                     original_data=[X_train, y_train, X_test, y_test],
+                                     name=["CORRECT_train", "CORRECT_test"])
     exit()
     visualize_miss_neuron_on_network(_mlp, [correct_data_train, correct_target_train],
                                      [incorrect_data_train, incorrect_target_train],
@@ -1528,8 +1538,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
     # 2番目以降のクラスのみ可視化(後で(2, の部分を削除)
     for _class in range(0, len(incorrect_intermediate_output[0])):
         for _sample in range(len(incorrect_intermediate_output[0][_class])):  # len(neuron_colors[_class])):
-            # if _sample == 1:
-                # break
+            if _sample == 3:
+                break
             if sample_num_to_index is not None:
                 _sample_num = int([key for key, val in sample_num_to_index[_class].items() if val == _sample][0])
             else:
@@ -1585,9 +1595,13 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                     # print("correcting_class:{}".format(_parent_nodes))
                     # correct_range_of2layer = get_correct_range(neuron_colors[_class][_sample][-2:])
                     # print("correct_range_of2layer:{}".format(correct_range_of2layer))
-                    correct_range_of2layer = correct_ranges[_class][-2:]
-                    # for i in correct_range_of2layer:
-                        # print("correct_range_of2layer:{}".format(i))
+                    correct_range_of2layer = copy.deepcopy(correct_ranges[_class][-2:])
+                    for _class_ in range(len(_out)):
+                        print("\nclass:{}".format(_class_))
+                        for i, _correct_range in enumerate(correct_ranges[_class_]):
+                            print("layer:{} correct_range:{}".format(i, _correct_range))
+                    for i, _correct in enumerate(correct_range_of2layer):
+                        print("\ncorrect_range_of2layer[{}]:{}".format(i, _correct))
 
                     parent_nodes = copy.deepcopy(_parent_nodes)
                     # 出力層を補正、中間層を逆算的に調節(入力層を含まない添え字parent_layer:第1中間層=0)
@@ -1625,13 +1639,17 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                             print("parent_layer:{}".format(parent_layer+1))
                             for i in range(len(pdfs.means()[_class])):
                                 print("means[{}][{}]:{}".format(_class, i, pdfs.means()[_class][i]))
-                            child_data = correct_child_output(_mlp.layers[parent_layer], child_data, parent_layer,
+                            child_data = correct_child_output(_mlp.layers[parent_layer], child_data,
+                                                              parent_layer,
                                                               parent_node,
                                                               correct_range_of2layer,
                                                               parent_activation,
                                                               pdf=child_pdf,
                                                               parents_mu=pdfs.means()[_class][parent_layer+1][parent_node])
+                            # print("child_nodes:{}".format(child_nodes))
                             child_nodes += get_child_node(_mlp, parent_layer + 1, parent_node)
+                        # print("child_nodes:{}".format(child_nodes))
+                        # exit()
                         print("parent_nodes:{}".format(parent_nodes))
                         ideal_hidden.append(copy.deepcopy(child_data))
                         parent_nodes = child_nodes
@@ -1641,9 +1659,12 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                         # correct_range_of2layer = get_correct_range(
                             # copy.deepcopy(neuron_colors[_class][_sample][parent_layer - 1:parent_layer + 1]))
                         # print("correct_range_of2layer3:{}".format(correct_range_of2layer))
-                        correct_range_of2layer = correct_ranges[_class][parent_layer-1: parent_layer+1]
+                        correct_range_of2layer = copy.deepcopy(correct_ranges[_class][parent_layer-1: parent_layer+1])
+                        print("_class:{} parent_layer-1:{} parent_layer+1:{}".format(
+                            _class, parent_layer-1, parent_layer+1))
                         print("correct_range_of2layer4:{}".format(correct_range_of2layer))
 
+                        # 次親ノードの正常範囲を、現在層のノード出力に設定
                         if len(correct_range_of2layer) > 0:
                             for _node in range(model_shape[parent_layer]):
                                 for i in range(2):
@@ -1685,6 +1706,8 @@ def visualize_miss_neuron_on_network(_mlp, correct, incorrect, original_data, na
                               .format(_class, _sample, len(diff_nodes), diff_nodes,
                                       incorrect_intermediate_output[0][_class][_sample],
                                       corrected_input[-1]))
+                for i in range(len(corrected_input)):
+                    print("corrected_input[{}]:{}".format(i, corrected_input[i]))
                 # 修正前と後の画像を連結表示
                 SaveImgFromList([np.array(i) for i in corrected_input],
                                 np.array([Height, Width]),
@@ -1992,13 +2015,13 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
     if parent_out < min(parent_correct_range):
         print("parent_out < parent_correct_range[0]")
         # 子ノードを変えて親ノードが変化する場合のみ変更
-        # correct_amount = min(parent_correct_range)  # - parent_out
-        correct_amount = parents_mu
+        correct_amount = min(parent_correct_range)  # - parent_out
+        # correct_amount = parents_mu
     # 負方向に子ノードを変更する場合
     elif max(parent_correct_range) < parent_out:
         print("parent_correct_range[1] < parent_out")
-        # correct_amount = max(parent_correct_range)  # - parent_out
-        correct_amount = parents_mu
+        correct_amount = max(parent_correct_range)  # - parent_out
+        # correct_amount = parents_mu
     else: # 子ノードを変更しても親ノードが変わらないなら子ノードは変えない
         print("parent_correct_range[0] < parent_out < parent_correct_range[1]")
         correct_amount = parent_out
@@ -2016,6 +2039,8 @@ def correct_child_output(model, data, parent_layer, parent_node, correct_range_o
         # 正解の範囲内でできる修正量を計算
         # ここではy=xを仮定して修正量算出しているが
         # 本来はReLUなので子供を修正しても親が変化しない場合が存在、その場合は子を修正しないべき
+        if float(range_of_fluctuation[_child][0]["parent"]) == float(range_of_fluctuation[_child][1]["parent"]):
+            continue
         if correct_amount < range_of_fluctuation[_child][0]["parent"]:
             correctable_amount = range_of_fluctuation[_child][0]["parent"]
             print("親ノードを可能な限り、最小値:{}にして異常ノード軽減".format(correctable_amount))
@@ -2139,7 +2164,7 @@ def get_range_of_fluctuation(child, parent_node, child_data, _child_correct_rang
 
 # 入力: [ノード番号, 実現可能な親出力] * ノード数、目標親出力
 # 出力: 正解範囲から離れているノードを優先して前に持ってきたときのノード番号リスト
-def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False, pdf=None):
+def bad_node_sorted(nodes_child_out_correct_range, _correct_amount=None, unsort=False, pdf=None):
     # 親ノードの修正可能量が多い順でソート
     # 変更する入力要素は少なくする->adversariral exampleでは全体に薄く変更され、見ても分からない
     # 木構造ならではの強み
@@ -2152,9 +2177,11 @@ def bad_node_sorted(nodes_child_out_correct_range, _correct_amount, unsort=False
         """
         # 正解範囲の中心からのずれでソート
         # print("key:{}".format(["中央値{} ずれ{}".format((x[2][0] + x[2][1])/2, -abs((x[2][0] + x[2][1])/2 - x[1])) for x in nodes_child_out_correct_range]))
-        nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
-        # nodes_child_out_correct_range = [[nodes_child_out_correct_range[i][0], pdf[i]] for i in range(len(nodes_child_out_correct_range))]
-        # nodes_child_out_correct_range.sort(key=lambda x:x[1])
+
+        # nodes_child_out_correct_range.sort(key=lambda x: -abs((x[2][0] + x[2][1]) / 2 - x[1]))
+
+        nodes_child_out_correct_range = [[nodes_child_out_correct_range[i][0], pdf[i]] for i in range(len(nodes_child_out_correct_range))]
+        nodes_child_out_correct_range.sort(key=lambda x:x[1])
         # for i in range(len(nodes_child_out_correct_range)):
         # print("node:{} pdf:{}".format(nodes_child_out_correct_range[i], pdf[i]))
 
@@ -2322,8 +2349,8 @@ class Main_test():
             = getdata(dataset, binary_flag=binary_flag, train_frag=True)
         _mlp = load_weights_and_generate_mlp()
 
-        ###全結合mlpとの比較
-        if True:
+        ###全結合mlpの学習&テスト
+        if False:
             print("Dataset:{}".format(cf.Dataset))
             dir = r"\MLP_{}".format(cf.Dataset)
             fc_mlp = myMLP(get_layer_size_from_weight(_mlp.get_weights()))

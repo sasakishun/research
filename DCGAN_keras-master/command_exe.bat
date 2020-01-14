@@ -6,7 +6,7 @@ python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked -
 python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked --thread %%i --use_shrinked_model
 )
 goto end
-python binary__tree_main.py --wine --test --child_num 2 --shrinked --thread 1 --use_shrinked_model
+python binary__tree_main.py --wine --test --child_num 2 --shrinked --thread 5 --use_shrinked_model
 python binary__tree_main.py --digit --test --child_num 3 --is_image --shrinked --thread 1 --use_shrinked_model
 python binary__tree_main.py --mnist --test --child_num 9 --is_image --shrinked --thread 1 --use_shrinked_model
 goto end
@@ -29,6 +29,7 @@ goto end
 python binary__tree_main.py --digit --train --child_num 3 --is_image --thread 100
 python binary__tree_main.py --mnist --train --child_num 9 --is_image --thread 100
 goto end
+
 
 for /L %%i in (1,1,10) do (
 cls

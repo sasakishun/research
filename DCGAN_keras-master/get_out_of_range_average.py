@@ -24,7 +24,8 @@ def reliability_test(CORRECT_TEST, MISS_TEST, show_detail=False, sigma_coefficie
         if sigma_coefficient is not None:
             threshold[node] = _mean + sigma_coefficient * _stdev  # max(data)  # 3σ位置
         else:
-            threshold[node] = max(data)
+            threshold[node] = _mean + 2 * _stdev
+            # threshold[node] = max(data)
         if show_detail:
             print("data:{}".format(data))
             print('平均: {0:.2f}'.format(_mean))
@@ -263,7 +264,7 @@ if __name__ == '__main__':
     aggregate_data = Aggregate_data()
     # ファイルをオープンする
     dir = os.getcwd() + r"\result_NC"
-    hist_dir = os.getcwd() + r"\histgram"
+    hist_dir = os.getcwd() + r"\histgram_journal"
     files = os.listdir(dir)
     for file in files:
         # print(file)
@@ -364,7 +365,7 @@ if __name__ == '__main__':
                                         correct_exclude_use_sigma,
                                         train_acc=train_acc, test_acc=test_acc)
             # ヒストグラム作成
-            if False:
+            if True:
                 for i in range(len(_CORRECT_TEST[0])):
                     _min0 = min([x[i] for x in _CORRECT_TEST])
                     _max0 = max([x[i] for x in _CORRECT_TEST])
