@@ -19,23 +19,25 @@
 <!--テキスト表示エリア-->
 <!--<c:forEach></c:forEach>のループ開始-->
 <p id="quantityText0">3</p>
-<input type="button" value="+" onclick="increment(0)">
+<input type="button" value="-" onclick="increment(0, -1)">
+<input type="button" value="+" onclick="increment(0, 1)">
 <br>
 <p id="quantityText1">5</p>
-<input type="button" value="+" onclick="increment(1)">
+<input type="button" value="-" onclick="increment(1, -1)">
+<input type="button" value="+" onclick="increment(1, 1)">
 <!--<c:forEach></c:forEach>のループ終端-->
 <!--テキスト表示エリア終端-->
 
 <script>
-function increment(indexStr)
+function increment(indexStr, addedValue)
 {
   //index指定による、formエリア内要素の書き換え（インクリメント）
   const num = document.getElementById("quantity" + indexStr).value
-  document.getElementById("quantity" + indexStr).value  = parseInt(num) + 1;
+  document.getElementById("quantity" + indexStr).value  = parseInt(num) + parseInt(addedValue);
 
   //index指定による、pテキストエリア内要素の書き換え（インクリメント）
   var text = document.getElementById("quantityText" + indexStr);
-  text.textContent  = parseInt(num) + 1;
+  text.textContent  = parseInt(num) + parseInt(addedValue);
 }
 </script>
 </body>
