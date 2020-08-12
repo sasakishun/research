@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<form name="quantity">
+    <!--jspの<c:forEach></c:forEach>で囲むなら、idを"quantity + status.index"にすればいい-->
+    <input id = "quantity0" type="text" value="3">
+    <input id = "quantity1" type="text" value="5">
+    <!--<c:forEach></c:forEach>のループ終端-->
+
+    <!--@Controllerで受け取るのはquantityのリスト-->
+    <input type="submit" value="確定" onclick="">
+</form>
+
+<!--テキスト表示エリア-->
+<!--<c:forEach></c:forEach>のループ開始-->
+<p id="quantityText0">3</p>
+<input type="button" value="+" onclick="increment(0)">
+<br>
+<p id="quantityText1">5</p>
+<input type="button" value="+" onclick="increment(1)">
+<!--<c:forEach></c:forEach>のループ終端-->
+<!--テキスト表示エリア終端-->
+
+<script>
+function increment(indexStr)
+{
+  //index指定による、formエリア内要素の書き換え（インクリメント）
+  const num = document.getElementById("quantity" + indexStr).value
+  document.getElementById("quantity" + indexStr).value  = parseInt(num) + 1;
+
+  //index指定による、pテキストエリア内要素の書き換え（インクリメント）
+  var text = document.getElementById("quantityText" + indexStr);
+  text.textContent  = parseInt(num) + 1;
+}
+</script>
+</body>
+</html>

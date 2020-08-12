@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<form name="keisan">
+    <input id = "quantity0" type="text" value="3">
+    <input type="button" value="加算" onclick="increment(0)">
+    <br>
+    <input id = "quantity1" type="text" value="5">
+    <input type="button" value="計算" onclick="increment(1)">
+</form>
+
+<script>
+function increment(indexStr)
+{
+  const num = document.getElementById("quantity" + indexStr).value
+  document.getElementById("quantity" + indexStr).value  = parseInt(num) + 1;
+}
+</script>
+</body>
+</html>

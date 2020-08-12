@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<form name="keisan">
+    <input id = "quantity1" type="text" value="3">
+    <input type="button" value="加算" onclick="increment(0)">
+    <br>
+    <input id = "quantity2" type="text" value="5">
+    <input type="button" value="計算" onclick="increment(1)">
+</form>
+
+<script>
+function increment(indexStr)
+{
+  const index = parseInt(indexStr);
+
+  //テキストボックスの数値を変数に格納する
+  //for (let i = index; i < index + 1; i++) {
+  //var num=document.keisan.elements[i].value;
+  //document.keisan.elements[i].value = parseInt(num) + parseInt(1);
+  // }
+
+  var num = document.keisan.elements[2].value;
+  document.keisan.elements[2].value = parseInt(num) + parseInt(1);
+}
+</script>
+</body>
+</html>
