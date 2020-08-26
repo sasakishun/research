@@ -1,0 +1,144 @@
+----------メインSheet--------------
+Public Sub generateOutlookMail()
+
+    Dim objOutlook As Outlook.Application
+    Dim objMail As Outlook.MailItem
+
+    Set objOutlook = New Outlook.Application
+    Set objMail = objOutlook.CreateItem(olMailItem)
+    
+    ' 書式設定パラメータ
+    Const minusPaddingNum As Long = 60
+    Const maxIndentDepse As Long = 10
+    Const indentSpace As String = "    "
+    Const indentHead As String = "- "
+    
+    ' Excelシート内の各項目位置の設定
+    Const nameRow = 1
+    Const toAddressRow = 2
+    Const toNameRow = 3
+    Const ccAddressRow = 4
+    Const ccNameRow = 5
+    Const subjectRow = 6
+    Const headerRow = 7
+    Const footerRow = 8
+    Const bodyStartRow = 9
+    Const startColumn = 2
+    
+    ' 変数宣言
+    Dim toName As String: toName = ""
+    Dim toAddress As String: toAddress = ""
+    Dim ccName As String: ccName = ""
+    Dim ccAddress As String: ccAddress = ""
+    Dim subject As String: subject = ""
+    Dim header As String: header = ""
+    Dim body As String: body = ""
+    Dim footer As String: footer = ""
+    
+    ' インデックス宣言
+    Dim i As Long: i = bodyStartRow
+    Dim j As Long: j = startColumn
+
+    
+    With Sheet1
+        ' To宛先アドレス取得
+        toAddress = getRow(toAddressRow, startColumn, "; ")
+        
+        ' To宛先名を取得
+        Call addStr(header, getRow(toNameRow, startColumn, vbLf))
+        
+        ' cc宛先アドレスを取得
+        ccAddress = getRow(ccAddressRow, startColumn, ";")
+        
+        ' cc宛先名を取得
+        Call addStr(header, "Cc: " & getRow(ccNameRow, startColumn, " ") & vbLf & vbLf)
+    
+        ' タイトルを取得
+        Call addStr(subject, getRow(subjectRow, startColumn, ""))
+    
+        ' 書き出しを取得
+        Call addStr(header, getRow(headerRow, startColumn, "") & vbLf)
+        
+        ' 締めを取得
+        Call addStr(footer, getRow(footerRow, startColumn, "") & vbLf)
+    
+        ' ボディ取得
+        i = bodyStartRow
+        While .Cells(i, 1).Value <> ""
+            j = startColumn
+            While j < maxIndentDepse
+                ' 空白セルは無視
+                If .Cells(i, j).Value <> "" Then
+                    ' 本文内トピックタイトル取得
+                    If j = startColumn Then
+                        ' トピック先の項目がない場合は非表示
+                        If .Cells(i, j + 1).Value <> "" Then
+                            Dim minusPadding As String: minusPadding = convertToTopicTitle(.Cells(i, j).Value, minusPaddingNum)
+                            Call addStr(body, vbLf & minusPadding & .Cells(i, j).Value & minusPadding & vbLf)
+                        End If
+                        
+                    ' 本文内各項目取得
+                    Else
+                        ' インデント
+                        Dim indent As Long
+                        For indent = 1 To j - (startColumn + 1)
+                            Call addStr(body, indentSpace)
+                            Next indent
+                        Call addStr(body, indentHead & .Cells(i, j).Value & vbLf)
+                    End If
+                End If
+                j = j + 1
+            Wend
+            i = i + 1
+        Wend
+    End With
+    
+        
+    'メールフォームに書き込み
+    With objMail
+        .To = toAddress
+        .CC = ccAddress
+        .subject = subject
+        .body = header & body & footer
+        .Display    ' メール作成画面で表示するのみ
+
+        '.Save   ' 下書き保存
+        '.Send   ' メール送信
+    End With
+
+End Sub
+
+Sub addStr(field As String, str As String)
+    field = field & str
+End Sub
+
+Function getRow(targetRow As Long, startColumn As Long, splitString As String) As String
+        Dim str As String: str = ""
+        j = startColumn
+        Do While Sheet1.Cells(targetRow, j).Value <> ""
+            Call addStr(str, Sheet1.Cells(targetRow, j).Value & splitString)
+            j = j + 1
+        Loop
+    getRow = str
+End Function
+
+
+---------テンプレートSheet-----------
+Function convertToTopicTitle(str As String, minusPaddingNum As Long)
+    convertToTopicTitle = String((WorksheetFunction.Max(0, minusPaddingNum - LenB(str))) / 2, "-")
+End Function
+
+
+Public Sub copyGenerateTemplate(sheetName As String)
+    Range("A1", "Z100").Copy _
+    Destination:=Sheets(sheetName).Range("A1")
+End Sub
+
+-----------各種ボタンSheet------------
+Sub ボタン1_Click()
+    Sheet1.generateOutlookMail
+End Sub
+Sub ボタン2_Click()
+    Sheet2.copyGenerateTemplate ("Sheet1")
+End Sub
+
